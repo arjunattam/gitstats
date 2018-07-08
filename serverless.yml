@@ -9,10 +9,7 @@ provider:
   name: aws
   region: us-west-1
   runtime: nodejs8.10
-  environment:
-    AUTH0_AUDIENCE: http://gitstats-dev/
-    AUTH0_ISSUER: https://karigari.auth0.com/
-    AUTH0_JWKS_URI: https://karigari.auth0.com/.well-known/jwks.json
+  environment: ${file(./env.yml):${opt:stage, self:provider.stage}}
 
 functions:
   auth:
@@ -20,6 +17,7 @@ functions:
     cors: true
   report:
     handler: handler.report
+    timeout: 20 # seconds
     events:
       - http:
           method: get

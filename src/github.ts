@@ -18,7 +18,11 @@ const options = {
 export default class GithubService {
   uri: string;
 
-  constructor(private owner: string, private repo: string) {
+  constructor(
+    private ghToken: string,
+    private owner: string,
+    private repo: string
+  ) {
     this.uri = `repos/${this.owner}/${this.repo}`;
   }
 
@@ -28,7 +32,8 @@ export default class GithubService {
       uri: `${this.uri}/${path}`,
       headers: {
         ...options.headers,
-        ...headers
+        ...headers,
+        Authorization: `token ${this.ghToken}`
       },
       qs: {
         ...options.qs,

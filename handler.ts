@@ -6,11 +6,16 @@ import {
   CustomAuthorizerEvent
 } from "aws-lambda";
 import Github from "./src/github";
-import authorizer from "./src/auth";
+import authorizer from "./src/authorizer";
+import UserManager from "./src/users";
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*", // Required for CORS support to work
   "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
+};
+
+const getToken = headers => {
+  return headers.Authorization.split(" ")[1];
 };
 
 export const report: Handler = (
@@ -18,17 +23,23 @@ export const report: Handler = (
   context: Context,
   cb: Callback
 ) => {
+  const accessToken = getToken(event.headers);
   const { owner, repo } = event.pathParameters;
-  const gh = new Github(owner, repo);
 
-  Promise.all([gh.stargazers(), gh.issues()]).then(values => {
-    cb(null, {
-      statusCode: 200,
-      headers: HEADERS,
-      body: JSON.stringify({
-        message: values,
-        input: event
-      })
+  const manager = new UserManager(accessToken);
+
+  manager.getGhToken().then(token => {
+    const gh = new Github(token, owner, repo);
+
+    Promise.all([gh.stargazers(), gh.issues()]).then(values => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: values,
+          input: event
+        })
+      });
     });
   });
 };
