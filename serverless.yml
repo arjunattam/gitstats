@@ -1,5 +1,5 @@
 service:
-  name: aws-nodejs-typescript
+  name: gitstats
 
 plugins:
   - serverless-offline
@@ -7,12 +7,48 @@ plugins:
 
 provider:
   name: aws
+  region: us-west-1
   runtime: nodejs8.10
+  environment:
+    AUTH0_AUDIENCE: http://gitstats-dev/
+    AUTH0_ISSUER: https://karigari.auth0.com/
+    AUTH0_JWKS_URI: https://karigari.auth0.com/.well-known/jwks.json
 
 functions:
-  hello:
-    handler: handler.hello
+  auth:
+    handler: handler.auth
+    cors: true
+  report:
+    handler: handler.report
     events:
       - http:
           method: get
-          path: hello
+          path: report/{owner}/{repo}
+          resp: http
+          authorizer: auth
+          cors: true
+
+resources:
+  Resources:
+    # This response is needed for custom authorizer failures cors support ¯\_(ツ)_/¯
+    # From https://github.com/serverless/examples/blob/master/aws-node-auth0-custom-authorizers-api/serverless.yml
+    GatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: EXPIRED_TOKEN
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    AuthFailureGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'

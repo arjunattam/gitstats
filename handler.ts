@@ -1,13 +1,42 @@
-import { APIGatewayEvent, Callback, Context, Handler } from 'aws-lambda';
+import {
+  APIGatewayEvent,
+  Callback,
+  Context,
+  Handler,
+  CustomAuthorizerEvent
+} from "aws-lambda";
+import Github from "./src/github";
+import authorizer from "./src/auth";
 
-export const hello: Handler = (event: APIGatewayEvent, context: Context, cb: Callback) => {
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'Go Serverless Webpack (Typescript) v1.0! Your function executed successfully!',
-      input: event,
-    }),
-  };
+const HEADERS = {
+  "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+  "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
+};
 
-  cb(null, response);
-}
+export const report: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  const { owner, repo } = event.pathParameters;
+  const gh = new Github(owner, repo);
+
+  Promise.all([gh.stargazers(), gh.issues()]).then(values => {
+    cb(null, {
+      statusCode: 200,
+      headers: HEADERS,
+      body: JSON.stringify({
+        message: values,
+        input: event
+      })
+    });
+  });
+};
+
+export const auth: Handler = (
+  event: CustomAuthorizerEvent,
+  context: Context,
+  cb: Callback
+) => {
+  return authorizer(event, cb);
+};
