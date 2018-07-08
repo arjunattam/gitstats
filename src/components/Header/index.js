@@ -1,5 +1,6 @@
 import React from "react";
 import { Container, Navbar, NavbarBrand, Button } from "reactstrap";
+import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
 
 class AuthState extends React.Component {
@@ -7,6 +8,7 @@ class AuthState extends React.Component {
 
   componentDidMount() {
     this.auth = new Auth();
+    console.log(this.auth.getUserProfile());
     this.updateAuthState();
   }
 
@@ -27,10 +29,12 @@ class AuthState extends React.Component {
   render() {
     return this.state.isLoggedIn ? (
       <div>
+        <Link to="/report">Report</Link>
         <Button onClick={() => this.logout()}>Logout</Button>
       </div>
     ) : (
       <div>
+        <Link to="/report">Report</Link>
         <Button onClick={() => this.login()}>Login</Button>
       </div>
     );

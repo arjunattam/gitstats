@@ -1,8 +1,6 @@
 import auth0 from "auth0-js";
-import createHistory from "history/createBrowserHistory";
-const jwtDecode = require("jwt-decode");
-
-const history = createHistory();
+import jwtDecode from "jwt-decode";
+import { customHistory as history } from "../components/Router";
 
 const AUTH0_DOMAIN = "karigari.auth0.com";
 const AUTH0_AUDIENCE = "http://gitstats-dev/";
@@ -76,6 +74,12 @@ export default class Auth {
   };
 
   getUserProfile = () => {
-    return jwtDecode(Storage.get("id_token"));
+    const idToken = Storage.get("id_token");
+    return idToken ? jwtDecode(idToken) : {};
+  };
+
+  getAuthHeader = () => {
+    const accessToken = Storage.get("access_token");
+    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
   };
 }
