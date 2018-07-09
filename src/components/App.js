@@ -12,12 +12,9 @@ const App = () => (
   <Router>
     <div>
       <Header />
-
-      <hr />
-
       <Route exact path="/" component={Home} />
       <Route path="/callback" component={Callback} />
-      <PrivateRoute path="/report" component={Report} />
+      <PrivateRoute path="/report/:name" component={Report} />
     </div>
   </Router>
 );
