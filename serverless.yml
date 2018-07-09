@@ -21,7 +21,7 @@ functions:
     events:
       - http:
           method: get
-          path: report/{owner}/{repo}
+          path: report/{owner}
           resp: http
           authorizer: auth
           cors: true

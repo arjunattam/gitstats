@@ -20,7 +20,6 @@ const getAllResources = methodArn => {
 };
 
 const generatePolicy = (principalId, effect, resource) => {
-  // Policy helper function
   const authResponse: any = {};
   authResponse.principalId = principalId;
   if (effect && resource) {
@@ -36,7 +35,6 @@ const generatePolicy = (principalId, effect, resource) => {
     };
     authResponse.policyDocument = policyDocument;
   }
-  console.log("resource", getAllResources(resource));
   return authResponse;
 };
 

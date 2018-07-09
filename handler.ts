@@ -24,14 +24,12 @@ export const report: Handler = (
   cb: Callback
 ) => {
   const accessToken = getToken(event.headers);
-  const { owner, repo } = event.pathParameters;
-
+  const { owner } = event.pathParameters;
   const manager = new UserManager(accessToken);
 
   manager.getGhToken().then(token => {
-    const gh = new Github(token, owner, repo);
-
-    Promise.all([gh.stargazers(), gh.issues()]).then(values => {
+    const gh = new Github(token, owner);
+    Promise.all([gh.repos(), gh.members()]).then(values => {
       cb(null, {
         statusCode: 200,
         headers: HEADERS,

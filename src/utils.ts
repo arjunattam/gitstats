@@ -5,14 +5,20 @@ type Period = {
   end: moment.Moment;
 };
 
+const getStart = () => {
+  return moment()
+    .utc()
+    .startOf("week");
+};
+
 const getCurrentPeriod = (): Period => ({
-  start: moment().subtract(1, "weeks"),
-  end: moment()
+  start: getStart().subtract(1, "weeks"),
+  end: getStart()
 });
 
 const getPreviousPeriod = (): Period => ({
-  start: moment().subtract(2, "weeks"),
-  end: moment().subtract(1, "weeks")
+  start: getStart().subtract(2, "weeks"),
+  end: getStart().subtract(1, "weeks")
 });
 
 function getPeriodResponse(response: Array<any>, period: Period, key: string) {

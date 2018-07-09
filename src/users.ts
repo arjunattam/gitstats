@@ -8,6 +8,7 @@ type GitHubInstallation = {
   accountName: string;
   accountPicture: string;
   accountType: string;
+  // accountMemberCount: number;
 };
 
 export default class UserManager {
@@ -26,7 +27,7 @@ export default class UserManager {
       this.getUserDetails()
         .then(() => this.getUserInstallations())
         // TODO(arjun): this assumes the first installation
-        .then(installations => this.getInstallationToken(installations[0].id))
+        .then(installations => this.getInstallationToken(installations[0]))
     );
   }
 
@@ -62,12 +63,11 @@ export default class UserManager {
           accountType: installation.account.type
         })
       );
-      console.log(parsed);
       return parsed;
     });
   };
 
-  getInstallationToken = installationId => {
+  getInstallationToken = installation => {
     // First get github JWT
     const payload = {
       iat: moment().unix(),
@@ -79,9 +79,10 @@ export default class UserManager {
     const token = jwt.sign(payload, process.env.GITHUB_APP_PRIVATE_KEY, {
       algorithm: "RS256"
     });
+    const { id, accountName } = installation;
 
     return rp({
-      uri: `https://api.github.com/installations/${installationId}/access_tokens`,
+      uri: `https://api.github.com/installations/${id}/access_tokens`,
       method: "POST",
       headers: {
         "User-Agent": "gitstats.report",
@@ -91,6 +92,8 @@ export default class UserManager {
       json: true
     }).then(response => {
       const { token } = response;
+      // TODO(arjun): remove log
+      console.log(`Installation token ${accountName} ${token}`);
       return token;
     });
   };
