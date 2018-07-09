@@ -21,7 +21,7 @@ const getPreviousPeriod = (): Period => ({
   end: getStart().subtract(1, "weeks")
 });
 
-function getPeriodResponse(response: Array<any>, period: Period, key: string) {
+function getPeriodCount(response: Array<any>, period: Period, key: string) {
   const momentValues = response.filter(r => !!r[key]).map(r => moment(r[key]));
   const count = momentValues.reduce((prevValue, currentValue) => {
     const isInPeriod = currentValue > period.start && currentValue < period.end;
@@ -30,9 +30,43 @@ function getPeriodResponse(response: Array<any>, period: Period, key: string) {
   return { ...period, count };
 }
 
-export function getComparativeResponse(response: Array<any>, key: string) {
+function getPeriodDurations(
+  response: Array<any>,
+  period: Period,
+  keyLeft,
+  keyRight
+) {
+  const momentValues = response
+    .filter(r => !!r[keyLeft] && !!r[keyRight])
+    .map(r => ({ left: moment(r[keyLeft]), right: moment(r[keyRight]) }));
+  const durations = momentValues.reduce((prevValue, currentValue) => {
+    const isInPeriod =
+      currentValue.left > period.start && currentValue.left < period.end;
+    const diff = currentValue.left.diff(currentValue.right);
+    return isInPeriod ? [...prevValue, diff / 1000.0] : prevValue;
+  }, []);
+  return durations;
+}
+
+export function getComparativeCounts(response: Array<any>, key: string) {
   return {
-    next: getPeriodResponse(response, getCurrentPeriod(), key).count,
-    previous: getPeriodResponse(response, getPreviousPeriod(), key).count
+    next: getPeriodCount(response, getCurrentPeriod(), key).count,
+    previous: getPeriodCount(response, getPreviousPeriod(), key).count
+  };
+}
+
+export function getComparativeDurations(
+  response: Array<any>,
+  keyLeft: string,
+  keyRight: string
+) {
+  return {
+    next: getPeriodDurations(response, getCurrentPeriod(), keyLeft, keyRight),
+    previous: getPeriodDurations(
+      response,
+      getPreviousPeriod(),
+      keyLeft,
+      keyRight
+    )
   };
 }

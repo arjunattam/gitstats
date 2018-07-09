@@ -1,5 +1,5 @@
 import APICaller from "./api";
-import { getComparativeResponse } from "./utils";
+import { getComparativeCounts, getComparativeDurations } from "./utils";
 import * as moment from "moment";
 
 type Member = {
@@ -33,6 +33,10 @@ type RepoPR = {
   prs_merged: {
     previous: number;
     next: number;
+  };
+  time_to_merge: {
+    previous: number[];
+    next: number[];
   };
 };
 
@@ -223,8 +227,13 @@ export default class GithubService extends APICaller {
       });
       const result = Object.keys(authorWisePRs).map(author => ({
         author,
-        prs_opened: getComparativeResponse(authorWisePRs[author], "created_at"),
-        prs_merged: getComparativeResponse(authorWisePRs[author], "merged_at")
+        prs_opened: getComparativeCounts(authorWisePRs[author], "created_at"),
+        prs_merged: getComparativeCounts(authorWisePRs[author], "merged_at"),
+        time_to_merge: getComparativeDurations(
+          authorWisePRs[author],
+          "merged_at",
+          "created_at"
+        )
       }));
       return result;
     });
@@ -244,7 +253,7 @@ export default class GithubService extends APICaller {
       const filtered = response.filter(issue => !issue.pull_request);
       return {
         name: "issues_created",
-        values: getComparativeResponse(filtered, "created_at")
+        values: getComparativeCounts(filtered, "created_at")
       };
     });
   }
@@ -258,7 +267,7 @@ export default class GithubService extends APICaller {
       qs: {}
     };
     return this.getAllForAsc(params, "starred_at").then(response => {
-      return getComparativeResponse(response, "starred_at");
+      return getComparativeCounts(response, "starred_at");
     });
   }
 }
