@@ -22,7 +22,7 @@ const getPreviousPeriod = (): Period => ({
 });
 
 function getPeriodResponse(response: Array<any>, period: Period, key: string) {
-  const momentValues = response.map(r => moment(r[key]));
+  const momentValues = response.filter(r => !!r[key]).map(r => moment(r[key]));
   const count = momentValues.reduce((prevValue, currentValue) => {
     const isInPeriod = currentValue > period.start && currentValue < period.end;
     return prevValue + (isInPeriod ? 1 : 0);
@@ -31,8 +31,8 @@ function getPeriodResponse(response: Array<any>, period: Period, key: string) {
 }
 
 export function getComparativeResponse(response: Array<any>, key: string) {
-  return [
-    getPeriodResponse(response, getCurrentPeriod(), key),
-    getPeriodResponse(response, getPreviousPeriod(), key)
-  ];
+  return {
+    next: getPeriodResponse(response, getCurrentPeriod(), key).count,
+    previous: getPeriodResponse(response, getPreviousPeriod(), key).count
+  };
 }

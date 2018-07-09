@@ -22,6 +22,20 @@ type Repo = {
   updated_at: string;
 };
 
+// TODO(arjun): we can potentially add the reviewer
+// and also the time taken to review
+type RepoPR = {
+  author: string;
+  prs_opened: {
+    previous: number;
+    next: number;
+  };
+  prs_merged: {
+    previous: number;
+    next: number;
+  };
+};
+
 type AuthorStats = {
   login: string;
   commits: {
@@ -45,10 +59,22 @@ type RepoStats = {
 
 export default class GithubService extends APICaller {
   report() {
-    return Promise.all([this.repos(), this.members(), this.ownerInfo()]).then(
-      values => {
+    return Promise.all([this.repos(), this.members(), this.ownerInfo()])
+      .then(values => {
         const repos = values[0];
+        const members = values[1];
+        const owner = values[2];
+        return {
+          period: { previous: this.periodPrev, next: this.periodNext },
+          owner: values[2],
+          members: values[1],
+          repos
+        };
+      })
+      .then(result => {
+        const { repos } = result;
         const stats = repos.map(repo => this.statistics(repo.name));
+
         return Promise.all(stats).then(statsValues => {
           let repoResult = [];
           let index;
@@ -57,18 +83,27 @@ export default class GithubService extends APICaller {
             repoResult.push({ ...repos[index], stats: statsValues[index] });
           }
 
-          return {
-            period: { previous: this.periodPrev, next: this.periodNext },
-            owner: values[2],
-            members: values[1],
-            repos: repoResult
-          };
+          return { ...result, repos: repoResult };
         });
-      }
-    );
+      })
+      .then(result => {
+        const { repos } = result;
+        const pulls = repos.map(repo => this.pulls(repo.name));
+
+        return Promise.all(pulls).then(pullsValues => {
+          let repoResult = [];
+          let index;
+
+          for (index = 0; index < repos.length; index++) {
+            repoResult.push({ ...repos[index], prs: pullsValues[index] });
+          }
+
+          return { ...result, repos: repoResult };
+        });
+      });
   }
 
-  repos(): Promise<Array<Repo>> {
+  repos(): Promise<Repo[]> {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
     // We can also use https://api.github.com/installation/repositories
     // but that limits us to the organisations in the installation
@@ -82,26 +117,21 @@ export default class GithubService extends APICaller {
       //   direction: "desc"
       // }
     };
-    return this.getAllPages([], params)
-      .then(repos =>
-        repos
-          .filter(repo => moment(repo.updated_at) > this.periodPrev)
-          .map(repo => ({
-            name: repo.name,
-            description: repo.description,
-            is_private: repo.private,
-            is_fork: repo.fork,
-            stargazers_count: repo.stargazers_count,
-            updated_at: repo.updated_at
-          }))
-      )
-      .then(repos => {
-        repos.map(repo => this.statistics(repo.name));
-        return repos;
-      });
+    return this.getAllPages([], params).then(repos =>
+      repos
+        .filter(repo => moment(repo.updated_at) > this.periodPrev)
+        .map(repo => ({
+          name: repo.name,
+          description: repo.description,
+          is_private: repo.private,
+          is_fork: repo.fork,
+          stargazers_count: repo.stargazers_count,
+          updated_at: repo.updated_at
+        }))
+    );
   }
 
-  members(): Promise<Array<Member>> {
+  members(): Promise<Member[]> {
     // Doc: https://developer.github.com/v3/orgs/members/#members-list
     // TODO(arjun): this will not work for usernames
     const params = {
@@ -168,6 +198,35 @@ export default class GithubService extends APICaller {
           );
         return { is_pending: false, authors };
       }
+    });
+  }
+
+  pulls(repo: string): Promise<RepoPR[]> {
+    const params = {
+      path: `repos/${this.owner}/${repo}/pulls`,
+      qs: {
+        state: "all",
+        sort: "updated",
+        direction: "desc",
+        per_page: 50 // overriding because 100 seems too much for one repo
+      }
+    };
+    return this.getAllForDesc([], params, "updated_at").then(pulls => {
+      let authorWisePRs = {};
+      pulls.forEach(pull => {
+        const author = pull.user.login;
+        if (author in authorWisePRs) {
+          authorWisePRs[author] = [...authorWisePRs[author], pull];
+        } else {
+          authorWisePRs[author] = [pull];
+        }
+      });
+      const result = Object.keys(authorWisePRs).map(author => ({
+        author,
+        prs_opened: getComparativeResponse(authorWisePRs[author], "created_at"),
+        prs_merged: getComparativeResponse(authorWisePRs[author], "merged_at")
+      }));
+      return result;
     });
   }
 
