@@ -42,6 +42,30 @@ export const report: Handler = (
   });
 };
 
+export const stats: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  const accessToken = getToken(event.headers);
+  const { owner, repo } = event.pathParameters;
+  const manager = new UserManager(accessToken);
+
+  manager.getGhToken().then(token => {
+    const gh = new Github(token, owner);
+    gh.statistics(repo).then(response => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: { repo, stats: response },
+          input: event
+        })
+      });
+    });
+  });
+};
+
 export const auth: Handler = (
   event: CustomAuthorizerEvent,
   context: Context,

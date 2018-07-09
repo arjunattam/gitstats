@@ -58,7 +58,7 @@ export default class GithubService extends APICaller {
           }
 
           return {
-            period: this.period(),
+            period: { previous: this.periodPrev, next: this.periodNext },
             owner: values[2],
             members: values[1],
             repos: repoResult
@@ -66,21 +66,6 @@ export default class GithubService extends APICaller {
         });
       }
     );
-  }
-
-  period() {
-    return {
-      previous: moment()
-        .utc()
-        .startOf("week")
-        .subtract(2, "weeks")
-        .toISOString(),
-      next: moment()
-        .utc()
-        .startOf("week")
-        .subtract(1, "weeks")
-        .toISOString()
-    };
   }
 
   repos(): Promise<Array<Repo>> {
@@ -100,7 +85,7 @@ export default class GithubService extends APICaller {
     return this.getAllPages([], params)
       .then(repos =>
         repos
-          .filter(repo => moment(repo.updated_at) > this.timeLimit)
+          .filter(repo => moment(repo.updated_at) > this.periodPrev)
           .map(repo => ({
             name: repo.name,
             description: repo.description,
@@ -152,36 +137,34 @@ export default class GithubService extends APICaller {
 
       if (statusCode === 202) {
         return { is_pending: true };
+      } else if (statusCode === 204) {
+        return { is_pending: false, authors: [] };
       } else if (statusCode === 200) {
         const authors = body
-          .map(authorWeeks => {
-            const previousWeekStart = this.period().previous;
-            const nextWeekStart = this.period().next;
-            const previousWeek = authorWeeks.weeks.filter(
-              data => data.w === previousWeekStart
-            );
-            const nextWeek = authorWeeks.weeks.filter(
-              data => data.w === nextWeekStart
-            );
+          .map(result => {
+            const periodPrev = this.periodPrev.unix();
+            const periodNext = this.periodNext.unix();
+            const prevWeek = result.weeks.filter(data => data.w === periodPrev);
+            const nextWeek = result.weeks.filter(data => data.w === periodNext);
             return {
-              login: authorWeeks.author.login,
+              login: result.author.login,
               commits: {
-                previous: previousWeek.length === 1 ? previousWeek[0].c : 0,
+                previous: prevWeek.length === 1 ? prevWeek[0].c : 0,
                 next: nextWeek.length === 1 ? nextWeek[0].c : 0
               },
               lines_added: {
-                previous: previousWeek.length === 1 ? previousWeek[0].a : 0,
+                previous: prevWeek.length === 1 ? prevWeek[0].a : 0,
                 next: nextWeek.length === 1 ? nextWeek[0].a : 0
               },
               lines_deleted: {
-                previous: previousWeek.length === 1 ? previousWeek[0].d : 0,
+                previous: prevWeek.length === 1 ? prevWeek[0].d : 0,
                 next: nextWeek.length === 1 ? nextWeek[0].d : 0
               }
             };
           })
           .filter(
-            stats =>
-              stats.commits && (stats.commits.previous || stats.commits.next)
+            author =>
+              author.commits && (author.commits.next || author.commits.previous)
           );
         return { is_pending: false, authors };
       }
@@ -195,7 +178,7 @@ export default class GithubService extends APICaller {
       path: `repos/${this.owner}/${repo}/issues`,
       qs: {
         state: "all",
-        since: this.timeLimit.toISOString()
+        since: this.periodPrev.toISOString()
       }
     };
     return this.getAllPages([], params).then(response => {

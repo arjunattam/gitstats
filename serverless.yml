@@ -25,6 +25,16 @@ functions:
           resp: http
           authorizer: auth
           cors: true
+  stats:
+    handler: handler.stats
+    timeout: 30 # seconds
+    events:
+      - http:
+          method: get
+          path: stats/{owner}/{repo}
+          resp: http
+          authorizer: auth
+          cors: true
 
 resources:
   Resources:

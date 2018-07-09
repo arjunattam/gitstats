@@ -4,17 +4,22 @@ const parseLink = require("parse-link-header");
 
 export default class APICaller {
   baseUrl: string;
-  timeLimit: moment.Moment;
+  periodPrev: moment.Moment;
+  periodNext: moment.Moment;
 
   constructor(private token: string, public owner: string) {
     this.baseUrl = "https://api.github.com/";
 
     // We use Sunday-Saturday as the definition of the week
     // This is because of how the Github stats API returns weeks
-    this.timeLimit = moment()
+    this.periodPrev = moment()
       .utc()
       .startOf("week")
       .subtract(2, "weeks");
+    this.periodNext = moment()
+      .utc()
+      .startOf("week")
+      .subtract(1, "weeks");
   }
 
   get({ path, headers, qs }) {
@@ -58,7 +63,7 @@ export default class APICaller {
     // Returns data till we reach key < timeLimit
     return this.get(params).then(response => {
       const { body, headers } = response;
-      const filtered = body.filter(item => moment(item[key]) > this.timeLimit);
+      const filtered = body.filter(item => moment(item[key]) > this.periodPrev);
       const newAggregate = [...responseSoFar, ...filtered];
 
       if (filtered.length === body.length) {
@@ -113,7 +118,7 @@ export default class APICaller {
       const { prev } = parseLink(link);
       let hasReachedLimit = false;
       body.forEach(r => {
-        if (moment(r[key]) < this.timeLimit) {
+        if (moment(r[key]) < this.periodPrev) {
           hasReachedLimit = true; // We have reached the end.
         } else {
           aggregatedBody.push(r);
