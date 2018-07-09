@@ -3,7 +3,7 @@ import { Container } from "reactstrap";
 
 const Home = () => (
   <Container>
-    <p>Home component</p>
+    <p className="lead">Track your engineering team momentum</p>
   </Container>
 );
 
