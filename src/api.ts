@@ -40,8 +40,7 @@ export default class APICaller {
       const { body, headers } = response;
       const { link } = headers;
       const next = link ? parseLink(link).next : {};
-      // TODO(arjun): filter function on the body should be abstracted out
-      const newAggregate = [...aggregate, ...body.filter(r => !r.pull_request)];
+      const newAggregate = [...aggregate, ...body];
 
       if (next && next.page) {
         return this.getAllPages(newAggregate, {
@@ -54,7 +53,38 @@ export default class APICaller {
     });
   }
 
-  getAllFromLast(params, key) {
+  getAllForDesc(responseSoFar, params, key) {
+    // For response sorted in descending order by key
+    // Returns data till we reach key < timeLimit
+    return this.get(params).then(response => {
+      const { body, headers } = response;
+      const filtered = body.filter(item => moment(item[key]) > this.timeLimit);
+      const newAggregate = [...responseSoFar, ...filtered];
+
+      if (filtered.length === body.length) {
+        // All items met criteria, we need to get the next page
+        const { link } = headers;
+        const parsedLink = link ? parseLink(link) : {};
+
+        if (parsedLink && parsedLink.next) {
+          // Get the next page
+          const { page } = parsedLink.next;
+          return this.getAllForDesc(
+            newAggregate,
+            {
+              ...params,
+              qs: { ...params.qs, page }
+            },
+            key
+          );
+        }
+      }
+
+      return newAggregate;
+    });
+  }
+
+  getAllForAsc(params, key) {
     // Useful for API responses that are sorted by `key` but in
     // ascending order. We parse the APIs in reverse from last page
     return this.get(params).then(response => {

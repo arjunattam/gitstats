@@ -29,12 +29,12 @@ export const report: Handler = (
 
   manager.getGhToken().then(token => {
     const gh = new Github(token, owner);
-    Promise.all([gh.repos(), gh.members()]).then(values => {
+    gh.report().then(response => {
       cb(null, {
         statusCode: 200,
         headers: HEADERS,
         body: JSON.stringify({
-          message: values,
+          message: response,
           input: event
         })
       });

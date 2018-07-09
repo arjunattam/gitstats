@@ -17,7 +17,7 @@ functions:
     cors: true
   report:
     handler: handler.report
-    timeout: 20 # seconds
+    timeout: 30 # seconds
     events:
       - http:
           method: get
