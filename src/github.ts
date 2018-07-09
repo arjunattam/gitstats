@@ -7,6 +7,12 @@ type Member = {
   avatar: string;
 };
 
+type Owner = {
+  login: string;
+  name: string;
+  avatar: string;
+};
+
 type Repo = {
   name: string;
   description: string;
@@ -16,7 +22,7 @@ type Repo = {
   updated_at: string;
 };
 
-type Stats = {
+type AuthorStats = {
   login: string;
   commits: {
     previous: number;
@@ -32,25 +38,49 @@ type Stats = {
   };
 };
 
+type RepoStats = {
+  is_pending: boolean;
+  authors?: AuthorStats[];
+};
+
 export default class GithubService extends APICaller {
   report() {
-    return Promise.all([this.repos(), this.members()]).then(values => {
-      const repos = values[0];
-      const stats = repos.map(repo => this.statistics(repo.name));
-      return Promise.all(stats).then(statsValues => {
-        let repoResult = [];
-        let index = 0;
+    return Promise.all([this.repos(), this.members(), this.ownerInfo()]).then(
+      values => {
+        const repos = values[0];
+        const stats = repos.map(repo => this.statistics(repo.name));
+        return Promise.all(stats).then(statsValues => {
+          let repoResult = [];
+          let index;
 
-        for (; index < repos.length; index++) {
-          repoResult.push({ ...repos[index], stats: statsValues[index] });
-        }
+          for (index = 0; index < repos.length; index++) {
+            repoResult.push({ ...repos[index], stats: statsValues[index] });
+          }
 
-        return {
-          repos: repoResult,
-          members: values[1]
-        };
-      });
-    });
+          return {
+            period: this.period(),
+            owner: values[2],
+            members: values[1],
+            repos: repoResult
+          };
+        });
+      }
+    );
+  }
+
+  period() {
+    return {
+      previous: moment()
+        .utc()
+        .startOf("week")
+        .subtract(2, "weeks")
+        .toISOString(),
+      next: moment()
+        .utc()
+        .startOf("week")
+        .subtract(1, "weeks")
+        .toISOString()
+    };
   }
 
   repos(): Promise<Array<Repo>> {
@@ -100,55 +130,61 @@ export default class GithubService extends APICaller {
     });
   }
 
-  statistics(repo: string): Promise<Array<Stats>> {
+  ownerInfo(): Promise<Owner> {
+    return this.get({
+      path: `users/${this.owner}`,
+      headers: {},
+      qs: {}
+    }).then(response => {
+      const { login, name, avatar_url } = response.body;
+      return { login, name, avatar: avatar_url };
+    });
+  }
+
+  statistics(repo: string): Promise<RepoStats> {
     return this.get({
       path: `repos/${this.owner}/${repo}/stats/contributors`,
       headers: {},
       qs: {}
     }).then(response => {
-      const is200 = response.statusCode === 200;
+      const { statusCode } = response;
       const { body } = response;
-      // TODO(arjun): handle 202 response also
-      return is200
-        ? body
-            .map(authorWeeks => {
-              const previousWeekStart = moment()
-                .utc()
-                .startOf("week")
-                .subtract(2, "weeks")
-                .unix();
-              const nextWeekStart = moment()
-                .utc()
-                .startOf("week")
-                .subtract(1, "weeks")
-                .unix();
-              const previousWeek = authorWeeks.weeks.filter(
-                data => data.w === previousWeekStart
-              );
-              const nextWeek = authorWeeks.weeks.filter(
-                data => data.w === nextWeekStart
-              );
-              return {
-                login: authorWeeks.author.login,
-                commits: {
-                  previous: previousWeek.length === 1 ? previousWeek[0].c : 0,
-                  next: nextWeek.length === 1 ? nextWeek[0].c : 0
-                },
-                lines_added: {
-                  previous: previousWeek.length === 1 ? previousWeek[0].a : 0,
-                  next: nextWeek.length === 1 ? nextWeek[0].a : 0
-                },
-                lines_deleted: {
-                  previous: previousWeek.length === 1 ? previousWeek[0].d : 0,
-                  next: nextWeek.length === 1 ? nextWeek[0].d : 0
-                }
-              };
-            })
-            .filter(
-              stats =>
-                stats.commits && (stats.commits.previous || stats.commits.next)
-            )
-        : null;
+
+      if (statusCode === 202) {
+        return { is_pending: true };
+      } else if (statusCode === 200) {
+        const authors = body
+          .map(authorWeeks => {
+            const previousWeekStart = this.period().previous;
+            const nextWeekStart = this.period().next;
+            const previousWeek = authorWeeks.weeks.filter(
+              data => data.w === previousWeekStart
+            );
+            const nextWeek = authorWeeks.weeks.filter(
+              data => data.w === nextWeekStart
+            );
+            return {
+              login: authorWeeks.author.login,
+              commits: {
+                previous: previousWeek.length === 1 ? previousWeek[0].c : 0,
+                next: nextWeek.length === 1 ? nextWeek[0].c : 0
+              },
+              lines_added: {
+                previous: previousWeek.length === 1 ? previousWeek[0].a : 0,
+                next: nextWeek.length === 1 ? nextWeek[0].a : 0
+              },
+              lines_deleted: {
+                previous: previousWeek.length === 1 ? previousWeek[0].d : 0,
+                next: nextWeek.length === 1 ? nextWeek[0].d : 0
+              }
+            };
+          })
+          .filter(
+            stats =>
+              stats.commits && (stats.commits.previous || stats.commits.next)
+          );
+        return { is_pending: false, authors };
+      }
     });
   }
 
