@@ -16,19 +16,27 @@ export default class UserManager {
   auth0Manager: Auth0Manager | undefined;
   userAccessToken: string | undefined;
 
-  constructor(accessToken: string) {
+  constructor(accessToken: string, private accountName?: string) {
     const decoded = jwt.decode(accessToken);
     this.userId = decoded.sub;
     this.auth0Manager = new Auth0Manager();
   }
 
   getGhToken(): Promise<string> {
-    return (
-      this.getUserDetails()
-        .then(() => this.getUserInstallations())
-        // TODO(arjun): this assumes the first installation
-        .then(installations => this.getInstallationToken(installations[0]))
-    );
+    return this.getUserDetails()
+      .then(() => this.getUserInstallations())
+      .then(installations => {
+        let filtered;
+        if (this.accountName) {
+          filtered = installations.filter(i => i.name === this.accountName);
+        }
+
+        if (filtered.length > 0) {
+          return this.getInstallationToken(filtered[0]);
+        } else {
+          return this.getInstallationToken(installations[0]);
+        }
+      });
   }
 
   getUserDetails() {

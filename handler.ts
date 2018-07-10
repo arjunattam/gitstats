@@ -25,7 +25,7 @@ export const report: Handler = (
 ) => {
   const accessToken = getToken(event.headers);
   const { owner } = event.pathParameters;
-  const manager = new UserManager(accessToken);
+  const manager = new UserManager(accessToken, owner);
 
   manager.getGhToken().then(token => {
     const gh = new Github(token, owner);
@@ -49,7 +49,7 @@ export const stats: Handler = (
 ) => {
   const accessToken = getToken(event.headers);
   const { owner, repo } = event.pathParameters;
-  const manager = new UserManager(accessToken);
+  const manager = new UserManager(accessToken, owner);
 
   manager.getGhToken().then(token => {
     const gh = new Github(token, owner);
