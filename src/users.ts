@@ -5,6 +5,8 @@ import {
   GithubManager,
   BitbucketManager
 } from "./manager";
+import BitbucketService from "./bitbucket";
+import GithubService from "./github";
 const jwt = require("jsonwebtoken");
 
 enum Service {
@@ -33,7 +35,27 @@ export default class UserManager {
     this.auth0Manager = new Auth0Manager();
   }
 
-  getUserDetails() {
+  getServiceClient() {
+    return this.getUserDetails()
+      .then(() => this.getServiceToken())
+      .then(token => {
+        let client;
+
+        if (this.service === "github") {
+          client = new GithubService(token, this.accountName);
+        } else if (this.service === "bitbucket") {
+          client = new BitbucketService(token, this.accountName);
+        }
+
+        return client;
+      });
+  }
+
+  getServiceTeams(): Promise<ServiceTeam[]> {
+    return this.getUserDetails().then(() => this.serviceManager.getTeams());
+  }
+
+  private getUserDetails() {
     return this.auth0Manager
       .getToken()
       .then(() => this.auth0Manager.getUser(this.userId))
@@ -61,11 +83,7 @@ export default class UserManager {
       });
   }
 
-  getServiceToken(): Promise<string> {
+  private getServiceToken(): Promise<string> {
     return this.serviceManager.getTeamToken();
-  }
-
-  getServiceTeams(): Promise<ServiceTeam[]> {
-    return this.serviceManager.getTeams();
   }
 }
