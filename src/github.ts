@@ -1,73 +1,15 @@
 import APICaller from "./api";
 import { getComparativeCounts, getComparativeDurations } from "./utils";
+import * as types from "./types";
 import * as moment from "moment";
-
-type Member = {
-  login: string;
-  avatar: string;
-};
-
-type Owner = {
-  login: string;
-  name: string;
-  avatar: string;
-};
-
-type Repo = {
-  name: string;
-  description: string;
-  is_private: boolean;
-  is_fork: boolean;
-  stargazers_count: number;
-  updated_at: string;
-};
-
-// TODO(arjun): we can potentially add the reviewer
-// and also the time taken to review
-type RepoPR = {
-  author: string;
-  prs_opened: {
-    previous: number;
-    next: number;
-  };
-  prs_merged: {
-    previous: number;
-    next: number;
-  };
-  time_to_merge: {
-    previous: number[];
-    next: number[];
-  };
-};
-
-type AuthorStats = {
-  login: string;
-  commits: {
-    previous: number;
-    next: number;
-  };
-  lines_added: {
-    previous: number;
-    next: number;
-  };
-  lines_deleted: {
-    previous: number;
-    next: number;
-  };
-};
-
-type RepoStats = {
-  is_pending: boolean;
-  authors?: AuthorStats[];
-};
 
 export default class GithubService extends APICaller {
   report() {
     return Promise.all([this.repos(), this.members(), this.ownerInfo()])
-      .then(values => {
-        const repos = values[0];
-        const members = values[1];
-        const owner = values[2];
+      .then(responses => {
+        const repos = responses[0];
+        const members = responses[1];
+        const owner = responses[2];
         return {
           period: { previous: this.periodPrev, next: this.periodNext },
           owner,
@@ -107,7 +49,7 @@ export default class GithubService extends APICaller {
       });
   }
 
-  repos(): Promise<Repo[]> {
+  repos(): Promise<types.Repo[]> {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
     // We can also use https://api.github.com/installation/repositories
     // but that limits us to the organisations in the installation
@@ -135,7 +77,7 @@ export default class GithubService extends APICaller {
     );
   }
 
-  members(): Promise<Member[]> {
+  members(): Promise<types.Member[]> {
     // Doc: https://developer.github.com/v3/orgs/members/#members-list
     // TODO(arjun): this will not work for usernames
     const params = {
@@ -149,7 +91,7 @@ export default class GithubService extends APICaller {
     });
   }
 
-  ownerInfo(): Promise<Owner> {
+  ownerInfo(): Promise<types.Owner> {
     return this.get({
       path: `users/${this.owner}`,
       headers: {},
@@ -160,7 +102,7 @@ export default class GithubService extends APICaller {
     });
   }
 
-  statistics(repo: string): Promise<RepoStats> {
+  statistics(repo: string): Promise<types.RepoStats> {
     return this.get({
       path: `repos/${this.owner}/${repo}/stats/contributors`,
       headers: {},
@@ -205,7 +147,7 @@ export default class GithubService extends APICaller {
     });
   }
 
-  pulls(repo: string): Promise<RepoPR[]> {
+  pulls(repo: string): Promise<types.RepoPR[]> {
     const params = {
       path: `repos/${this.owner}/${repo}/pulls`,
       qs: {

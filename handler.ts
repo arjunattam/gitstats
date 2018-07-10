@@ -8,6 +8,7 @@ import {
 import Github from "./src/github";
 import authorizer from "./src/authorizer";
 import UserManager from "./src/users";
+import BitbucketService from "./src/bitbucket";
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*", // Required for CORS support to work
@@ -31,7 +32,7 @@ export const report: Handler = (
     .getUserDetails()
     .then(() => manager.getServiceToken())
     .then(token => {
-      const gh = new Github(token, owner);
+      const gh = new BitbucketService(token, owner);
 
       gh.report().then(response => {
         cb(null, {
