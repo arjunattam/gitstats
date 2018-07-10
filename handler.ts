@@ -27,19 +27,23 @@ export const report: Handler = (
   const { owner } = event.pathParameters;
   const manager = new UserManager(accessToken, owner);
 
-  manager.getGhToken().then(token => {
-    const gh = new Github(token, owner);
-    gh.report().then(response => {
-      cb(null, {
-        statusCode: 200,
-        headers: HEADERS,
-        body: JSON.stringify({
-          message: response,
-          input: event
-        })
+  manager
+    .getUserDetails()
+    .then(() => manager.getServiceToken())
+    .then(token => {
+      const gh = new Github(token, owner);
+
+      gh.report().then(response => {
+        cb(null, {
+          statusCode: 200,
+          headers: HEADERS,
+          body: JSON.stringify({
+            message: response,
+            input: event
+          })
+        });
       });
     });
-  });
 };
 
 export const stats: Handler = (
@@ -51,19 +55,23 @@ export const stats: Handler = (
   const { owner, repo } = event.pathParameters;
   const manager = new UserManager(accessToken, owner);
 
-  manager.getGhToken().then(token => {
-    const gh = new Github(token, owner);
-    gh.statistics(repo).then(response => {
-      cb(null, {
-        statusCode: 200,
-        headers: HEADERS,
-        body: JSON.stringify({
-          message: { repo, stats: response },
-          input: event
-        })
+  manager
+    .getUserDetails()
+    .then(() => manager.getServiceToken())
+    .then(token => {
+      const gh = new Github(token, owner);
+
+      gh.statistics(repo).then(response => {
+        cb(null, {
+          statusCode: 200,
+          headers: HEADERS,
+          body: JSON.stringify({
+            message: { repo, stats: response },
+            input: event
+          })
+        });
       });
     });
-  });
 };
 
 export const teams: Handler = (
@@ -76,7 +84,7 @@ export const teams: Handler = (
 
   manager
     .getUserDetails()
-    .then(() => manager.getUserInstallations())
+    .then(() => manager.getServiceTeams())
     .then(response => {
       cb(null, {
         statusCode: 200,

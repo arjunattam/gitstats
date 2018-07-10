@@ -70,8 +70,8 @@ export default class GithubService extends APICaller {
         const owner = values[2];
         return {
           period: { previous: this.periodPrev, next: this.periodNext },
-          owner: values[2],
-          members: values[1],
+          owner,
+          members,
           repos
         };
       })
