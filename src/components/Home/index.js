@@ -7,7 +7,8 @@ const Home = () => (
   <Container>
     <div className="m-3">
       <p className="lead">
-        Simple git stats to <strong>track your engineering momentum</strong>.
+        Git stats to <strong>track your engineering momentum</strong>. See
+        example.
       </p>
     </div>
     <div className="my-4">
