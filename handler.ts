@@ -66,6 +66,29 @@ export const stats: Handler = (
   });
 };
 
+export const teams: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  const accessToken = getToken(event.headers);
+  const manager = new UserManager(accessToken);
+
+  manager
+    .getUserDetails()
+    .then(() => manager.getUserInstallations())
+    .then(response => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: response,
+          input: event
+        })
+      });
+    });
+};
+
 export const auth: Handler = (
   event: CustomAuthorizerEvent,
   context: Context,

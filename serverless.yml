@@ -15,6 +15,16 @@ functions:
   auth:
     handler: handler.auth
     cors: true
+  teams:
+    handler: handler.teams
+    timeout: 30 # seconds
+    events:
+      - http:
+          method: get
+          path: teams
+          resp: http
+          authorizer: auth
+          cors: true
   report:
     handler: handler.report
     timeout: 30 # seconds

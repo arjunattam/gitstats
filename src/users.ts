@@ -5,10 +5,10 @@ const jwt = require("jsonwebtoken");
 
 type GitHubInstallation = {
   id: number;
-  accountName: string;
-  accountPicture: string;
-  accountType: string;
-  // accountMemberCount: number;
+  name: string;
+  avatar: string;
+  type: string;
+  // members: number;
 };
 
 export default class UserManager {
@@ -55,14 +55,12 @@ export default class UserManager {
       json: true
     }).then(response => {
       const { installations } = response;
-      const parsed: Array<GitHubInstallation> = installations.map(
-        installation => ({
-          id: installation.id,
-          accountName: installation.account.login,
-          accountPicture: installation.account.avatar_url,
-          accountType: installation.account.type
-        })
-      );
+      const parsed: GitHubInstallation[] = installations.map(ins => ({
+        id: ins.id,
+        name: ins.account.login,
+        avatar: ins.account.avatar_url,
+        type: ins.account.type
+      }));
       return parsed;
     });
   };
@@ -79,7 +77,7 @@ export default class UserManager {
     const token = jwt.sign(payload, process.env.GITHUB_APP_PRIVATE_KEY, {
       algorithm: "RS256"
     });
-    const { id, accountName } = installation;
+    const { id, name } = installation;
 
     return rp({
       uri: `https://api.github.com/installations/${id}/access_tokens`,
@@ -93,7 +91,7 @@ export default class UserManager {
     }).then(response => {
       const { token } = response;
       // TODO(arjun): remove log
-      console.log(`Installation token ${accountName} ${token}`);
+      console.log(`Installation token ${name} ${token}`);
       return token;
     });
   };
