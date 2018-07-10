@@ -1,5 +1,6 @@
 import React from "react";
 import { Container, Navbar, NavbarBrand, Button } from "reactstrap";
+import { customHistory as history } from "../Router";
 import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
 
@@ -24,11 +25,15 @@ class AuthState extends React.Component {
   logout = () => {
     this.auth.logout();
     this.updateAuthState();
+    history.replace("/");
   };
 
   render() {
     return this.state.isLoggedIn ? (
       <div>
+        <Link className="m-3" to="/callback">
+          Your teams
+        </Link>
         <Button onClick={() => this.logout()}>Logout</Button>
       </div>
     ) : (

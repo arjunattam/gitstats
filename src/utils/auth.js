@@ -1,6 +1,5 @@
 import auth0 from "auth0-js";
 import jwtDecode from "jwt-decode";
-import { customHistory as history } from "../components/Router";
 
 const AUTH0_DOMAIN = "karigari.auth0.com";
 const AUTH0_AUDIENCE = "http://gitstats-dev/";
@@ -33,19 +32,15 @@ export default class Auth {
     this.webAuth.authorize();
   };
 
-  handleAuthentication = () => {
+  handleAuthentication = cb => {
     this.webAuth.parseHash((err, authResult) => {
       if (authResult && authResult.accessToken && authResult.idToken) {
         this.setSession(authResult);
-        history.replace("/");
-
-        // TODO(arjun) after this, we will have to check if this has installations
-        // if not, we need to set that up
       } else if (err) {
-        history.replace("/");
-        // TODO(arjun): this should have a useful error message
         console.log(err);
       }
+
+      cb();
     });
   };
 
@@ -62,9 +57,6 @@ export default class Auth {
     Storage.remove("access_token");
     Storage.remove("id_token");
     Storage.remove("expires_at");
-
-    // navigate to the home route
-    history.replace("/");
   };
 
   isAuthenticated = () => {

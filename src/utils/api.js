@@ -10,6 +10,15 @@ const getMockReport = () => {
   });
 };
 
+export const getTeams = () => {
+  const auth = new Auth();
+  return axios
+    .get(`${BASE_URL}/teams`, {
+      headers: auth.getAuthHeader()
+    })
+    .then(response => response.data);
+};
+
 export const getReport = username => {
   const auth = new Auth();
   return axios

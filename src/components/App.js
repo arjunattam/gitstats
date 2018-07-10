@@ -11,7 +11,7 @@ import "./App.css";
 const App = () => (
   <Router>
     <div>
-      <Header />
+      <Route component={Header} />
       <Route exact path="/" component={Home} />
       <Route path="/callback" component={Callback} />
       <PrivateRoute path="/report/:name" component={Report} />
