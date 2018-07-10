@@ -6,50 +6,42 @@ import {
   getPRsMerged,
   getLinesChanged
 } from "./utils";
+import Table from "./table";
 
-export const Members = ({ repos, members }) => {
+export const Members = ({ repos, members, isLoading }) => {
+  const hasAllData = repos
+    ? !repos.filter(repo => repo.stats.is_pending).length
+    : false;
   const data = members
-    .map(member => {
-      return {
-        ...member,
-        commits: getCommits(repos, member.login),
-        prsMerged: getPRsMerged(repos, member.login),
-        linesChanged: getLinesChanged(repos, member.login)
-      };
-    })
-    .sort((a, b) => b.commits.next - a.commits.next);
+    ? members
+        .map(member => {
+          return {
+            ...member,
+            commits: getCommits(repos, member.login),
+            prsMerged: getPRsMerged(repos, member.login),
+            linesChanged: getLinesChanged(repos, member.login)
+          };
+        })
+        .sort((a, b) => b.commits.next - a.commits.next)
+        .filter(member => member.commits.previous || member.commits.next)
+    : [];
+  const rowData = data.map(d => ({
+    key: d.login,
+    isLoading: !hasAllData,
+    values: [
+      <Member {...d} />,
+      <Value {...d.commits} />,
+      <Value {...d.prsMerged} />,
+      <Value {...d.linesChanged} />
+    ]
+  }));
 
   return (
-    <table className="table table-hover">
-      <thead className="thead-light">
-        <tr>
-          <th style={{ width: "40%" }}>Members</th>
-          <th style={{ width: "20%" }}>Commits</th>
-          <th style={{ width: "20%" }}>PRs merged</th>
-          <th style={{ width: "20%" }}>Lines changed</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map(member => {
-          const isActive = member.commits.previous || member.commits.next;
-          return isActive ? (
-            <tr key={member.login}>
-              <td>
-                <Member {...member} />
-              </td>
-              <td>
-                <Value {...member.commits} />
-              </td>
-              <td>
-                <Value {...member.prsMerged} />
-              </td>
-              <td>
-                <Value {...member.linesChanged} />
-              </td>
-            </tr>
-          ) : null;
-        })}
-      </tbody>
-    </table>
+    <Table
+      rowHeadings={["Member", "Commits", "PRs merged", "Lines changed"]}
+      rowLimit={5}
+      isLoading={isLoading}
+      rowData={rowData}
+    />
   );
 };

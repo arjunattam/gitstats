@@ -1,5 +1,6 @@
 import React from "react";
 import { Value, getCommits, getPRsMerged, getLinesChanged } from "./utils";
+import Table from "./table";
 
 const RepoName = ({ name, description }) => {
   return (
@@ -12,49 +13,45 @@ const RepoName = ({ name, description }) => {
   );
 };
 
-export const Repos = ({ repos }) => {
+export const Repos = ({ repos, isLoading }) => {
   const data = repos
-    .map(repo => {
-      return {
-        ...repo,
-        commits: getCommits(repos.filter(r => r.name === repo.name)),
-        prsMerged: getPRsMerged(repos.filter(r => r.name === repo.name)),
-        linesChanged: getLinesChanged(repos.filter(r => r.name === repo.name))
-      };
-    })
-    .sort((a, b) => b.commits.next - a.commits.next);
+    ? repos
+        .map(repo => {
+          return {
+            ...repo,
+            commits: getCommits(repos.filter(r => r.name === repo.name)),
+            prsMerged: getPRsMerged(repos.filter(r => r.name === repo.name)),
+            linesChanged: getLinesChanged(
+              repos.filter(r => r.name === repo.name)
+            )
+          };
+        })
+        .sort((a, b) => b.commits.next - a.commits.next)
+        .filter(
+          repo =>
+            repo.stats.is_pending || repo.commits.previous || repo.commits.next
+        )
+    : [];
+
+  const rowData = data.map(d => {
+    return {
+      key: d.name,
+      isLoading: d.stats.is_pending,
+      values: [
+        <RepoName {...d} />,
+        <Value {...d.commits} />,
+        <Value {...d.prsMerged} />,
+        <Value {...d.linesChanged} />
+      ]
+    };
+  });
 
   return (
-    <table className="table table-hover">
-      <thead className="thead-light">
-        <tr>
-          <th style={{ width: "40%" }}>Repository</th>
-          <th style={{ width: "20%" }}>Commits</th>
-          <th style={{ width: "20%" }}>PRs merged</th>
-          <th style={{ width: "20%" }}>Lines changed</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map(repo => {
-          const isActive = repo.commits.previous || repo.commits.next;
-          return isActive ? (
-            <tr key={repo.name}>
-              <td>
-                <RepoName {...repo} />
-              </td>
-              <td>
-                <Value {...repo.commits} />
-              </td>
-              <td>
-                <Value {...repo.prsMerged} />
-              </td>
-              <td>
-                <Value {...repo.linesChanged} />
-              </td>
-            </tr>
-          ) : null;
-        })}
-      </tbody>
-    </table>
+    <Table
+      rowHeadings={["Repository", "Commits", "PRs merged", "Lines changed"]}
+      rowLimit={5}
+      isLoading={isLoading}
+      rowData={rowData}
+    />
   );
 };

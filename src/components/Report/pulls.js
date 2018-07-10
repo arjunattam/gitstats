@@ -1,5 +1,6 @@
 import React from "react";
 import { Value, getPRsTime, getPRsOpened, getPRsMerged } from "./utils";
+import Table from "./table";
 
 function millisecondsToStr(milliseconds) {
   // TIP: to find current time in milliseconds, use:
@@ -34,34 +35,34 @@ function millisecondsToStr(milliseconds) {
   return "less than a second"; //'just now' //or other string you like;
 }
 
-export const Pulls = ({ repos }) => {
-  return (
-    <table className="table">
-      <thead className="thead-light">
-        <tr>
-          <th style={{ width: "40%" }}>Pull Requests</th>
-          <th style={{ width: "20%" }}>Opened</th>
-          <th style={{ width: "20%" }}>Merged</th>
-          <th style={{ width: "20%" }}>Median time to merge</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Total</td>
-          <td>
-            <Value {...getPRsOpened(repos)} />
-          </td>
-          <td>
-            <Value {...getPRsMerged(repos)} />
-          </td>
-          <td>
+export const Pulls = ({ repos, isLoading }) => {
+  const hasAllData = repos
+    ? !repos.filter(repo => repo.stats.is_pending).length
+    : false;
+  const rowData = repos
+    ? [
+        {
+          key: "total",
+          isLoading: !hasAllData,
+          values: [
+            "Total",
+            <Value {...getPRsOpened(repos)} />,
+            <Value {...getPRsMerged(repos)} />,
             <Value
               {...getPRsTime(repos)}
               transformer={value => millisecondsToStr(value * 1000)}
             />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          ]
+        }
+      ]
+    : [{}];
+
+  return (
+    <Table
+      rowHeadings={["PRs", "Opened", "Merged", "Median time to merge"]}
+      rowLimit={5}
+      isLoading={isLoading}
+      rowData={rowData}
+    />
   );
 };

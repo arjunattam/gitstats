@@ -6,37 +6,32 @@ import {
   getPRsMerged,
   getLinesChanged
 } from "./utils";
+import Table from "./table";
 
-export const Summary = ({ owner, repos }) => {
-  return (
-    <table className="table">
-      <thead className="thead-light">
-        <tr>
-          <th style={{ width: "40%" }}>Team</th>
-          <th style={{ width: "20%" }}>Commits</th>
-          <th style={{ width: "20%" }}>PRs merged</th>
-          <th style={{ width: "20%" }}>Lines changed</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <Member
-              login={owner ? owner.name : null}
-              avatar={owner ? owner.avatar : null}
-            />
-          </td>
-          <td>
-            <Value {...getCommits(repos)} />
-          </td>
-          <td>
-            <Value {...getPRsMerged(repos)} />
-          </td>
-          <td>
+export const Summary = ({ owner, repos, isLoading }) => {
+  const hasAllData = repos
+    ? !repos.filter(repo => repo.stats.is_pending).length
+    : false;
+  const rowData = owner
+    ? [
+        {
+          key: "summary",
+          isLoading: !hasAllData,
+          values: [
+            <Member login={owner.name} avatar={owner.avatar} />,
+            <Value {...getCommits(repos)} />,
+            <Value {...getPRsMerged(repos)} />,
             <Value {...getLinesChanged(repos)} />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          ]
+        }
+      ]
+    : [{}];
+  return (
+    <Table
+      rowHeadings={["Team", "Commits", "PRs merged", "Lines changed"]}
+      rowLimit={5}
+      isLoading={isLoading}
+      rowData={rowData}
+    />
   );
 };

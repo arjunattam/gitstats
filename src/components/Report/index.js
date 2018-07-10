@@ -1,16 +1,21 @@
 import React from "react";
 import { Container } from "reactstrap";
-import { getReport } from "../../utils/api";
+import { getReport, getRepoStats } from "../../utils/api";
+import { TitleLoader } from "./loaders";
 import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
 import { Pulls } from "./pulls";
 
-const ReportTitle = ({ period }) => {
+const ReportTitle = ({ period, isLoading }) => {
+  if (isLoading) {
+    return <TitleLoader />;
+  }
+
   const { next } = period;
-  const p = new Date(next);
-  const month = p.getMonth();
-  const day = p.getDate();
+  const n = new Date(next);
+  const month = n.getMonth();
+  const day = n.getDate();
   const monthNames = [
     "January",
     "February",
@@ -27,8 +32,20 @@ const ReportTitle = ({ period }) => {
   ];
   return (
     <p className="lead">
-      Report for the week of {monthNames[month]} {day}
+      Report for the week of {monthNames[month]} {day}-{day + 6}
     </p>
+  );
+};
+
+export const ReportContainer = props => {
+  return (
+    <Container>
+      <ReportTitle {...props} />
+      <Summary {...props} />
+      <Members {...props} />
+      <Pulls {...props} />
+      <Repos {...props} />
+    </Container>
   );
 };
 
@@ -36,18 +53,52 @@ class Report extends React.Component {
   state = { responseJson: {}, isLoading: true };
 
   update() {
-    // TODO(arjun): add content loader https://github.com/danilowoz/react-content-loader
     const { params } = this.props.match;
-    getReport(params.name)
-      .then(response =>
-        this.setState({ responseJson: response.message, isLoading: false })
-      )
-      .catch(error =>
-        this.setState({
-          responseJson: { status: error.toString() },
-          isLoading: false
-        })
-      );
+    getReport(params.name).then(response => {
+      const { repos } = response.message;
+      const pendingRepos = repos.filter(repo => repo.stats.is_pending);
+      pendingRepos.forEach(repo => {
+        setTimeout(() => this.updateRepo(repo.name), 1000);
+      });
+
+      return this.setState({
+        responseJson: response.message,
+        isLoading: false
+      });
+    });
+  }
+
+  updateRepo(repo) {
+    const { params } = this.props.match;
+    const { name: username } = params;
+    getRepoStats(username, repo)
+      .then(response => {
+        const { stats } = response.message;
+        const { is_pending } = stats;
+
+        if (!is_pending) {
+          const { repos } = this.state.responseJson;
+          const newRepos = repos.map(r => {
+            if (r.name === repo) {
+              return { ...r, stats };
+            } else {
+              return r;
+            }
+          });
+          this.setState({
+            responseJson: {
+              ...this.state.responseJson,
+              repos: newRepos
+            }
+          });
+        } else {
+          setTimeout(() => this.updateRepo(repo), 1000);
+        }
+      })
+      .catch(error => {
+        console.log("update repo errored. will try again", error);
+        setTimeout(() => this.updateRepo(repo), 1000);
+      });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -64,16 +115,8 @@ class Report extends React.Component {
   }
 
   render() {
-    const { responseJson } = this.state;
-    return responseJson.period ? (
-      <Container>
-        <ReportTitle {...responseJson} />
-        <Summary {...responseJson} />
-        <Members {...responseJson} />
-        <Pulls {...responseJson} />
-        <Repos {...responseJson} />
-      </Container>
-    ) : null;
+    const { responseJson, isLoading } = this.state;
+    return <ReportContainer {...responseJson} isLoading={isLoading} />;
   }
 }
 

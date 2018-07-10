@@ -29,12 +29,6 @@ class AuthState extends React.Component {
   render() {
     return this.state.isLoggedIn ? (
       <div>
-        <Link to="/report/getsentry" className="m-3">
-          Sentry
-        </Link>
-        <Link to="/report/artsy" className="m-3">
-          Artsy
-        </Link>
         <Button onClick={() => this.logout()}>Logout</Button>
       </div>
     ) : (

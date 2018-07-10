@@ -3,7 +3,7 @@ import React from "react";
 export const Member = ({ login, avatar }) => {
   return (
     <span>
-      <img src={avatar} style={{ width: 20 }} />
+      <img src={avatar} style={{ width: 20 }} alt={login} />
       <span className="m-2">{login}</span>
     </span>
   );
