@@ -1,5 +1,6 @@
 export type Member = {
   login: string;
+  name: string;
   avatar: string;
 };
 

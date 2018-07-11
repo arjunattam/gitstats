@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 
 export type ServiceTeam = {
   id: number | string;
+  login: string;
   name: string;
   avatar: string;
   type: string;
@@ -47,6 +48,7 @@ export class GithubManager extends ServiceManager {
       const { installations } = response;
       const parsed: ServiceTeam[] = installations.map(ins => ({
         id: ins.id,
+        login: ins.account.login,
         name: ins.account.login,
         avatar: ins.account.avatar_url,
         type: ins.account.type
@@ -141,6 +143,7 @@ export class BitbucketManager extends ServiceManager {
         const { values } = response;
         return values.map(team => ({
           id: team.uuid,
+          login: team.username,
           name: team.display_name,
           avatar: team.links.avatar.href,
           type: team.type

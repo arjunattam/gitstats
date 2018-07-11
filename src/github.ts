@@ -86,6 +86,7 @@ export default class GithubService extends APICaller {
     return this.getAllPages([], params).then(members => {
       return members.map(member => ({
         login: member.login,
+        name: member.login,
         avatar: member.avatar_url
       }));
     });
