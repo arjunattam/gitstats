@@ -48,10 +48,34 @@ function getPeriodDurations(
   return durations;
 }
 
+function getPeriodSum(response: Array<any>, period: Period, dateKey, sumKey) {
+  const momentValues = response.map(r => ({
+    ...r,
+    dateKey: moment(r[dateKey])
+  }));
+  const sums = momentValues.reduce((prevValue, currentValue) => {
+    const isInPeriod =
+      currentValue.dateKey > period.start && currentValue.dateKey < period.end;
+    return isInPeriod ? prevValue + currentValue[sumKey] : prevValue;
+  }, 0);
+  return sums;
+}
+
 export function getComparativeCounts(response: Array<any>, key: string) {
   return {
     next: getPeriodCount(response, getCurrentPeriod(), key).count,
     previous: getPeriodCount(response, getPreviousPeriod(), key).count
+  };
+}
+
+export function getComparativeSums(
+  response: Array<any>,
+  dateKey: string,
+  sumKey: string
+) {
+  return {
+    next: getPeriodSum(response, getCurrentPeriod(), dateKey, sumKey),
+    previous: getPeriodSum(response, getPreviousPeriod(), dateKey, sumKey)
   };
 }
 

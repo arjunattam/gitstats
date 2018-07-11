@@ -2,7 +2,11 @@ import * as moment from "moment";
 import * as types from "./types";
 const rp = require("request-promise-native");
 const url = require("url");
-import { getComparativeDurations, getComparativeCounts } from "./utils";
+import {
+  getComparativeDurations,
+  getComparativeCounts,
+  getComparativeSums
+} from "./utils";
 
 export default class BitbucketService {
   baseUrl: string;
@@ -22,6 +26,16 @@ export default class BitbucketService {
       .utc()
       .startOf("week")
       .subtract(1, "weeks");
+  }
+
+  isInDuration(date: string) {
+    return (
+      moment(date) > this.periodPrev &&
+      moment(date) <
+        moment()
+          .utc()
+          .startOf("week")
+    );
   }
 
   get({ path, qs }) {
@@ -117,23 +131,6 @@ export default class BitbucketService {
             repos: repoResult
           };
         });
-      })
-      .then(response => {
-        const { repos } = response;
-        const commits = repos.map(repo => this.commits(repo.name));
-        return Promise.all(commits).then(responses => {
-          let repoResult = [];
-          let index;
-
-          for (index = 0; index < repos.length; index++) {
-            repoResult.push({ ...repos[index], stats: responses[index] });
-          }
-
-          return {
-            ...response,
-            repos: repoResult
-          };
-        });
       });
   }
 
@@ -151,7 +148,8 @@ export default class BitbucketService {
         is_private: repo.is_private,
         is_fork: false,
         stargazers_count: 0,
-        updated_at: repo.updated_on
+        updated_at: repo.updated_on,
+        stats: { is_pending: true }
       }));
     });
   }
@@ -231,6 +229,37 @@ export default class BitbucketService {
     });
   }
 
+  statistics(repo: string) {
+    return this.commits(repo).then(response => {
+      // response is an object with key as author and value as commit[]
+      const authors = Object.keys(response);
+      const promises = authors.map(author => {
+        const commits = response[author];
+        return this.diffstat(repo, commits);
+      });
+
+      return Promise.all(promises).then(responses => {
+        // Each response is an array of { hash, date, added, deleted }
+        // for corresponding author
+        let result: types.AuthorStats[] = [];
+        let index;
+        for (index = 0; index < authors.length; index++) {
+          result.push({
+            login: authors[index],
+            commits: getComparativeCounts(responses[index], "date"),
+            lines_added: getComparativeSums(responses[index], "date", "added"),
+            lines_deleted: getComparativeSums(
+              responses[index],
+              "date",
+              "deleted"
+            )
+          });
+        }
+        return { is_pending: false, authors: result };
+      });
+    });
+  }
+
   commits(repo: string) {
     return this.getAllTillDate(
       {
@@ -245,34 +274,56 @@ export default class BitbucketService {
     ).then(values => {
       let authorWiseCommits = {};
       values.forEach(commit => {
+        const { date } = commit;
+        const isInDuration = this.isInDuration(date);
         const { user, raw } = commit.author;
         // This user might not have a linked bitbucket account
         // eg, raw is `Tarun Gupta <tarungupta@Taruns-MacBook-Pro.local>`
         // We will try to match it with a member -- TODO
-        if (user) {
+        if (user && isInDuration) {
           const { username } = user;
-          const commitObject = { date: commit.date };
           if (username in authorWiseCommits) {
             authorWiseCommits[username] = [].concat(
-              commitObject,
+              commit,
               ...authorWiseCommits[username]
             );
           } else {
-            authorWiseCommits[username] = [commitObject];
+            authorWiseCommits[username] = [commit];
           }
         }
       });
 
-      const authors = Object.keys(authorWiseCommits).map(author => ({
-        login: author,
-        commits: getComparativeCounts(authorWiseCommits[author], "date"),
-        lines_added: { previous: 0, next: 0 }, // TODO: get lines
-        lines_deleted: { previous: 0, next: 0 } // TODO: get lines
-      }));
-      return {
-        is_pending: false,
-        authors
-      };
+      return authorWiseCommits;
+    });
+  }
+
+  diffstat(repo: string, commits: any[]) {
+    // Each commit has hash and date
+    const promises = commits.map(commit =>
+      this.getAll(
+        {
+          path: `repositories/${this.owner}/${repo}/diffstat/${commit.hash}`,
+          qs: { fields: `-values.old,-values.new,-values.type` }
+        },
+        []
+      ).then(values => {
+        const initial = { added: 0, deleted: 0 };
+        return values.reduce(
+          (acc, current) => ({
+            added: acc.added + current.lines_added,
+            deleted: acc.deleted + current.lines_removed
+          }),
+          initial
+        );
+      })
+    );
+    return Promise.all(promises).then(values => {
+      let result = [];
+      let index;
+      for (index = 0; index < commits.length; index++) {
+        result.push({ ...commits[index], ...values[index] });
+      }
+      return result;
     });
   }
 }
