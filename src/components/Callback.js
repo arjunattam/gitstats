@@ -56,7 +56,7 @@ export default class CallbackPage extends React.Component {
           {this.state.teams.map(team => {
             return (
               <li key={team.id}>
-                <Link to={`/report/${team.name}`}>{team.name}</Link>
+                <Link to={`/report/${team.login}`}>{team.name}</Link>
               </li>
             );
           })}
