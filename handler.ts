@@ -83,6 +83,55 @@ export const teams: Handler = (
   });
 };
 
+export const commits: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  // TODO(arjun): merge with other APIs once we have clarity on response
+  const accessToken = getToken(event.headers);
+  const { owner, repo } = event.pathParameters;
+  const manager = new UserManager(accessToken, owner);
+
+  manager.getServiceClient().then(client =>
+    client.commits(repo).then(response => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: response,
+          input: event
+        })
+      });
+    })
+  );
+};
+
+export const pulls: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  // TODO(arjun): merge with other APIs once we have clarity on response
+  // - also, this api returns value for one pr, which will change to a duration
+  const accessToken = getToken(event.headers);
+  const { owner, repo, pr } = event.pathParameters;
+  const manager = new UserManager(accessToken, owner);
+
+  manager.getServiceClient().then(client =>
+    client.prActivity(repo, pr).then(response => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: response,
+          input: event
+        })
+      });
+    })
+  );
+};
+
 export const auth: Handler = (
   event: CustomAuthorizerEvent,
   context: Context,

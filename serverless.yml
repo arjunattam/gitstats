@@ -45,6 +45,26 @@ functions:
           resp: http
           authorizer: auth
           cors: true
+  commits:
+    handler: handler.commits
+    timeout: 30
+    events:
+      - http:
+          method: get
+          path: commits/{owner}/{repo}
+          resp: http
+          authorizer: auth
+          cors: true
+  pulls:
+    handler: handler.pulls
+    timeout: 30
+    events:
+      - http:
+          method: get
+          path: pulls/{owner}/{repo}/{pr}
+          resp: http
+          authorizer: auth
+          cors: true
 
 resources:
   Resources:

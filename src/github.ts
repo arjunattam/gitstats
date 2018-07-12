@@ -182,6 +182,78 @@ export default class GithubService extends APICaller {
     });
   }
 
+  prActivity(repo: string, pr: string) {
+    const params = {
+      path: `repos/${this.owner}/${repo}/pulls/${pr}`,
+      qs: {},
+      headers: {}
+    };
+    return this.get(params)
+      .then(response => {
+        const {
+          user,
+          title,
+          state,
+          created_at,
+          updated_at,
+          closed_at,
+          merged,
+          additions,
+          deletions,
+          changed_files,
+          merged_at,
+          _links
+        } = response.body;
+        return {
+          title,
+          state,
+          created_at,
+          updated_at,
+          closed_at,
+          merged,
+          additions,
+          deletions,
+          changed_files,
+          merged_at,
+          url: _links.html.href,
+          author: user.login
+        };
+      })
+      .then(response => {
+        const params = {
+          path: `repos/${this.owner}/${repo}/pulls/${pr}/commits`,
+          qs: {},
+          headers: {}
+        };
+        // TODO(arjun): add commit author to this
+        return this.getAllPages([], params).then(values => {
+          return {
+            ...response,
+            commits: values.map(commit => ({
+              sha: commit.sha,
+              date: commit.commit.author.date
+            }))
+          };
+        });
+      })
+      .then(response => {
+        const params = {
+          path: `repos/${this.owner}/${repo}/pulls/${pr}/comments`,
+          qs: {},
+          headers: {}
+        };
+        return this.getAllPages([], params).then(values => {
+          return {
+            ...response,
+            comments: values.map(comment => ({
+              author: comment.user.login,
+              date: comment.created_at
+            }))
+          };
+        });
+      });
+  }
+
   issues(repo: string) {
     // TODO(arjun): this can be used for both issues and PRs, which means we cannot
     // differentiate between a closed PR and a merged PR
