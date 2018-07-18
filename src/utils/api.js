@@ -19,6 +19,25 @@ export const getTeams = () => {
     .then(response => response.data);
 };
 
+export const getCommits = (user, repo) => {
+  const auth = new Auth();
+  return axios
+    .get(`${BASE_URL}/commits/${user}/${repo}`, {
+      headers: auth.getAuthHeader()
+    })
+    .then(response => {
+      const { message } = response.data;
+      let result = [];
+
+      Object.keys(message).forEach(author => {
+        const commits = message[author];
+        result.push(commits.map(commit => ({ x: commit.date, y: 1 })));
+      });
+
+      return result;
+    });
+};
+
 export const getReport = username => {
   const auth = new Auth();
   return axios

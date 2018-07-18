@@ -1,11 +1,12 @@
 import React from "react";
 import { Container } from "reactstrap";
-import { getReport, getRepoStats } from "../../utils/api";
+import { getReport, getRepoStats, getCommits } from "../../utils/api";
 import { TitleLoader } from "./loaders";
 import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
 import { Pulls } from "./pulls";
+import { Streamgraph } from "../Charts";
 
 const ReportTitle = ({ period, isLoading }) => {
   if (isLoading) {
@@ -37,11 +38,26 @@ const ReportTitle = ({ period, isLoading }) => {
   );
 };
 
+class StreamgraphContainer extends React.Component {
+  state = { data: [] };
+
+  componentDidMount() {
+    getCommits("docon2015", "docon_python").then(response => {
+      this.setState({ data: response });
+    });
+  }
+
+  render() {
+    return <Streamgraph data={this.state.data} />;
+  }
+}
+
 export const ReportContainer = props => {
   return (
     <Container>
       <ReportTitle {...props} />
       <Summary {...props} />
+      <StreamgraphContainer />
       <Members {...props} />
       <Pulls {...props} />
       <Repos {...props} />
