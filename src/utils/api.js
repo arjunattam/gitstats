@@ -38,6 +38,15 @@ export const getCommits = (user, repo) => {
     });
 };
 
+export const getPRActivity = (user, repo, pr) => {
+  const auth = new Auth();
+  return axios
+    .get(`${BASE_URL}/pulls/${user}/${repo}/${pr}`, {
+      headers: auth.getAuthHeader()
+    })
+    .then(response => response.data);
+};
+
 export const getReport = username => {
   const auth = new Auth();
   return axios

@@ -164,3 +164,100 @@ export class Streamgraph extends React.Component {
     return div.toReact();
   }
 }
+
+export class PRActivity extends React.Component {
+  renderPR(prData, svg, x, y, axisEnd, yValue) {
+    const { created_at, merged_at, commits, comments } = prData;
+
+    // Plot area
+    var areaEnd = merged_at ? new Date(merged_at) : axisEnd;
+    var areaWidth = x(areaEnd) - x(new Date(created_at));
+    svg
+      .append("g")
+      .append("rect")
+      .attr("x", x(new Date(created_at)))
+      .attr("y", y(yValue + 1.25))
+      .attr("width", areaWidth)
+      .attr("height", 15)
+      .attr("fill", "#ddd");
+
+    // Plot comments
+    svg
+      .append("g")
+      .selectAll("scatter-dots")
+      .data(comments.map(c => [c.date, yValue + 1]))
+      .enter()
+      .append("svg:circle")
+      .attr("cx", function(d, i) {
+        return x(new Date(d[0]));
+      })
+      .attr("cy", function(d) {
+        return y(d[1]);
+      })
+      .attr("r", 2)
+      .attr("fill", "blue");
+
+    // Plot commits
+    svg
+      .append("g")
+      .selectAll("scatter-dots")
+      .data(commits.map(c => [c.date, yValue + 1]))
+      .enter()
+      .append("svg:circle")
+      .attr("cx", function(d, i) {
+        return x(new Date(d[0]));
+      })
+      .attr("cy", function(d) {
+        return y(d[1]);
+      })
+      .attr("r", 2)
+      .attr("fill", "red");
+  }
+
+  render() {
+    const { data } = this.props;
+    if (!data || !data.length) return null;
+
+    const axisStart = d3.utcSunday(new Date(data[0].created_at));
+    const axisEnd = d3.timeDay.offset(axisStart, 7);
+
+    var width = 600;
+    var height = 150;
+    var margin = 20;
+    var actualHeight = height - margin;
+    var actualWidth = width - 2 * margin;
+
+    var x = d3
+      .scaleLinear()
+      .domain([axisStart, axisEnd])
+      .range([margin, margin + actualWidth]);
+
+    var y = d3
+      .scaleLinear()
+      .domain([0, 5]) // TODO: calculate this
+      .range([actualHeight, 0]);
+
+    const div = new ReactFauxDOM.Element("div");
+
+    let svg = d3
+      .select(div)
+      .classed("svg-container", true)
+      .append("svg")
+      .attr("preserveAspectRatio", "xMinYMin meet")
+      .attr("viewBox", "0 0 600 200")
+      .classed("svg-content-responsive", true);
+
+    data.forEach((prData, index) => {
+      this.renderPR(prData, svg, x, y, axisEnd, index);
+    });
+
+    var formatTime = d3.timeFormat("%b %d");
+    var axis = d3.axisBottom(x).tickFormat(formatTime);
+    svg
+      .append("g")
+      .attr("transform", `translate(0,${actualHeight})`)
+      .call(axis);
+
+    return div.toReact();
+  }
+}

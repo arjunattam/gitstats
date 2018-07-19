@@ -1,12 +1,17 @@
 import React from "react";
 import { Container } from "reactstrap";
-import { getReport, getRepoStats, getCommits } from "../../utils/api";
+import {
+  getReport,
+  getRepoStats,
+  getCommits,
+  getPRActivity
+} from "../../utils/api";
 import { TitleLoader } from "./loaders";
 import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
 import { Pulls } from "./pulls";
-import { Streamgraph } from "../Charts";
+import { Streamgraph, PRActivity } from "../Charts";
 
 const ReportTitle = ({ period, isLoading }) => {
   if (isLoading) {
@@ -38,17 +43,30 @@ const ReportTitle = ({ period, isLoading }) => {
   );
 };
 
-class StreamgraphContainer extends React.Component {
-  state = { data: [] };
+class ChartContainer extends React.Component {
+  state = { commitsData: [], prData: [] };
 
   componentDidMount() {
     getCommits("docon2015", "docon_python").then(response => {
-      this.setState({ data: response });
+      this.setState({ commitsData: response });
+    });
+
+    const promises = [
+      getPRActivity("getsentry", "sentry", "9078"),
+      getPRActivity("getsentry", "sentry", "9087"),
+      getPRActivity("getsentry", "sentry", "9057"),
+      getPRActivity("getsentry", "sentry", "9058")
+    ];
+
+    Promise.all(promises).then(responses => {
+      console.log("api response", responses);
+      this.setState({ prData: responses.map(r => r.message) });
     });
   }
 
   render() {
-    return <Streamgraph data={this.state.data} />;
+    // return <Streamgraph data={this.state.commitsData} />;
+    return <PRActivity data={this.state.prData} />;
   }
 }
 
@@ -57,9 +75,9 @@ export const ReportContainer = props => {
     <Container>
       <ReportTitle {...props} />
       <Summary {...props} />
-      <StreamgraphContainer />
       <Members {...props} />
       <Pulls {...props} />
+      <ChartContainer />
       <Repos {...props} />
     </Container>
   );
