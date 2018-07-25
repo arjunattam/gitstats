@@ -148,7 +148,7 @@ export default class GithubService extends APICaller {
     });
   }
 
-  pulls(repo: string): Promise<types.RepoPR[]> {
+  pullsList(repo: string) {
     const params = {
       path: `repos/${this.owner}/${repo}/pulls`,
       qs: {
@@ -158,7 +158,11 @@ export default class GithubService extends APICaller {
         per_page: 50 // overriding because 100 seems too much for one repo
       }
     };
-    return this.getAllForDesc([], params, "updated_at").then(pulls => {
+    return this.getAllForDesc([], params, "updated_at");
+  }
+
+  pulls(repo: string): Promise<types.RepoPR[]> {
+    return this.pullsList(repo).then(pulls => {
       let authorWisePRs = {};
       pulls.forEach(pull => {
         const author = pull.user.login;
@@ -182,63 +186,57 @@ export default class GithubService extends APICaller {
     });
   }
 
-  prActivity(repo: string, pr: string) {
+  getActivityForPR(repo, prResponse) {
+    const {
+      user,
+      title,
+      number,
+      state,
+      created_at,
+      updated_at,
+      closed_at,
+      merged,
+      additions,
+      deletions,
+      changed_files,
+      merged_at,
+      _links
+    } = prResponse;
+    const pr = {
+      title,
+      number,
+      state,
+      created_at,
+      updated_at,
+      closed_at,
+      merged,
+      additions,
+      deletions,
+      changed_files,
+      merged_at,
+      url: _links.html.href,
+      author: user.login
+    };
+
     const params = {
-      path: `repos/${this.owner}/${repo}/pulls/${pr}`,
+      path: `repos/${this.owner}/${repo}/pulls/${pr.number}/commits`,
       qs: {},
       headers: {}
     };
-    return this.get(params)
-      .then(response => {
-        const {
-          user,
-          title,
-          state,
-          created_at,
-          updated_at,
-          closed_at,
-          merged,
-          additions,
-          deletions,
-          changed_files,
-          merged_at,
-          _links
-        } = response.body;
+
+    return this.getAllPages([], params)
+      .then(values => {
         return {
-          title,
-          state,
-          created_at,
-          updated_at,
-          closed_at,
-          merged,
-          additions,
-          deletions,
-          changed_files,
-          merged_at,
-          url: _links.html.href,
-          author: user.login
+          ...pr,
+          commits: values.map(commit => ({
+            sha: commit.sha,
+            date: commit.commit.author.date
+          }))
         };
       })
       .then(response => {
         const params = {
-          path: `repos/${this.owner}/${repo}/pulls/${pr}/commits`,
-          qs: {},
-          headers: {}
-        };
-        // TODO(arjun): add commit author to this
-        return this.getAllPages([], params).then(values => {
-          return {
-            ...response,
-            commits: values.map(commit => ({
-              sha: commit.sha,
-              date: commit.commit.author.date
-            }))
-          };
-        });
-      })
-      .then(response => {
-        const params = {
-          path: `repos/${this.owner}/${repo}/pulls/${pr}/comments`,
+          path: `repos/${this.owner}/${repo}/pulls/${pr.number}/comments`,
           qs: {},
           headers: {}
         };
@@ -248,10 +246,48 @@ export default class GithubService extends APICaller {
             comments: values.map(comment => ({
               author: comment.user.login,
               date: comment.created_at
-            }))
+            })),
+            repo
           };
         });
       });
+  }
+
+  prActivity() {
+    return this.repos().then(repos => {
+      const promises = repos.map(repo => this.pullsList(repo.name));
+
+      return Promise.all(promises)
+        .then(values => {
+          let finalPromises = [];
+          values.forEach((response, idx) => {
+            const repo = repos[idx];
+            const promises = response.map(pr =>
+              this.getActivityForPR(repo.name, pr)
+            );
+            finalPromises = [].concat(...finalPromises, ...promises);
+          });
+          return finalPromises;
+        })
+        .then(promises =>
+          Promise.all(promises).then(values => {
+            let repoWisePulls = {};
+            values.forEach(response => {
+              const { repo } = response;
+              if (repo in repoWisePulls) {
+                repoWisePulls[repo] = [...repoWisePulls[repo], response];
+              } else {
+                repoWisePulls[repo] = [response];
+              }
+            });
+            const repos = Object.keys(repoWisePulls);
+            return repos.map(repo => ({
+              repo,
+              pulls: repoWisePulls[repo]
+            }));
+          })
+        );
+    });
   }
 
   issues(repo: string) {
@@ -297,7 +333,6 @@ export default class GithubService extends APICaller {
     };
     return this.getAllPages([], params).then(values => {
       const commits = values.map(response => ({
-        // TODO: should we use committer or author?
         // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
         login: response.author.login,
         date: response.commit.author.date,

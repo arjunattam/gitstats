@@ -57,7 +57,7 @@ functions:
           cors: true
   pulls:
     handler: handler.pulls
-    timeout: 30
+    timeout: 60
     events:
       - http:
           method: get

@@ -115,11 +115,11 @@ export const pulls: Handler = (
   // TODO(arjun): merge with other APIs once we have clarity on response
   // - also, this api returns value for one pr, which will change to a duration
   const accessToken = getToken(event.headers);
-  const { owner, repo, pr } = event.pathParameters;
+  const { owner } = event.pathParameters;
   const manager = new UserManager(accessToken, owner);
 
   manager.getServiceClient().then(client =>
-    client.prActivity(repo, pr).then(response => {
+    client.prActivity().then(response => {
       cb(null, {
         statusCode: 200,
         headers: HEADERS,
