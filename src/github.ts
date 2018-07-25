@@ -285,4 +285,54 @@ export default class GithubService extends APICaller {
       return getComparativeCounts(response, "starred_at");
     });
   }
+
+  commits(repo: string): Promise<types.RepoCommits[]> {
+    // Only default branch (master)
+    const params = {
+      path: `repos/${this.owner}/${repo}/commits`,
+      qs: {
+        since: this.periodPrev.toISOString(),
+        per_page: 100
+      }
+    };
+    return this.getAllPages([], params).then(values => {
+      const commits = values.map(response => ({
+        // TODO: should we use committer or author?
+        // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
+        login: response.author.login,
+        date: response.commit.author.date,
+        message: response.commit.message,
+        sha: response.sha
+      }));
+      let authorWiseCommits = {};
+      commits.forEach(commit => {
+        const { login } = commit;
+        if (login in authorWiseCommits) {
+          authorWiseCommits[login] = [commit, ...authorWiseCommits[login]];
+        } else {
+          authorWiseCommits[login] = [commit];
+        }
+      });
+      const authors = Object.keys(authorWiseCommits);
+      return authors.map(author => ({
+        author,
+        commits: authorWiseCommits[author]
+      }));
+    });
+  }
+
+  allCommits(): Promise<types.Commits[]> {
+    return this.repos().then(repos => {
+      // Filtering to public repos only because the Github Apps
+      // integration does not ask for commits permissions.
+      const filtered = repos.filter(repo => !repo.is_private);
+      const promises = filtered.map(repo => this.commits(repo.name));
+      return Promise.all(promises).then((responses: types.RepoCommits[][]) => {
+        return responses.map((response, idx) => ({
+          repo: filtered[idx].name,
+          commits: response
+        }));
+      });
+    });
+  }
 }

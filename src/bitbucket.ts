@@ -261,6 +261,8 @@ export default class BitbucketService {
   }
 
   commits(repo: string) {
+    // Returns all commits in the repo, all branches
+    // https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits
     return this.getAllTillDate(
       {
         path: `repositories/${this.owner}/${repo}/commits`,
@@ -294,6 +296,30 @@ export default class BitbucketService {
       });
 
       return authorWiseCommits;
+    });
+  }
+
+  allCommits(): Promise<types.Commits[]> {
+    return this.repos().then(repos => {
+      const promises = repos.map(repo => this.commits(repo.name));
+      return Promise.all(promises).then(responses => {
+        return responses.map((response, idx) => {
+          const authors = Object.keys(response);
+          let result = [];
+          authors.forEach(author => {
+            const commits = response[author].map(commit => ({
+              date: commit.date,
+              sha: commit.hash,
+              message: commit.message
+            }));
+            result.push({ author, commits });
+          });
+          return {
+            repo: repos[idx].name,
+            commits: result
+          };
+        });
+      });
     });
   }
 

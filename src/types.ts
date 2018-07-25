@@ -57,3 +57,19 @@ export type RepoStats = {
   is_pending: boolean;
   authors?: AuthorStats[];
 };
+
+export type Commits = {
+  repo: string;
+  commits: RepoCommits[];
+};
+
+export type RepoCommits = {
+  author: string;
+  commits: AuthorCommit[];
+};
+
+export type AuthorCommit = {
+  date: string;
+  message: string;
+  sha: string;
+};

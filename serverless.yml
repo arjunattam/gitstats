@@ -51,7 +51,7 @@ functions:
     events:
       - http:
           method: get
-          path: commits/{owner}/{repo}
+          path: commits/{owner}
           resp: http
           authorizer: auth
           cors: true
@@ -61,7 +61,7 @@ functions:
     events:
       - http:
           method: get
-          path: pulls/{owner}/{repo}/{pr}
+          path: pulls/{owner}
           resp: http
           authorizer: auth
           cors: true

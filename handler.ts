@@ -90,11 +90,11 @@ export const commits: Handler = (
 ) => {
   // TODO(arjun): merge with other APIs once we have clarity on response
   const accessToken = getToken(event.headers);
-  const { owner, repo } = event.pathParameters;
+  const { owner } = event.pathParameters;
   const manager = new UserManager(accessToken, owner);
 
   manager.getServiceClient().then(client =>
-    client.commits(repo).then(response => {
+    client.allCommits().then(response => {
       cb(null, {
         statusCode: 200,
         headers: HEADERS,
