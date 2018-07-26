@@ -1,11 +1,13 @@
 import React from "react";
+import * as d3 from "d3";
 import { Container } from "reactstrap";
-import { getReport, getRepoStats } from "../../utils/api";
+import { getReport, getRepoStats, getPRActivity } from "../../utils/api";
 import { TitleLoader } from "./loaders";
 import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
 import { Pulls } from "./pulls";
+import { CommitChartContainer } from "./charts";
 
 const ReportTitle = ({ period, isLoading }) => {
   if (isLoading) {
@@ -32,18 +34,41 @@ const ReportTitle = ({ period, isLoading }) => {
   ];
   return (
     <p className="lead">
-      Report for the week of {monthNames[month]} {day}-{day + 6}
+      Report for the week of {monthNames[month]} {day} - {day + 6}
     </p>
   );
 };
 
+class PRChartContainer extends React.Component {
+  state = { prData: [] };
+
+  componentDidMount() {
+    getPRActivity("getsentry").then(response => {
+      this.setState({ prData: response.message });
+    });
+  }
+
+  render() {
+    // return <PRActivity data={this.state.prData} />;
+    return null;
+  }
+}
+
 export const ReportContainer = props => {
+  const { owner, period } = props;
+  const startDate = d3.utcSunday(new Date(period ? period.next : undefined));
+  const copy = new Date(startDate);
+  const endDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() + 7)));
+  const chartProps = { username: owner ? owner.login : "", startDate, endDate };
+
   return (
     <Container>
       <ReportTitle {...props} />
       <Summary {...props} />
+      <CommitChartContainer {...chartProps} />
       <Members {...props} />
       <Pulls {...props} />
+      <PRChartContainer />
       <Repos {...props} />
     </Container>
   );
