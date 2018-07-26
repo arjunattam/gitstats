@@ -43,9 +43,9 @@ class PRChartContainer extends React.Component {
   state = { prData: [] };
 
   componentDidMount() {
-    getPRActivity("getsentry").then(response => {
-      this.setState({ prData: response.message });
-    });
+    // getPRActivity("getsentry").then(response => {
+    //   this.setState({ prData: response.message });
+    // });
   }
 
   render() {
@@ -55,11 +55,15 @@ class PRChartContainer extends React.Component {
 }
 
 export const ReportContainer = props => {
-  const { owner, period } = props;
-  const startDate = d3.utcSunday(new Date(period ? period.next : undefined));
-  const copy = new Date(startDate);
-  const endDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() + 7)));
-  const chartProps = { username: owner ? owner.login : "", startDate, endDate };
+  const { params } = props;
+  const thisWeekStart = d3.utcSunday(new Date());
+  const copy = new Date(thisWeekStart);
+  const startDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() - 7)));
+  const chartProps = {
+    username: params ? params.name : "getsentry",
+    startDate,
+    endDate: thisWeekStart
+  };
 
   return (
     <Container>
@@ -140,8 +144,15 @@ class Report extends React.Component {
   }
 
   render() {
+    const { params } = this.props.match;
     const { responseJson, isLoading } = this.state;
-    return <ReportContainer {...responseJson} isLoading={isLoading} />;
+    return (
+      <ReportContainer
+        {...responseJson}
+        params={params}
+        isLoading={isLoading}
+      />
+    );
   }
 }
 

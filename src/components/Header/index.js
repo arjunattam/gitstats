@@ -45,7 +45,7 @@ class AuthState extends React.Component {
 }
 
 const Header = () => (
-  <Container>
+  <Container style={{ marginBottom: 40 }}>
     <Navbar>
       <NavbarBrand href="/">gitstats.report</NavbarBrand>
       <AuthState />
