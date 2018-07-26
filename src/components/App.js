@@ -5,18 +5,24 @@ import Callback from "./Callback";
 import PrivateRoute from "./PrivateRoute";
 import Report from "./Report";
 import Router from "./Router";
+import Footer from "./Footer";
 import { Route } from "react-router-dom";
 import "./App.css";
 
 const App = () => (
-  <Router>
+  <div>
+    <Router>
+      <div>
+        <Route component={Header} />
+        <Route exact path="/" component={Home} />
+        <Route path="/callback" component={Callback} />
+        <PrivateRoute path="/report/:name" component={Report} />
+      </div>
+    </Router>
     <div>
-      <Route component={Header} />
-      <Route exact path="/" component={Home} />
-      <Route path="/callback" component={Callback} />
-      <PrivateRoute path="/report/:name" component={Report} />
+      <Footer />
     </div>
-  </Router>
+  </div>
 );
 
 export default App;
