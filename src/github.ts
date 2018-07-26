@@ -398,13 +398,15 @@ export default class GithubService extends APICaller {
       }
     };
     return this.getAllPages([], params).then(values => {
-      const commits = values.map(response => ({
-        // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
-        login: response.author.login,
-        date: response.commit.author.date,
-        message: response.commit.message,
-        sha: response.sha
-      }));
+      const commits = values
+        .filter(response => !!response.author)
+        .map(response => ({
+          // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
+          login: response.author.login,
+          date: response.commit.author.date,
+          message: response.commit.message,
+          sha: response.sha
+        }));
       let authorWiseCommits = {};
       commits.forEach(commit => {
         const { login } = commit;
