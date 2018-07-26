@@ -253,40 +253,106 @@ export default class GithubService extends APICaller {
       });
   }
 
-  prActivity() {
-    return this.repos().then(repos => {
-      const promises = repos.map(repo => this.pullsList(repo.name));
+  organisation() {
+    return this.get({ path: `orgs/${this.owner}`, headers: {}, qs: {} }).then(
+      response => response.body
+    );
+  }
 
-      return Promise.all(promises)
-        .then(values => {
-          let finalPromises = [];
-          values.forEach((response, idx) => {
-            const repo = repos[idx];
-            const promises = response.map(pr =>
-              this.getActivityForPR(repo.name, pr)
-            );
-            finalPromises = [].concat(...finalPromises, ...promises);
-          });
-          return finalPromises;
-        })
-        .then(promises =>
-          Promise.all(promises).then(values => {
-            let repoWisePulls = {};
-            values.forEach(response => {
-              const { repo } = response;
-              if (repo in repoWisePulls) {
-                repoWisePulls[repo] = [...repoWisePulls[repo], response];
-              } else {
-                repoWisePulls[repo] = [response];
+  prActivity(nodeId: string) {
+    // TODO - this sets a limit of 10 for repos and limit of 20 for PRs
+    const query = `{
+      nodes(ids: ["${nodeId}"]) {
+        ... on Organization {
+          repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            nodes {
+              name
+              updatedAt
+              pullRequests(first: 20, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                nodes {
+                  author {
+                    login
+                  }
+                  updatedAt
+                  createdAt
+                  mergedAt
+                  closedAt
+                  state
+                  title
+                  url
+                  comments(first: 50) {
+                    nodes {
+                      createdAt
+                      author {
+                        login
+                      }
+                    }
+                  }
+                  commits(first: 50) {
+                    nodes {
+                      commit {
+                        message
+                        authoredDate
+                        author {
+                          email
+                          user {
+                            login
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
+            }
+          }
+        }
+      }
+    }`;
+    return this.graphqlPost({ query }).then(response => {
+      const responseNode = response.body.data.nodes[0];
+      return responseNode.repositories.nodes
+        .filter(
+          node =>
+            moment(node.updatedAt) > this.periodPrev &&
+            node.pullRequests.nodes.length > 0
+        )
+        .map(node => {
+          const pulls = node.pullRequests.nodes
+            .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
+            .map(prNode => {
+              const commits = prNode.commits.nodes
+                // TODO - we are filtering for only recognised committers
+                .filter(commitNode => !!commitNode.commit.author.user)
+                .map(commitNode => ({
+                  author: commitNode.commit.author.user.login,
+                  date: commitNode.commit.authoredDate,
+                  message: commitNode.commit.message
+                }));
+              // TODO: the comments does not include approval/rejection comments
+              // eg, in this PR: https://github.com/getsentry/responses/pull/210
+              const comments = prNode.comments.nodes.map(commentNode => ({
+                author: commentNode.author.login,
+                date: commentNode.createdAt
+              }));
+              return {
+                author: prNode.author.login,
+                title: prNode.title,
+                created_at: prNode.createdAt,
+                merged_at: prNode.mergedAt,
+                closed_at: prNode.closedAt,
+                updated_at: prNode.updatedAt,
+                state: prNode.state,
+                url: prNode.url,
+                comments,
+                commits
+              };
             });
-            const repos = Object.keys(repoWisePulls);
-            return repos.map(repo => ({
-              repo,
-              pulls: repoWisePulls[repo]
-            }));
-          })
-        );
+          return {
+            repo: node.name,
+            pulls
+          };
+        });
     });
   }
 

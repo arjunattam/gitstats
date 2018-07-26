@@ -40,6 +40,21 @@ export default class APICaller {
     });
   }
 
+  graphqlPost(body) {
+    return rp({
+      uri: `https://api.github.com/graphql`,
+      headers: {
+        "User-Agent": "gitstats.report",
+        Authorization: `token ${this.token}`,
+        Accept: `application/vnd.github.machine-man-preview+json`
+      },
+      body,
+      method: "POST",
+      json: true,
+      resolveWithFullResponse: true
+    });
+  }
+
   getAllPages(aggregate, params) {
     return this.get(params).then(response => {
       const { body, headers } = response;
