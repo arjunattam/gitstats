@@ -1,14 +1,8 @@
 import axios from "axios";
 import Auth from "./auth";
-import { MOCK_DATA } from "./data";
+import { MOCK_COMMITS_DATA } from "./data";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
-
-const getMockReport = () => {
-  return new Promise((resolve, _) => {
-    setTimeout(() => resolve(MOCK_DATA), 4000);
-  });
-};
 
 export const getTeams = () => {
   const auth = new Auth();
@@ -19,29 +13,24 @@ export const getTeams = () => {
     .then(response => response.data);
 };
 
-export const getCommits = (user, repo) => {
-  const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/commits/${user}/${repo}`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => {
-      const { message } = response.data;
-      let result = [];
-
-      Object.keys(message).forEach(author => {
-        const commits = message[author];
-        result.push(commits.map(commit => ({ x: commit.date, y: 1 })));
-      });
-
-      return result;
-    });
+export const getCommits = user => {
+  if (user === "getsentry") {
+    // TODO - please fix this hack
+    return new Promise(r => r(MOCK_COMMITS_DATA));
+  } else {
+    const auth = new Auth();
+    return axios
+      .get(`${BASE_URL}/commits/${user}`, {
+        headers: auth.getAuthHeader()
+      })
+      .then(response => response.data);
+  }
 };
 
-export const getPRActivity = (user, repo, pr) => {
+export const getPRActivity = user => {
   const auth = new Auth();
   return axios
-    .get(`${BASE_URL}/pulls/${user}/${repo}/${pr}`, {
+    .get(`${BASE_URL}/pulls/${user}`, {
       headers: auth.getAuthHeader()
     })
     .then(response => response.data);

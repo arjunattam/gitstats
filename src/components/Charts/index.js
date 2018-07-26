@@ -5,24 +5,34 @@ import "./index.css";
 
 const INTERVAL_SIZE = 4; // hours
 
+Date.prototype.addHours = function(h) {
+  this.setTime(this.getTime() + h * 60 * 60 * 1000);
+  return this;
+};
+
 export class Streamgraph extends React.Component {
-  parsedData() {
+  // data props looks like
+  // [
+  //    [ {x: date1, y: 1}, {x: date2, y: 1} ], --> layer 1
+  //    [ {x: date1, y: 1}, {x: date2, y: 1} ]  --> layer 2
+  // ]
+  parseHelper(data, startDate, endDate) {
     let result = [];
-    const { data } = this.props;
     data.forEach(layer => {
       const layerData = layer.reduce((acc, current) => {
         const parsed = new Date(current.x);
-        const weekStart = d3.utcSunday(parsed);
-        const hours = Math.round(
-          Math.abs(
-            (parsed.getTime() - weekStart.getTime()) / (3600000 * INTERVAL_SIZE)
-          )
+        parsed.setUTCSeconds(0);
+        parsed.setUTCMilliseconds(0);
+        parsed.setUTCMinutes(0);
+        parsed.setUTCHours(
+          parsed.getUTCHours() - (parsed.getUTCHours() % INTERVAL_SIZE)
         );
+        const copy = new Date(parsed);
 
-        if (hours in acc) {
-          acc[hours] = acc[hours] + 1;
+        if (copy in acc) {
+          acc[copy] = acc[copy] + 1;
         } else {
-          acc[hours] = 1;
+          acc[copy] = 1;
         }
         return acc;
       }, {});
@@ -36,21 +46,24 @@ export class Streamgraph extends React.Component {
         previous = result[result.length - 1];
       }
 
-      const maxX = 168 / INTERVAL_SIZE;
+      const copyStart = new Date(startDate);
+      const copyEnd = new Date(endDate);
 
-      for (let i = 0; i < maxX; i++) {
+      for (let i = copyStart; i <= copyEnd; i = i.addHours(INTERVAL_SIZE)) {
+        const j = new Date(i);
         let start = 0;
+
         if (previous) {
-          const filtered = previous.filter(p => p.x === i);
+          const filtered = previous.filter(p => p.x.getTime() === j.getTime());
           if (filtered.length > 0) {
             start = filtered[0].y.end;
           }
         }
-        if (i in layerData) {
-          layerResult.push({ x: i, y: { start, end: start + layerData[i] } });
-        } else {
-          layerResult.push({ x: i, y: { start, end: start } });
-        }
+
+        layerResult.push({
+          x: new Date(j),
+          y: { start, end: j in layerData ? start + layerData[j] : start }
+        });
       }
 
       result.push(layerResult);
@@ -59,28 +72,41 @@ export class Streamgraph extends React.Component {
     return result;
   }
 
+  parsedData() {
+    const { data, startDate, endDate } = this.props;
+    return this.parseHelper(data, startDate, endDate);
+  }
+
+  parsedPrevData() {
+    const { prevData, startDate } = this.props;
+    const copy = new Date(startDate);
+    const prevStart = new Date(copy.setDate(copy.getDate() - 7));
+    const prevEnd = new Date(startDate);
+    const result = this.parseHelper(prevData, prevStart, prevEnd);
+
+    // Add 7 days to result so that we can use the x-axis
+    return result.map(resultLayer => {
+      return resultLayer.map(data => {
+        return { ...data, x: new Date(data.x.setDate(data.x.getDate() + 7)) };
+      });
+    });
+  }
+
+  getMaxY(data) {
+    let flattened = [];
+    data.forEach(layer => flattened.push(...layer));
+
+    return flattened.reduce((acc, curr) => {
+      return Math.max(acc, curr.y.end);
+    }, 10);
+  }
+
   render() {
     const div = new ReactFauxDOM.Element("div");
-
-    let svg = d3
-      .select(div)
-      .classed("svg-container", true)
-      .append("svg")
-      .attr("preserveAspectRatio", "xMinYMin meet")
-      .attr("viewBox", "0 0 600 200")
-      .classed("svg-content-responsive", true);
-
-    var colorrange = [
-      "#d53e4f",
-      "#f46d43",
-      "#fdae61",
-      "#fee08b",
-      "#e6f598",
-      "#abdda4",
-      "#66c2a5",
-      "#3288bd",
-      "#5e4fa2"
-    ];
+    const { startDate, endDate } = this.props;
+    const data = this.parsedData();
+    const prevData = this.parsedPrevData();
+    const maxY = this.getMaxY([...data, ...prevData]);
 
     var width = 600;
     var height = 150;
@@ -88,16 +114,34 @@ export class Streamgraph extends React.Component {
     var actualHeight = height - margin;
     var actualWidth = width - 2 * margin;
 
-    const m = 168 / INTERVAL_SIZE; // hours
+    let svg = d3
+      .select(div)
+      .classed("svg-container", true)
+      .append("svg")
+      .attr("preserveAspectRatio", "xMinYMin meet")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .classed("svg-content-responsive", true);
+
+    var colorrange = [
+      // "#d53e4f",
+      // "#f46d43",
+      // "#fdae61"
+      "#fee08b"
+      // "#e6f598"
+      // "#abdda4"
+      // "#66c2a5",
+      // "#3288bd"
+      // "#5e4fa2"
+    ];
 
     var x = d3
-      .scaleLinear()
-      .domain([0, m])
+      .scaleTime()
+      .domain([startDate, endDate])
       .range([margin, margin + actualWidth]);
 
     var y = d3
       .scaleLinear()
-      .domain([0, 17]) // TODO: calculate this
+      .domain([0, maxY + 2]) // TODO: calculate this
       .range([actualHeight, 0]);
 
     var area = d3
@@ -116,50 +160,67 @@ export class Streamgraph extends React.Component {
     svg
       .append("g")
       .selectAll("path")
-      .data(this.parsedData())
+      .data(data)
       .enter()
       .append("path")
       .attr("d", area)
       .attr("fill", function(d, i) {
-        return colorrange[i];
+        return colorrange[i % colorrange.length];
       })
       .on("mouseover", function(d, i) {
-        console.log("mouse over", d, i);
+        // console.log("mouse over", d, i);
       });
 
-    var daysArea = d3
-      .area()
-      .x0(function(d, i) {
-        return x(6 * d);
+    // Plot previous data - with no fill
+    var line = d3
+      .line()
+      .curve(d3.curveMonotoneX)
+      .x(function(d) {
+        return x(d.x);
       })
-      .x1(function(d, i) {
-        return x(6 * (d + 1));
-      })
-      .y0(function(d, i) {
-        return 0;
-      })
-      .y1(function(d, i) {
-        return actualHeight;
+      .y(function(d) {
+        return y(d.y.end);
       });
 
-    var days = [[0], [1], [2], [3], [4], [5], [6]];
     svg
       .append("g")
       .selectAll("path")
-      .data(days)
+      .data(prevData)
       .enter()
       .append("path")
-      .attr("d", daysArea)
-      .attr("class", function(d, i) {
-        if (i % 2 === 0) return "day-background";
-        else return "day-background-dark";
-      });
+      .attr("d", line)
+      .attr("stroke", "#fdae61")
+      .attr("stroke-width", "1")
+      .attr("stroke-dasharray", "5,2")
+      .attr("fill", "none");
 
-    var axis = d3.axisBottom(x);
+    let xTicks = [];
+    for (let i = new Date(startDate); i <= endDate; i = i.addHours(12)) {
+      xTicks.push(new Date(i));
+    }
+    var xAxis = d3
+      .axisBottom(x)
+      .tickValues(xTicks)
+      .tickFormat(function(d) {
+        if (d.getUTCHours() === 12) {
+          return d3.timeFormat("%A")(d);
+        }
+      });
     svg
       .append("g")
       .attr("transform", `translate(0,${actualHeight})`)
-      .call(axis);
+      .call(xAxis);
+
+    // Remove ticks for the middle value
+    svg.selectAll("line").attr("y2", function(d) {
+      return d.getUTCHours() === 12 ? 0 : 6;
+    });
+
+    var yAxis = d3.axisLeft(y).ticks(2);
+    svg
+      .append("g")
+      .attr("transform", `translate(${margin},0)`)
+      .call(yAxis);
 
     return div.toReact();
   }
@@ -215,10 +276,11 @@ export class PRActivity extends React.Component {
   }
 
   render() {
-    const { data } = this.props;
-    if (!data || !data.length) return null;
+    if (!this.props.data || !this.props.data.length) return null;
 
-    const axisStart = d3.utcSunday(new Date(data[0].created_at));
+    const data = this.props.data[0].pulls;
+    // TODO - calcualate start time
+    const axisStart = d3.utcSunday(new Date("2018-07-24T00:00:00Z"));
     const axisEnd = d3.timeDay.offset(axisStart, 7);
 
     var width = 600;
@@ -247,9 +309,12 @@ export class PRActivity extends React.Component {
       .attr("viewBox", "0 0 600 200")
       .classed("svg-content-responsive", true);
 
-    data.forEach((prData, index) => {
-      this.renderPR(prData, svg, x, y, axisEnd, index);
-    });
+    data
+      .filter(pr => new Date(pr.created_at) < axisEnd)
+      .filter(pr => pr.state === "MERGED")
+      .forEach((prData, index) => {
+        this.renderPR(prData, svg, x, y, axisEnd, index);
+      });
 
     var formatTime = d3.timeFormat("%b %d");
     var axis = d3.axisBottom(x).tickFormat(formatTime);

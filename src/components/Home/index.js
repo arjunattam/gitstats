@@ -1,7 +1,7 @@
 import React from "react";
 import { Container } from "reactstrap";
 import { ReportContainer } from "../Report";
-import { MOCK_DATA } from "../../utils/data";
+import { MOCK_REPORT_DATA } from "../../utils/data";
 
 const Home = () => (
   <Container>
@@ -12,7 +12,7 @@ const Home = () => (
       </p>
     </div>
     <div className="my-4">
-      <ReportContainer {...MOCK_DATA.message} />
+      <ReportContainer {...MOCK_REPORT_DATA.message} />
     </div>
   </Container>
 );
