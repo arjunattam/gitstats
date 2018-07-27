@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "backend"
+		},
+		{
+			"path": "frontend"
+		}
+	],
+	"settings": {},
+	"launch": {
+		"configurations": [],
+		"compounds": [
+			{
+				"name": "Launch server and client",
+				"configurations": [
+					"Chrome",
+					"Debug Serverless"
+				]
+			}
+		]
+	}
+}

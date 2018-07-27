@@ -316,7 +316,7 @@ export class PRActivity extends React.Component {
 
     const { data, startDate, endDate } = this.props;
     const count = data.length;
-    const MIN_COUNT = 4;
+    const MIN_COUNT = 2;
 
     const axisStart = new Date(startDate);
     const axisEnd = new Date(endDate);
