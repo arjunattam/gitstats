@@ -256,7 +256,7 @@ export default class GithubService extends APICaller {
             .map(prNode => {
               const commits = prNode.commits.nodes
                 // TODO - we are filtering for only recognised committers
-                .filter(commitNode => !!commitNode.commit.author.user)
+                .filter(commitNode => !!commitNode && !!commitNode.commit.author.user)
                 .map(commitNode => ({
                   author: commitNode.commit.author.user.login,
                   date: commitNode.commit.authoredDate,
