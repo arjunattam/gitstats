@@ -55,6 +55,12 @@ const ExpandButton = ({ onClick, text }) => (
   </div>
 );
 
+const BaseTable = ({ children }) => (
+  <table className="table table-hover" style={{ margin: "40px 0 0" }}>
+    {children}
+  </table>
+);
+
 export default class Table extends React.Component {
   static propTypes = {
     rowHeadings: PropTypes.arrayOf(PropTypes.string),
@@ -90,17 +96,17 @@ export default class Table extends React.Component {
     const { rowHeadings, isLoading } = this.props;
     return isLoading ? (
       <div>
-        <table className="table table-hover">
+        <BaseTable>
           <THeader rowHeadings={rowHeadings} />
-        </table>
+        </BaseTable>
         <BodyLoader />
       </div>
     ) : (
       <div>
-        <table className="table table-hover">
+        <BaseTable>
           <THeader rowHeadings={rowHeadings} />
           <TBody rowData={this.getRowData()} />
-        </table>
+        </BaseTable>
         {this.renderExpandButton()}
       </div>
     );

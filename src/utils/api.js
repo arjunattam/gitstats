@@ -1,6 +1,6 @@
 import axios from "axios";
 import Auth from "./auth";
-import { MOCK_COMMITS_DATA } from "./data";
+import { MOCK_COMMITS_DATA, MOCK_PR_DATA } from "./data";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 
@@ -28,12 +28,17 @@ export const getCommits = user => {
 };
 
 export const getPRActivity = user => {
-  const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/pulls/${user}`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => response.data);
+  if (user === "getsentry") {
+    // TODO - please fix this hack
+    return new Promise(r => r(MOCK_PR_DATA));
+  } else {
+    const auth = new Auth();
+    return axios
+      .get(`${BASE_URL}/pulls/${user}`, {
+        headers: auth.getAuthHeader()
+      })
+      .then(response => response.data);
+  }
 };
 
 export const getReport = username => {

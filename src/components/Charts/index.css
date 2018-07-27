@@ -14,7 +14,13 @@
   left: 0;
 }
 
-.tick text {
+.pr-title {
+  cursor: pointer;
+  fill: #333;
+}
+
+.tick text,
+.legend text {
   font-size: 7px;
   fill: #999;
 }

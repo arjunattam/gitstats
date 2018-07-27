@@ -1,9 +1,12 @@
 import React from "react";
 import ReactFauxDOM from "react-faux-dom";
 import * as d3 from "d3";
+import { addXAxis } from "./utils";
 import "./index.css";
 
 const INTERVAL_SIZE = 4; // hours
+const COMMIT_CIRCLE_COLOR = "#ff3131ba";
+const COMMENT_CIRCLE_COLOR = "#5252b9ba";
 
 Date.prototype.addHours = function(h) {
   this.setTime(this.getTime() + h * 60 * 60 * 1000);
@@ -194,27 +197,7 @@ export class Streamgraph extends React.Component {
       .attr("stroke-dasharray", "5,2")
       .attr("fill", "none");
 
-    let xTicks = [];
-    for (let i = new Date(startDate); i <= endDate; i = i.addHours(12)) {
-      xTicks.push(new Date(i));
-    }
-    var xAxis = d3
-      .axisBottom(x)
-      .tickValues(xTicks)
-      .tickFormat(function(d) {
-        if (d.getUTCHours() === 12) {
-          return d3.timeFormat("%A")(d);
-        }
-      });
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${actualHeight})`)
-      .call(xAxis);
-
-    // Remove ticks for the middle value
-    svg.selectAll("line").attr("y2", function(d) {
-      return d.getUTCHours() === 12 ? 0 : 6;
-    });
+    addXAxis(svg, startDate, endDate, x, actualHeight);
 
     var yAxis = d3.axisLeft(y).ticks(2);
     svg
@@ -227,26 +210,36 @@ export class Streamgraph extends React.Component {
 }
 
 export class PRActivity extends React.Component {
-  renderPR(prData, svg, x, y, axisEnd, yValue) {
-    const { created_at, merged_at, commits, comments } = prData;
+  renderPR(prData, svg, x, y, yValue) {
+    const { created_at, closed_at, commits, comments } = prData;
+    const { title, url, number } = prData;
+    const { startDate, endDate } = this.props;
 
     // Plot area
-    var areaEnd = merged_at ? new Date(merged_at) : axisEnd;
+    let repoRoot = svg.append("g");
+    var areaEnd = closed_at ? new Date(closed_at) : new Date(endDate);
     var areaWidth = x(areaEnd) - x(new Date(created_at));
-    svg
+
+    repoRoot
       .append("g")
       .append("rect")
       .attr("x", x(new Date(created_at)))
-      .attr("y", y(yValue + 1.25))
+      .attr("y", y(yValue + 0.75))
       .attr("width", areaWidth)
       .attr("height", 15)
-      .attr("fill", "#ddd");
+      .attr("fill", "#d9f0fde3");
 
     // Plot comments
-    svg
+    repoRoot
       .append("g")
       .selectAll("scatter-dots")
-      .data(comments.map(c => [c.date, yValue + 1]))
+      .data(
+        comments
+          .filter(
+            c => new Date(c.date) < endDate && new Date(c.date) > startDate
+          )
+          .map(c => [c.date, yValue + 0.45])
+      )
       .enter()
       .append("svg:circle")
       .attr("cx", function(d, i) {
@@ -255,14 +248,20 @@ export class PRActivity extends React.Component {
       .attr("cy", function(d) {
         return y(d[1]);
       })
-      .attr("r", 2)
-      .attr("fill", "blue");
+      .attr("r", 3)
+      .attr("fill", COMMENT_CIRCLE_COLOR);
 
     // Plot commits
-    svg
+    repoRoot
       .append("g")
       .selectAll("scatter-dots")
-      .data(commits.map(c => [c.date, yValue + 1]))
+      .data(
+        commits
+          .filter(
+            c => new Date(c.date) < endDate && new Date(c.date) > startDate
+          )
+          .map(c => [c.date, yValue + 0.45])
+      )
       .enter()
       .append("svg:circle")
       .attr("cx", function(d, i) {
@@ -271,58 +270,100 @@ export class PRActivity extends React.Component {
       .attr("cy", function(d) {
         return y(d[1]);
       })
-      .attr("r", 2)
-      .attr("fill", "red");
+      .attr("r", 3)
+      .attr("fill", COMMIT_CIRCLE_COLOR);
+
+    // Title with url
+    repoRoot
+      .append("a")
+      .attr("xlink:href", url)
+      .attr("target", "_blank")
+      .append("text")
+      .attr("class", "pr-title")
+      .style("font-size", "8px")
+      .attr("y", y(yValue + 0.35))
+      .attr("x", "20") // margin-left
+      .text(`#${number}: ${title}`);
+  }
+
+  renderLegend(svg) {
+    svg
+      .append("svg:circle")
+      .attr("r", 3)
+      .attr("fill", COMMIT_CIRCLE_COLOR);
+
+    svg
+      .append("text")
+      .attr("x", "5")
+      .attr("y", "2.5")
+      .text("Commits");
+
+    svg
+      .append("svg:circle")
+      .attr("r", 3)
+      .attr("cx", "50")
+      .attr("fill", COMMENT_CIRCLE_COLOR);
+
+    svg
+      .append("text")
+      .attr("x", "55")
+      .attr("y", "2.5")
+      .text("Comments");
   }
 
   render() {
-    if (!this.props.data || !this.props.data.length) return null;
+    if (!this.props.data) return null;
 
-    const data = this.props.data[0].pulls;
-    // TODO - calcualate start time
-    const axisStart = d3.utcSunday(new Date("2018-07-24T00:00:00Z"));
-    const axisEnd = d3.timeDay.offset(axisStart, 7);
+    const { data, startDate, endDate } = this.props;
+    const count = data.length;
+    const MIN_COUNT = 4;
 
+    const axisStart = new Date(startDate);
+    const axisEnd = new Date(endDate);
+
+    const LEGEND_PADDING = 40;
     var width = 600;
-    var height = 150;
+    var height = 30 * Math.max(MIN_COUNT, count) + LEGEND_PADDING;
     var margin = 20;
-    var actualHeight = height - margin;
+    var actualHeight = height - margin - LEGEND_PADDING;
     var actualWidth = width - 2 * margin;
 
     var x = d3
-      .scaleLinear()
+      .scaleTime()
       .domain([axisStart, axisEnd])
-      .range([margin, margin + actualWidth]);
-
+      .range([margin, margin + actualWidth])
+      .clamp(true);
     var y = d3
       .scaleLinear()
-      .domain([0, 5]) // TODO: calculate this
+      .domain([0, Math.max(MIN_COUNT, count)])
       .range([actualHeight, 0]);
 
     const div = new ReactFauxDOM.Element("div");
 
     let svg = d3
       .select(div)
-      .classed("svg-container", true)
       .append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
-      .attr("viewBox", "0 0 600 200")
-      .classed("svg-content-responsive", true);
+      .attr("viewBox", `0 0 ${width} ${height}`);
 
-    data
-      .filter(pr => new Date(pr.created_at) < axisEnd)
-      .filter(pr => pr.state === "MERGED")
-      .forEach((prData, index) => {
-        this.renderPR(prData, svg, x, y, axisEnd, index);
-      });
-
-    var formatTime = d3.timeFormat("%b %d");
-    var axis = d3.axisBottom(x).tickFormat(formatTime);
-    svg
+    // Add legend
+    var legend = svg
       .append("g")
-      .attr("transform", `translate(0,${actualHeight})`)
-      .call(axis);
+      .attr("class", "legend")
+      .attr("transform", `translate(${width / 2 - 40},${LEGEND_PADDING / 2})`);
 
+    this.renderLegend(legend);
+
+    // Chart content
+    var content = svg
+      .append("g")
+      .attr("transform", `translate(0,${LEGEND_PADDING})`);
+
+    data.forEach((prData, index) => {
+      this.renderPR(prData, content, x, y, index);
+    });
+
+    addXAxis(content, startDate, endDate, x, actualHeight);
     return div.toReact();
   }
 }

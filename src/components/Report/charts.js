@@ -6,8 +6,8 @@ import {
   DropdownMenu,
   DropdownItem
 } from "reactstrap";
-import { getCommits } from "../../utils/api";
-import { Streamgraph } from "../Charts";
+import { getCommits, getPRActivity } from "../../utils/api";
+import { Streamgraph, PRActivity } from "../Charts";
 
 const ALL_REPOS = "All repos";
 const ALL_MEMBERS = "All members";
@@ -31,9 +31,29 @@ class MyDropdown extends React.Component {
     }));
   };
 
+  getTotalValue = () => {
+    const { items } = this.props;
+    return items.reduce((sum, current) => sum + current.value, 0);
+  };
+
+  getSelectedText = () => {
+    const { selected, items, allText } = this.props;
+
+    if (selected === allText) {
+      return `${selected} (${this.getTotalValue()})`;
+    } else {
+      const filtered = items.filter(i => i.text === selected);
+      let value = 0;
+      if (filtered.length > 0) {
+        value = filtered[0].value;
+      }
+      return `${selected} (${value})`;
+    }
+  };
+
   render() {
-    const { selected, items, onSelect, allText, onSelectAll } = this.props;
-    const totalValue = items.reduce((sum, current) => sum + current.value, 0);
+    const { items, onSelect, allText, onSelectAll } = this.props;
+    const totalValue = this.getTotalValue();
     return (
       <Dropdown
         size="sm"
@@ -41,12 +61,16 @@ class MyDropdown extends React.Component {
         toggle={this.toggle}
         style={{ display: "inline-block", margin: 5 }}
       >
-        <DropdownToggle caret>{selected}</DropdownToggle>
+        <DropdownToggle caret>{this.getSelectedText()}</DropdownToggle>
         <DropdownMenu>
-          <DropdownItem onClick={() => onSelectAll()}>
-            {allText} ({totalValue})
-          </DropdownItem>
-          <DropdownItem divider />
+          {allText ? (
+            <div>
+              <DropdownItem onClick={() => onSelectAll()}>
+                {allText} ({totalValue})
+              </DropdownItem>
+              <DropdownItem divider />
+            </div>
+          ) : null}
           {items
             .filter(item => item.value > 0)
             .sort((a, b) => b.value - a.value)
@@ -60,6 +84,19 @@ class MyDropdown extends React.Component {
     );
   }
 }
+
+const TitleDiv = ({ children }) => (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginTop: "40px"
+    }}
+  >
+    {children}
+  </div>
+);
 
 export class CommitChartContainer extends React.Component {
   state = {
@@ -237,13 +274,7 @@ export class CommitChartContainer extends React.Component {
 
     return (
       <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline"
-          }}
-        >
+        <TitleDiv>
           <div>
             <strong style={{ borderBottom: "4px solid #fee08b" }}>
               Commit activity
@@ -269,13 +300,85 @@ export class CommitChartContainer extends React.Component {
               onSelectAll={this.showAllMembers}
             />
           </div>
-        </div>
+        </TitleDiv>
         <Streamgraph
           data={commitsData}
           prevData={prevData}
           startDate={startDate}
           endDate={endDate}
         />
+      </div>
+    );
+  }
+}
+
+export class PRChartContainer extends React.Component {
+  state = { data: [], selectedRepo: "" };
+
+  componentDidMount() {
+    const { username } = this.props;
+    getPRActivity(username).then(response => {
+      const { message } = response;
+
+      if (message) {
+        let selectedRepo = "";
+        const filtered = message
+          .map(({ repo, pulls }) => ({
+            text: repo,
+            value: this.filteredPulls(pulls).length
+          }))
+          .filter(item => item.value > 0);
+
+        if (filtered.length) {
+          selectedRepo = filtered[0].text;
+        }
+
+        this.setState({ data: message, selectedRepo });
+      }
+    });
+  }
+
+  changeRepo = repo => {
+    this.setState({ selectedRepo: repo });
+  };
+
+  filteredPulls = pulls => {
+    const { endDate, startDate } = this.props;
+    return pulls.filter(
+      pr =>
+        new Date(pr.created_at) < endDate &&
+        (pr.closed_at === null || new Date(pr.closed_at) > startDate)
+    );
+  };
+
+  render() {
+    const { data, selectedRepo } = this.state;
+    const repos = data.map(({ repo, pulls }) => ({
+      text: repo,
+      value: this.filteredPulls(pulls).length
+    }));
+    const selectedData = data.filter(item => item.repo === selectedRepo);
+    let pullsData = [];
+
+    if (selectedData.length > 0) {
+      pullsData = this.filteredPulls(selectedData[0].pulls);
+    }
+
+    return (
+      <div>
+        <TitleDiv>
+          <div>
+            <strong>PR activity</strong> this week
+          </div>
+          <div>
+            <MyDropdown
+              selected={selectedRepo}
+              items={repos}
+              onSelect={this.changeRepo}
+            />
+          </div>
+        </TitleDiv>
+        <PRActivity data={pullsData} {...this.props} />
       </div>
     );
   }
