@@ -90,3 +90,7 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
         StatusCode: '401'
+
+custom:
+  serverless-offline:
+    port: 8000

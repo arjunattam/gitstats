@@ -158,7 +158,7 @@ export default class BitbucketService {
     return this.getAll(
       {
         path: `teams/${this.owner}/members`,
-        qs: { role: "member" }
+        qs: {}
       },
       []
     ).then(values => {
