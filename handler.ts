@@ -119,18 +119,16 @@ export const pulls: Handler = (
   const manager = new UserManager(accessToken, owner);
 
   manager.getServiceClient().then(client => {
-    return client.organisation().then(({ node_id }) =>
-      client.prActivity(node_id).then(response => {
-        cb(null, {
-          statusCode: 200,
-          headers: HEADERS,
-          body: JSON.stringify({
-            message: response,
-            input: event
-          })
-        });
-      })
-    );
+    return client.prActivity().then(response => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: response,
+          input: event
+        })
+      });
+    });
   });
 };
 

@@ -192,10 +192,12 @@ export default class GithubService extends APICaller {
     );
   }
 
-  prActivity(nodeId: string) {
-    // TODO - this sets a limit of 10 for repos and limit of 20 for PRs
-    const query = `{
-      nodes(ids: ["${nodeId}"]) {
+  prActivity() {
+    return this.organisation()
+      .then(({ node_id }) => {
+        // TODO - this sets a limit of 10 for repos and limit of 20 for PRs
+        return `{
+      nodes(ids: ["${node_id}"]) {
         ... on Organization {
           repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
             nodes {
@@ -243,54 +245,58 @@ export default class GithubService extends APICaller {
         }
       }
     }`;
-    return this.graphqlPost({ query }).then(response => {
-      const responseNode = response.body.data.nodes[0];
-      return responseNode.repositories.nodes
-        .filter(
-          node =>
-            moment(node.updatedAt) > this.periodPrev &&
-            node.pullRequests.nodes.length > 0
-        )
-        .map(node => {
-          const pulls = node.pullRequests.nodes
-            .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
-            .map(prNode => {
-              const commits = prNode.commits.nodes
-                // TODO - we are filtering for only recognised committers
-                .filter(
-                  commitNode => !!commitNode && !!commitNode.commit.author.user
-                )
-                .map(commitNode => ({
-                  author: commitNode.commit.author.user.login,
-                  date: commitNode.commit.authoredDate,
-                  message: commitNode.commit.message
-                }));
-              // TODO: the comments does not include approval/rejection comments
-              // eg, in this PR: https://github.com/getsentry/responses/pull/210
-              const comments = prNode.comments.nodes.map(commentNode => ({
-                author: commentNode.author.login,
-                date: commentNode.createdAt
-              }));
+      })
+      .then(query => {
+        return this.graphqlPost({ query }).then(response => {
+          const responseNode = response.body.data.nodes[0];
+          return responseNode.repositories.nodes
+            .filter(
+              node =>
+                moment(node.updatedAt) > this.periodPrev &&
+                node.pullRequests.nodes.length > 0
+            )
+            .map(node => {
+              const pulls = node.pullRequests.nodes
+                .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
+                .map(prNode => {
+                  const commits = prNode.commits.nodes
+                    // TODO - we are filtering for only recognised committers
+                    .filter(
+                      commitNode =>
+                        !!commitNode && !!commitNode.commit.author.user
+                    )
+                    .map(commitNode => ({
+                      author: commitNode.commit.author.user.login,
+                      date: commitNode.commit.authoredDate,
+                      message: commitNode.commit.message
+                    }));
+                  // TODO: the comments does not include approval/rejection comments
+                  // eg, in this PR: https://github.com/getsentry/responses/pull/210
+                  const comments = prNode.comments.nodes.map(commentNode => ({
+                    author: commentNode.author.login,
+                    date: commentNode.createdAt
+                  }));
+                  return {
+                    author: prNode.author.login,
+                    title: prNode.title,
+                    number: prNode.number,
+                    created_at: prNode.createdAt,
+                    merged_at: prNode.mergedAt,
+                    closed_at: prNode.closedAt,
+                    updated_at: prNode.updatedAt,
+                    state: prNode.state,
+                    url: prNode.url,
+                    comments,
+                    commits
+                  };
+                });
               return {
-                author: prNode.author.login,
-                title: prNode.title,
-                number: prNode.number,
-                created_at: prNode.createdAt,
-                merged_at: prNode.mergedAt,
-                closed_at: prNode.closedAt,
-                updated_at: prNode.updatedAt,
-                state: prNode.state,
-                url: prNode.url,
-                comments,
-                commits
+                repo: node.name,
+                pulls
               };
             });
-          return {
-            repo: node.name,
-            pulls
-          };
         });
-    });
+      });
   }
 
   issues(repo: string) {
