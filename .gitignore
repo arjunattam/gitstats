@@ -16,6 +16,17 @@ build
 .env.test.local
 .env.production.local
 
+# debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# serverless directories
+.serverless
+env.yml
+
+# webpack directories
+.webpack
+
+# github apps
+*.pem

@@ -1,0 +1,96 @@
+service:
+  name: gitstats
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+provider:
+  name: aws
+  region: us-west-1
+  runtime: nodejs8.10
+  environment: ${file(./env.yml):${opt:stage, self:provider.stage}}
+
+functions:
+  auth:
+    handler: handler.auth
+    cors: true
+  teams:
+    handler: handler.teams
+    timeout: 30 # seconds
+    events:
+      - http:
+          method: get
+          path: teams
+          resp: http
+          authorizer: auth
+          cors: true
+  report:
+    handler: handler.report
+    timeout: 30 # seconds
+    events:
+      - http:
+          method: get
+          path: report/{owner}
+          resp: http
+          authorizer: auth
+          cors: true
+  stats:
+    handler: handler.stats
+    timeout: 30 # seconds
+    events:
+      - http:
+          method: get
+          path: stats/{owner}/{repo}
+          resp: http
+          authorizer: auth
+          cors: true
+  commits:
+    handler: handler.commits
+    timeout: 30
+    events:
+      - http:
+          method: get
+          path: commits/{owner}
+          resp: http
+          authorizer: auth
+          cors: true
+  pulls:
+    handler: handler.pulls
+    timeout: 60
+    events:
+      - http:
+          method: get
+          path: pulls/{owner}
+          resp: http
+          authorizer: auth
+          cors: true
+
+resources:
+  Resources:
+    # This response is needed for custom authorizer failures cors support ¯\_(ツ)_/¯
+    # From https://github.com/serverless/examples/blob/master/aws-node-auth0-custom-authorizers-api/serverless.yml
+    GatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: EXPIRED_TOKEN
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    AuthFailureGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+
+custom:
+  serverless-offline:
+    port: 8000
