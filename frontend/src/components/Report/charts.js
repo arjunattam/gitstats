@@ -134,78 +134,77 @@ export class CommitChartContainer extends React.Component {
     });
   };
 
-  getChartCommits = (commits, startTime, endTime) => {
-    return commits
-      .filter(commit => {
-        const commitDate = new Date(commit.date);
-        return commitDate >= startTime && commitDate <= endTime;
-      })
-      .map(commit => ({
-        x: commit.date,
-        y: 1,
-        type: "commit",
-        author: commit.login,
-        repo: commit.repo
-      }));
+  changeType = type => {
+    this.setState({ selectedActivityType: type });
+  };
+
+  showAllTypes = () => {
+    this.setState({ selectedActivityType: ALL_ACTIVITY_TYPES });
+  };
+
+  getFilteredByDate = (items, startTime, endTime) => {
+    return items.filter(item => {
+      const date = new Date(item.x);
+      return date >= startTime && date <= endTime;
+    });
   };
 
   getChartData = () => {
-    const { commitsData, startDate, endDate } = this.props;
-    const { selectedRepo, selectedMember } = this.state;
+    const { commitsData, prData, startDate, endDate } = this.props;
+    const { selectedRepo, selectedMember, selectedActivityType } = this.state;
     const prevEnd = new Date(startDate);
     const prevStart = this.getPrevStart();
-    let repoCommits = [];
+    let allData = []; // Each entity has x (date), y, type, author, repo
 
-    if (selectedRepo === ALL_REPOS) {
-      let authorWiseCommits = [];
-      commitsData.forEach(repoItem => {
-        const { repo } = repoItem;
-        repoItem.commits.forEach(authorCommits => {
-          const { author, commits } = authorCommits;
-          const rCommits = commits.map(c => ({ ...c, repo }));
-          if (author in authorWiseCommits) {
-            authorWiseCommits[author] = [
-              ...authorWiseCommits[author],
-              ...rCommits
-            ];
-          } else {
-            authorWiseCommits[author] = [...rCommits];
-          }
+    commitsData.forEach(repoCommits => {
+      const { repo, commits } = repoCommits;
+      commits.forEach(authorCommits => {
+        const { author, commits } = authorCommits;
+        commits.forEach(commitObject => {
+          allData.push({
+            author,
+            repo,
+            type: "commit",
+            x: commitObject.date,
+            y: 1
+          });
         });
       });
-
-      Object.keys(authorWiseCommits).forEach(author => {
-        repoCommits.push({ author, commits: authorWiseCommits[author] });
-      });
-    } else {
-      repoCommits = commitsData
-        .filter(item => item.repo === selectedRepo)[0]
-        .commits.map(authorCommits => ({
-          ...authorCommits,
-          commits: authorCommits.commits.map(c => ({
-            ...c,
-            repo: selectedRepo
-          }))
-        }));
-    }
-
-    let data = [];
-    let prevData = [];
-
-    repoCommits.forEach(({ author, commits }) => {
-      const isSelected =
-        selectedMember === ALL_MEMBERS || selectedMember === author;
-
-      if (isSelected) {
-        // We are merging the authors here, instead of sending multiple layers
-        data = [...data, ...this.getChartCommits(commits, startDate, endDate)];
-        prevData = [
-          ...prevData,
-          ...this.getChartCommits(commits, prevStart, prevEnd)
-        ];
-      }
     });
-    return { data, prevData };
+
+    prData.forEach(repoPrItems => {
+      const { repo, pulls } = repoPrItems;
+      pulls.forEach(prItem => {
+        const { comments } = prItem;
+        comments.forEach(comment => {
+          allData.push({
+            author: comment.author,
+            repo,
+            type: "pr_comment",
+            x: comment.date,
+            y: 1
+          });
+        });
+      });
+    });
+
+    const filtered = allData
+      .filter(item => selectedRepo === ALL_REPOS || item.repo === selectedRepo)
+      .filter(
+        item => selectedMember === ALL_MEMBERS || item.author === selectedMember
+      )
+      .filter(
+        item =>
+          selectedActivityType === ALL_ACTIVITY_TYPES ||
+          item.type === selectedActivityType
+      );
+
+    const result = {
+      data: this.getFilteredByDate(filtered, startDate, endDate),
+      prevData: this.getFilteredByDate(filtered, prevStart, prevEnd)
+    };
+
+    return result;
   };
 
   getDropdownOptions = (data, key) => {
@@ -222,24 +221,36 @@ export class CommitChartContainer extends React.Component {
 
   render() {
     const { startDate, endDate } = this.props;
-    const { selectedRepo, selectedMember } = this.state;
+    const { selectedRepo, selectedMember, selectedActivityType } = this.state;
     const { data, prevData } = this.getChartData();
-
+    const types = this.getDropdownOptions(data, "type");
     const repos = this.getDropdownOptions(data, "repo");
     const members = this.getDropdownOptions(data, "author");
+
+    const layeredData = data.reduce((result, current) => {
+      const { type } = current;
+      if (type in result) {
+        result[type] = [...result[type], current];
+      } else {
+        result[type] = [current];
+      }
+      return result;
+    }, {});
+
     return (
       <div>
         <TitleDiv>
           <div>
-            <strong style={{ borderBottom: "4px solid #fee08b" }}>
-              Commit activity
-            </strong>{" "}
-            against{" "}
-            <span style={{ borderBottom: "2px dashed #fdae61" }}>
-              previous week
-            </span>
+            <strong>Activity</strong> against previous week
           </div>
           <div>
+            <MyDropdown
+              selected={selectedActivityType}
+              items={types}
+              allText={ALL_ACTIVITY_TYPES}
+              onSelect={this.changeType}
+              onSelectAll={this.showAllTypes}
+            />
             <MyDropdown
               selected={selectedRepo}
               items={repos}
@@ -257,7 +268,7 @@ export class CommitChartContainer extends React.Component {
           </div>
         </TitleDiv>
         <Streamgraph
-          data={[data]}
+          data={Object.values(layeredData)}
           prevData={[prevData]}
           startDate={startDate}
           endDate={endDate}
@@ -270,7 +281,7 @@ export class CommitChartContainer extends React.Component {
 export class PRChartContainer extends React.Component {
   state = { selectedRepo: "" };
 
-  componentDidMount() {
+  getDefaultSelected = () => {
     const { data } = this.props;
 
     if (data) {
@@ -286,9 +297,9 @@ export class PRChartContainer extends React.Component {
         selectedRepo = filtered[0].text;
       }
 
-      this.setState({ selectedRepo });
+      return selectedRepo;
     }
-  }
+  };
 
   changeRepo = repo => {
     this.setState({ selectedRepo: repo });
@@ -305,7 +316,9 @@ export class PRChartContainer extends React.Component {
 
   render() {
     const { data } = this.props;
-    const { selectedRepo } = this.state;
+    const { selectedRepo: stateSelected } = this.state;
+    const selectedRepo = stateSelected || this.getDefaultSelected();
+
     const repos = data.map(({ repo, pulls }) => ({
       text: repo,
       value: this.filteredPulls(pulls).length

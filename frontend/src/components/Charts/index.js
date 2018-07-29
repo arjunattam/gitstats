@@ -5,23 +5,65 @@ import { addXAxis } from "./utils";
 import "./index.css";
 
 const INTERVAL_SIZE = 4; // hours
-const COMMIT_CIRCLE_COLOR = "#ff31317d";
-const COMMENT_CIRCLE_COLOR = "#5252b97d";
+
+const PR_COLORS = {
+  commit: "#ff31317d",
+  pr_comment: "#5252b97d"
+};
+
+const STREAM_COLOR_RANGE = {
+  commit: "#fee08b",
+  pr_comment: "#3288bd"
+};
+
+const LEGEND_PADDING = 40;
 
 Date.prototype.addHours = function(h) {
   this.setTime(this.getTime() + h * 60 * 60 * 1000);
   return this;
 };
 
+const addLegend = (svg, width, colorMap) => {
+  // Add legend
+  var legend = svg
+    .append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${width / 2 - 40},${LEGEND_PADDING / 2})`);
+
+  legend
+    .append("svg:circle")
+    .attr("r", 3)
+    .attr("fill", colorMap.commit);
+
+  legend
+    .append("text")
+    .attr("x", "5")
+    .attr("y", "2.5")
+    .text("Commits");
+
+  legend
+    .append("svg:circle")
+    .attr("r", 3)
+    .attr("cx", "50")
+    .attr("fill", colorMap.pr_comment);
+
+  legend
+    .append("text")
+    .attr("x", "55")
+    .attr("y", "2.5")
+    .text("PR comments");
+};
+
 export class Streamgraph extends React.Component {
-  // data props looks like
-  // [
-  //    [ {x: date1, y: 1}, {x: date2, y: 1} ], --> layer 1
-  //    [ {x: date1, y: 1}, {x: date2, y: 1} ]  --> layer 2
-  // ]
   parseHelper(data, startDate, endDate) {
     let result = [];
+
     data.forEach(layer => {
+      let layerType;
+      if (layer.length) {
+        layerType = layer[0].type;
+      }
+
       const layerData = layer.reduce((acc, current) => {
         const parsed = new Date(current.x);
         parsed.setUTCSeconds(0);
@@ -65,7 +107,8 @@ export class Streamgraph extends React.Component {
 
         layerResult.push({
           x: new Date(j),
-          y: { start, end: j in layerData ? start + layerData[j] : start }
+          y: { start, end: j in layerData ? start + layerData[j] : start },
+          type: layerType
         });
       }
 
@@ -112,9 +155,9 @@ export class Streamgraph extends React.Component {
     const maxY = this.getMaxY([...data, ...prevData]);
 
     var width = 600;
-    var height = 150;
+    var height = 150 + LEGEND_PADDING;
     var margin = 20;
-    var actualHeight = height - margin;
+    var actualHeight = height - margin - LEGEND_PADDING;
     var actualWidth = width - 2 * margin;
 
     let svg = d3
@@ -125,18 +168,6 @@ export class Streamgraph extends React.Component {
       .attr("viewBox", `0 0 ${width} ${height}`)
       .classed("svg-content-responsive", true);
 
-    var colorrange = [
-      // "#d53e4f",
-      // "#f46d43",
-      // "#fdae61"
-      "#fee08b"
-      // "#e6f598"
-      // "#abdda4"
-      // "#66c2a5",
-      // "#3288bd"
-      // "#5e4fa2"
-    ];
-
     var x = d3
       .scaleTime()
       .domain([startDate, endDate])
@@ -146,6 +177,13 @@ export class Streamgraph extends React.Component {
       .scaleLinear()
       .domain([0, maxY + 2])
       .range([actualHeight, 0]);
+
+    addLegend(svg, width, STREAM_COLOR_RANGE);
+
+    // Chart content
+    var content = svg
+      .append("g")
+      .attr("transform", `translate(0,${LEGEND_PADDING})`);
 
     var area = d3
       .area()
@@ -160,7 +198,7 @@ export class Streamgraph extends React.Component {
         return y(d.y.end);
       });
 
-    svg
+    content
       .append("g")
       .selectAll("path")
       .data(data)
@@ -168,7 +206,9 @@ export class Streamgraph extends React.Component {
       .append("path")
       .attr("d", area)
       .attr("fill", function(d, i) {
-        return colorrange[i % colorrange.length];
+        if (d.length) {
+          return STREAM_COLOR_RANGE[d[0].type];
+        }
       })
       .on("mouseover", function(d, i) {
         // console.log("mouse over", d, i);
@@ -185,7 +225,7 @@ export class Streamgraph extends React.Component {
         return y(d.y.end);
       });
 
-    svg
+    content
       .append("g")
       .selectAll("path")
       .data(prevData)
@@ -197,10 +237,10 @@ export class Streamgraph extends React.Component {
       .attr("stroke-dasharray", "5,2")
       .attr("fill", "none");
 
-    addXAxis(svg, startDate, endDate, x, actualHeight);
+    addXAxis(content, startDate, endDate, x, actualHeight);
 
     var yAxis = d3.axisLeft(y).ticks(2);
-    svg
+    content
       .append("g")
       .attr("transform", `translate(${margin},0)`)
       .call(yAxis);
@@ -249,7 +289,7 @@ export class PRActivity extends React.Component {
         return y(d[1]);
       })
       .attr("r", 3)
-      .attr("fill", COMMENT_CIRCLE_COLOR);
+      .attr("fill", PR_COLORS.pr_comment);
 
     // Plot commits
     repoRoot
@@ -271,7 +311,7 @@ export class PRActivity extends React.Component {
         return y(d[1]);
       })
       .attr("r", 3)
-      .attr("fill", COMMIT_CIRCLE_COLOR);
+      .attr("fill", PR_COLORS.commit);
 
     // Title with url
     repoRoot
@@ -286,31 +326,6 @@ export class PRActivity extends React.Component {
       .text(`#${number}: ${title}`);
   }
 
-  renderLegend(svg) {
-    svg
-      .append("svg:circle")
-      .attr("r", 3)
-      .attr("fill", COMMIT_CIRCLE_COLOR);
-
-    svg
-      .append("text")
-      .attr("x", "5")
-      .attr("y", "2.5")
-      .text("Commits");
-
-    svg
-      .append("svg:circle")
-      .attr("r", 3)
-      .attr("cx", "50")
-      .attr("fill", COMMENT_CIRCLE_COLOR);
-
-    svg
-      .append("text")
-      .attr("x", "55")
-      .attr("y", "2.5")
-      .text("Comments");
-  }
-
   render() {
     if (!this.props.data) return null;
 
@@ -321,7 +336,6 @@ export class PRActivity extends React.Component {
     const axisStart = new Date(startDate);
     const axisEnd = new Date(endDate);
 
-    const LEGEND_PADDING = 40;
     var width = 600;
     var height = 30 * Math.max(MIN_COUNT, count) + LEGEND_PADDING;
     var margin = 20;
@@ -346,13 +360,7 @@ export class PRActivity extends React.Component {
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`);
 
-    // Add legend
-    var legend = svg
-      .append("g")
-      .attr("class", "legend")
-      .attr("transform", `translate(${width / 2 - 40},${LEGEND_PADDING / 2})`);
-
-    this.renderLegend(legend);
+    addLegend(svg, width, PR_COLORS);
 
     // Chart content
     var content = svg

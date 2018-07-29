@@ -2,6 +2,7 @@ import axios from "axios";
 import Auth from "./auth";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
+// const BASE_URL = "http://localhost:8000";
 
 export const getTeams = () => {
   const auth = new Auth();

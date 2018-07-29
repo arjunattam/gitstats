@@ -49,7 +49,7 @@ export const ReportContainer = props => {
   const thisWeekStart = d3.utcSunday(new Date());
   const copy = new Date(thisWeekStart);
   const startDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() - 7)));
-  const chartProps = {
+  const dates = {
     startDate,
     endDate: thisWeekStart
   };
@@ -58,10 +58,14 @@ export const ReportContainer = props => {
     <Container>
       <ReportTitle {...reportJson} isLoading={isLoading} />
       <Summary {...reportJson} isLoading={isLoading} />
-      <CommitChartContainer {...chartProps} commitsData={commitsData} />
+      <CommitChartContainer
+        {...dates}
+        commitsData={commitsData}
+        prData={prActivityData}
+      />
       <Members {...reportJson} isLoading={isLoading} />
       <Pulls {...reportJson} isLoading={isLoading} />
-      <PRChartContainer {...chartProps} data={prActivityData} />
+      <PRChartContainer {...dates} data={prActivityData} />
       <Repos {...reportJson} isLoading={isLoading} />
     </Container>
   );
