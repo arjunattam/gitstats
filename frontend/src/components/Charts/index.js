@@ -144,7 +144,7 @@ export class Streamgraph extends React.Component {
 
     var y = d3
       .scaleLinear()
-      .domain([0, maxY + 2]) // TODO: calculate this
+      .domain([0, maxY + 2])
       .range([actualHeight, 0]);
 
     var area = d3

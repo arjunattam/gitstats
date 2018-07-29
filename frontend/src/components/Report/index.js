@@ -1,7 +1,12 @@
 import React from "react";
 import * as d3 from "d3";
 import { Container } from "reactstrap";
-import { getReport, getRepoStats } from "../../utils/api";
+import {
+  getReport,
+  getRepoStats,
+  getPRActivity,
+  getCommits
+} from "../../utils/api";
 import { TitleLoader } from "./loaders";
 import { Summary } from "./summary";
 import { Members } from "./members";
@@ -40,35 +45,41 @@ const ReportTitle = ({ period, isLoading }) => {
 };
 
 export const ReportContainer = props => {
-  const { params } = props;
+  const { reportJson, isLoading, prActivityData, commitsData } = props;
   const thisWeekStart = d3.utcSunday(new Date());
   const copy = new Date(thisWeekStart);
   const startDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() - 7)));
   const chartProps = {
-    username: params ? params.name : "getsentry",
     startDate,
     endDate: thisWeekStart
   };
 
   return (
     <Container>
-      <ReportTitle {...props} />
-      <Summary {...props} />
-      <CommitChartContainer {...chartProps} />
-      <Members {...props} />
-      <Pulls {...props} />
-      <PRChartContainer {...chartProps} />
-      <Repos {...props} />
+      <ReportTitle {...reportJson} isLoading={isLoading} />
+      <Summary {...reportJson} isLoading={isLoading} />
+      <CommitChartContainer {...chartProps} commitsData={commitsData} />
+      <Members {...reportJson} isLoading={isLoading} />
+      <Pulls {...reportJson} isLoading={isLoading} />
+      <PRChartContainer {...chartProps} data={prActivityData} />
+      <Repos {...reportJson} isLoading={isLoading} />
     </Container>
   );
 };
 
 class Report extends React.Component {
-  state = { responseJson: {}, isLoading: true };
+  state = {
+    isLoading: true,
+    reportJson: {},
+    prActivityData: [],
+    commitsData: []
+  };
 
   update() {
     const { params } = this.props.match;
-    getReport(params.name).then(response => {
+    const { name: team } = params;
+
+    getReport(team).then(response => {
       const { repos } = response.message;
       const pendingRepos = repos.filter(repo => repo.stats.is_pending);
       pendingRepos.forEach(repo => {
@@ -76,22 +87,37 @@ class Report extends React.Component {
       });
 
       return this.setState({
-        responseJson: response.message,
+        reportJson: response.message,
         isLoading: false
+      });
+    });
+
+    getPRActivity(team).then(response => {
+      const { message } = response;
+      this.setState({
+        prActivityData: message
+      });
+    });
+
+    getCommits(team).then(response => {
+      const { message } = response;
+      this.setState({
+        commitsData: message
       });
     });
   }
 
   updateRepo(repo) {
     const { params } = this.props.match;
-    const { name: username } = params;
-    getRepoStats(username, repo)
+    const { name: team } = params;
+
+    getRepoStats(team, repo)
       .then(response => {
         const { stats } = response.message;
         const { is_pending } = stats;
 
         if (!is_pending) {
-          const { repos } = this.state.responseJson;
+          const { repos } = this.state.reportJson;
           const newRepos = repos.map(r => {
             if (r.name === repo) {
               return { ...r, stats };
@@ -100,8 +126,8 @@ class Report extends React.Component {
             }
           });
           this.setState({
-            responseJson: {
-              ...this.state.responseJson,
+            reportJson: {
+              ...this.state.reportJson,
               repos: newRepos
             }
           });
@@ -118,8 +144,9 @@ class Report extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     const { params } = this.props.match;
     const { params: prev } = prevProps.match;
+
     if (prev && prev.name !== params.name) {
-      this.setState({ responseJson: {}, isLoading: true });
+      this.setState({ reportJson: {}, isLoading: true });
       this.update();
     }
   }
@@ -129,15 +156,7 @@ class Report extends React.Component {
   }
 
   render() {
-    const { params } = this.props.match;
-    const { responseJson, isLoading } = this.state;
-    return (
-      <ReportContainer
-        {...responseJson}
-        params={params}
-        isLoading={isLoading}
-      />
-    );
+    return <ReportContainer {...this.state} />;
   }
 }
 

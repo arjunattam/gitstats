@@ -88,7 +88,6 @@ export const commits: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  // TODO(arjun): merge with other APIs once we have clarity on response
   const accessToken = getToken(event.headers);
   const { owner } = event.pathParameters;
   const manager = new UserManager(accessToken, owner);
@@ -112,8 +111,6 @@ export const pulls: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  // TODO(arjun): merge with other APIs once we have clarity on response
-  // - also, this api returns value for one pr, which will change to a duration
   const accessToken = getToken(event.headers);
   const { owner } = event.pathParameters;
   const manager = new UserManager(accessToken, owner);

@@ -250,7 +250,7 @@ export default class BitbucketService {
   }
 
   repoPRActivity(repo: string) {
-    const periodStart = this.periodNext;
+    const periodStart = this.periodPrev;
     return this.pullsApi(repo)
       .then(pulls => {
         return pulls
