@@ -5,8 +5,8 @@ import { addXAxis } from "./utils";
 import "./index.css";
 
 const INTERVAL_SIZE = 4; // hours
-const COMMIT_CIRCLE_COLOR = "#ff3131ba";
-const COMMENT_CIRCLE_COLOR = "#5252b9ba";
+const COMMIT_CIRCLE_COLOR = "#ff31317d";
+const COMMENT_CIRCLE_COLOR = "#5252b97d";
 
 Date.prototype.addHours = function(h) {
   this.setTime(this.getTime() + h * 60 * 60 * 1000);
