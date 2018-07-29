@@ -64,13 +64,29 @@ export default class BitbucketService {
     });
   }
 
+  // This method accesses arbitrarily nested property of an object
+  // Source https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
+  access = (p, o) => p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o);
+
   getAllTillDate({ path, qs }, aggregateValues, key) {
     // Assumes the response is sorted in desc by key (which is true for commits)
+    // key can be a nested field (using .) or a combination of fields (using ,)
+    // eg, key as update.date,comment.created_on checks for two nested fields
     return this.get({ path, qs }).then(response => {
       const { values, next } = response;
-      const filtered = values.filter(
-        value => moment(value[key]) > this.periodPrev
-      );
+      const filtered = values.filter(value => {
+        const allKeys = key.split(",");
+        let keyValue;
+
+        allKeys.forEach(key => {
+          const result = this.access(key.split("."), value);
+          if (result) {
+            keyValue = result;
+          }
+        });
+
+        return !keyValue || moment(keyValue) > this.periodPrev;
+      });
 
       if (filtered.length < values.length) {
         // We have all the data
@@ -181,13 +197,13 @@ export default class BitbucketService {
     }));
   }
 
-  pulls(repo: string): Promise<types.RepoPR[]> {
+  pullsApi(repo: string) {
     return this.getAll(
       {
         path: `repositories/${this.owner}/${repo}/pullrequests`,
         qs: {
           ...this.getCommonQs(),
-          fields: `-values.description,-values.links,-values.destination,-values.summary,-values.source,-values.closed_by`,
+          fields: `-values.description,-values.destination,-values.summary,-values.source,-values.closed_by`,
           state: this.buildRepeatedQs("state", [
             "MERGED",
             "SUPERSEDED",
@@ -197,7 +213,11 @@ export default class BitbucketService {
         }
       },
       []
-    ).then(values => {
+    );
+  }
+
+  pulls(repo: string): Promise<types.RepoPR[]> {
+    return this.pullsApi(repo).then(values => {
       let authorWisePRs = {};
       values.forEach(pr => {
         const { username } = pr.author;
@@ -225,6 +245,74 @@ export default class BitbucketService {
             "created_on"
           )
         };
+      });
+    });
+  }
+
+  repoPRActivity(repo: string) {
+    const periodStart = this.periodNext;
+    return this.pullsApi(repo)
+      .then(pulls => {
+        return pulls
+          .filter(pr => moment(pr.updated_on) > periodStart)
+          .map(pr => ({
+            author: pr.author.username,
+            title: pr.title,
+            number: pr.id,
+            created_at: pr.created_on,
+            merged_at: pr.state === "MERGED" ? pr.updated_on : null,
+            closed_at: pr.state === "MERGED" ? pr.updated_on : null,
+            updated_at: pr.updated_on,
+            state: pr.state,
+            url: pr.links.html.href
+          }));
+      })
+      .then(pulls => {
+        const params = {
+          path: `repositories/${this.owner}/${repo}/pullrequests/activity`,
+          qs: {}
+        };
+        return this.getAllTillDate(
+          params,
+          [],
+          "update.date,comment.created_on"
+        ).then(result => {
+          // result has comments, commits (update), approvals
+          return pulls.map(pr => ({
+            ...pr,
+            commits: result
+              .filter(value => {
+                const { update, pull_request } = value;
+                return !!update && pull_request.id === pr.number;
+              })
+              .map(value => ({
+                date: value.update.date,
+                author: value.update.author
+                  ? value.update.author.username
+                  : null
+              })),
+            comments: result
+              .filter(value => {
+                const { comment, pull_request } = value;
+                return !!comment && pull_request.id === pr.number;
+              })
+              .map(value => ({
+                date: value.comment.created_on,
+                author: value.comment.user.username
+              }))
+          }));
+        });
+      });
+  }
+
+  prActivity() {
+    return this.repos().then(repos => {
+      const promises = repos.map(repo => this.repoPRActivity(repo.name));
+      return Promise.all(promises).then(responses => {
+        return repos.map((repo, idx) => ({
+          repo: repo.name,
+          pulls: responses[idx]
+        }));
       });
     });
   }
