@@ -25,7 +25,7 @@ export default class Auth {
     clientID: "gWOtsbTPZIPqdbXogY9WaMjhEa7ixVyE",
     responseType: "token id_token",
     redirectUri: `${window.location.origin}/callback`,
-    scope: "openid profile"
+    scope: "openid profile email"
   });
 
   login = () => {

@@ -3,7 +3,7 @@
     <mj-section>
       <mj-column>
         <mj-text>
-          Hello World!
+          Hello {{name}}!
         </mj-text>
       </mj-column>
     </mj-section>

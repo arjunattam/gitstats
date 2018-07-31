@@ -1,7 +1,8 @@
 import * as AWS from "aws-sdk";
+import * as Handlebars from "handlebars";
 import template from "./template.mjml";
 
-export const sendEmail = (toEmail, subject) => {
+export const sendEmail = (toEmail, subject, context) => {
   AWS.config.update({
     accessKeyId: process.env.SES_ACCESS_KEY_ID,
     secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,
@@ -9,6 +10,7 @@ export const sendEmail = (toEmail, subject) => {
   });
 
   let ses = new AWS.SES();
+  const hbs = Handlebars.compile(template);
 
   let emailParams = {
     Destination: {
@@ -18,7 +20,7 @@ export const sendEmail = (toEmail, subject) => {
     Message: {
       Body: {
         Html: {
-          Data: template
+          Data: hbs(context)
         }
       },
       Subject: {

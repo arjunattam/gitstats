@@ -48,3 +48,14 @@ export const getRepoStats = (username, repo) => {
     })
     .then(response => response.data);
 };
+
+export const sendEmail = (toEmail, team) => {
+  const auth = new Auth();
+  return axios.post(
+    `${BASE_URL}/email`,
+    { to: toEmail, team },
+    {
+      headers: auth.getAuthHeader()
+    }
+  );
+};

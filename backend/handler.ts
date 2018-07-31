@@ -135,7 +135,12 @@ export const email: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  sendEmail("arjun@gitstats.report", "Test").then(response => {
+  const body = JSON.parse(event.body);
+  const { to, team } = body;
+  const subject = "Your gitstats report";
+  const dataContext = { name: team };
+
+  sendEmail(to, subject, dataContext).then(response => {
     cb(null, {
       statusCode: 200,
       headers: HEADERS,

@@ -12,6 +12,7 @@ import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
 import { Pulls } from "./pulls";
+import { EmailSender } from "./email";
 import { CommitChartContainer, PRChartContainer } from "./charts";
 
 const ReportTitle = ({ period, isLoading }) => {
@@ -45,7 +46,7 @@ const ReportTitle = ({ period, isLoading }) => {
 };
 
 export const ReportContainer = props => {
-  const { reportJson, isLoading, prActivityData, commitsData } = props;
+  const { reportJson, isLoading, prActivityData, commitsData, team } = props;
   const thisWeekStart = d3.utcSunday(new Date());
   const copy = new Date(thisWeekStart);
   const startDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() - 7)));
@@ -67,6 +68,7 @@ export const ReportContainer = props => {
       <Pulls {...reportJson} isLoading={isLoading} />
       <PRChartContainer {...dates} data={prActivityData} />
       <Repos {...reportJson} isLoading={isLoading} />
+      <EmailSender team={team} />
     </Container>
   );
 };
@@ -160,7 +162,9 @@ class Report extends React.Component {
   }
 
   render() {
-    return <ReportContainer {...this.state} />;
+    const { params } = this.props.match;
+    const { name: team } = params;
+    return <ReportContainer {...this.state} team={team} />;
   }
 }
 
