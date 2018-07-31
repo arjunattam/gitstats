@@ -9,7 +9,6 @@ class AuthState extends React.Component {
 
   componentDidMount() {
     this.auth = new Auth();
-    console.log(this.auth.getUserProfile());
     this.updateAuthState();
   }
 

@@ -74,4 +74,16 @@ export default class Auth {
     const accessToken = Storage.get("access_token");
     return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
   };
+
+  getGitService = () => {
+    const { sub } = this.getUserProfile();
+
+    if (sub && sub.indexOf("github") >= 0) {
+      return "github";
+    }
+
+    if (sub && sub.indexOf("bitbucket") >= 0) {
+      return "bitbucket";
+    }
+  };
 }

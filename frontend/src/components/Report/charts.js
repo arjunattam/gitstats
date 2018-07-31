@@ -10,7 +10,12 @@ import { Streamgraph, PRActivity } from "../Charts";
 
 const ALL_REPOS = "All repos";
 const ALL_MEMBERS = "All members";
-const ALL_ACTIVITY_TYPES = "All activity";
+const ALL_TYPES = "All activity";
+
+const HUMAN_READABLE_MODIFIERS = {
+  commit: "Commits",
+  pr_comment: "PR comments"
+};
 
 class MyDropdown extends React.Component {
   static propTypes = {
@@ -38,17 +43,22 @@ class MyDropdown extends React.Component {
 
   getSelectedText = () => {
     const { selected, items, allText } = this.props;
+    let value;
 
     if (selected === allText) {
-      return `${selected} (${this.getTotalValue()})`;
+      value = this.getTotalValue();
     } else {
       const filtered = items.filter(i => i.text === selected);
-      let value = 0;
-      if (filtered.length > 0) {
-        value = filtered[0].value;
-      }
-      return `${selected} (${value})`;
+      value = filtered.length > 0 ? filtered[0].value : 0;
     }
+
+    return `${this.getLabel(selected)} (${value})`;
+  };
+
+  getLabel = text => {
+    return text in HUMAN_READABLE_MODIFIERS
+      ? HUMAN_READABLE_MODIFIERS[text]
+      : text;
   };
 
   render() {
@@ -71,14 +81,14 @@ class MyDropdown extends React.Component {
               <DropdownItem divider />
             </div>
           ) : null}
-          {items
-            .filter(item => item.value > 0)
-            .sort((a, b) => b.value - a.value)
-            .map(item => (
-              <DropdownItem key={item.text} onClick={() => onSelect(item.text)}>
-                {item.text} ({item.value})
+          {items.sort((a, b) => b.value - a.value).map(item => {
+            const { text, value } = item;
+            return (
+              <DropdownItem key={text} onClick={() => onSelect(text)}>
+                {this.getLabel(text)} ({value})
               </DropdownItem>
-            ))}
+            );
+          })}
         </DropdownMenu>
       </Dropdown>
     );
@@ -102,7 +112,7 @@ export class CommitChartContainer extends React.Component {
   state = {
     selectedRepo: ALL_REPOS,
     selectedMember: ALL_MEMBERS,
-    selectedActivityType: ALL_ACTIVITY_TYPES
+    selectedType: ALL_TYPES
   };
 
   getPrevStart = () => {
@@ -111,35 +121,27 @@ export class CommitChartContainer extends React.Component {
   };
 
   changeRepo = repo => {
-    this.setState({
-      selectedRepo: repo
-    });
+    this.setState({ selectedRepo: repo });
   };
 
   showAllRepos = () => {
-    this.setState({
-      selectedRepo: ALL_REPOS
-    });
+    this.setState({ selectedRepo: ALL_REPOS });
   };
 
   changeMember = member => {
-    this.setState({
-      selectedMember: member
-    });
+    this.setState({ selectedMember: member });
   };
 
   showAllMembers = () => {
-    this.setState({
-      selectedMember: ALL_MEMBERS
-    });
+    this.setState({ selectedMember: ALL_MEMBERS });
   };
 
   changeType = type => {
-    this.setState({ selectedActivityType: type });
+    this.setState({ selectedType: type });
   };
 
   showAllTypes = () => {
-    this.setState({ selectedActivityType: ALL_ACTIVITY_TYPES });
+    this.setState({ selectedType: ALL_TYPES });
   };
 
   getFilteredByDate = (items, startTime, endTime) => {
@@ -151,7 +153,6 @@ export class CommitChartContainer extends React.Component {
 
   getChartData = () => {
     const { commitsData, prData, startDate, endDate } = this.props;
-    const { selectedRepo, selectedMember, selectedActivityType } = this.state;
     const prevEnd = new Date(startDate);
     const prevStart = this.getPrevStart();
     let allData = []; // Each entity has x (date), y, type, author, repo
@@ -188,31 +189,42 @@ export class CommitChartContainer extends React.Component {
       });
     });
 
-    const filtered = allData
-      .filter(item => selectedRepo === ALL_REPOS || item.repo === selectedRepo)
+    return {
+      data: this.getFilteredByDate(allData, startDate, endDate),
+      prevData: this.getFilteredByDate(allData, prevStart, prevEnd)
+    };
+  };
+
+  filterBySelection = (data, excludeKey) => {
+    const { selectedRepo, selectedMember, selectedType } = this.state;
+    return data
       .filter(
-        item => selectedMember === ALL_MEMBERS || item.author === selectedMember
+        item =>
+          excludeKey === "repo" ||
+          selectedRepo === ALL_REPOS ||
+          item.repo === selectedRepo
       )
       .filter(
         item =>
-          selectedActivityType === ALL_ACTIVITY_TYPES ||
-          item.type === selectedActivityType
+          excludeKey === "author" ||
+          selectedMember === ALL_MEMBERS ||
+          item.author === selectedMember
+      )
+      .filter(
+        item =>
+          excludeKey === "type" ||
+          selectedType === ALL_TYPES ||
+          item.type === selectedType
       );
-
-    const result = {
-      data: this.getFilteredByDate(filtered, startDate, endDate),
-      prevData: this.getFilteredByDate(filtered, prevStart, prevEnd)
-    };
-
-    return result;
   };
-
-  getDropdownOptions = (data, key) => {
-    const keyWiseSums = data.reduce((total, current) => {
+  getDropdownOptions = (allData, key) => {
+    const filtered = this.filterBySelection(allData, key);
+    const keyWiseSums = filtered.reduce((total, current) => {
       const value = current[key];
       total[value] = 1 + (total[value] ? total[value] : 0);
       return total;
     }, {});
+
     return Object.keys(keyWiseSums).map(value => ({
       text: value,
       value: keyWiseSums[value]
@@ -221,19 +233,18 @@ export class CommitChartContainer extends React.Component {
 
   render() {
     const { startDate, endDate } = this.props;
-    const { selectedRepo, selectedMember, selectedActivityType } = this.state;
+    const { selectedRepo, selectedMember, selectedType } = this.state;
     const { data, prevData } = this.getChartData();
+
     const types = this.getDropdownOptions(data, "type");
     const repos = this.getDropdownOptions(data, "repo");
     const members = this.getDropdownOptions(data, "author");
 
-    const layeredData = data.reduce((result, current) => {
+    const dataFiltered = this.filterBySelection(data);
+    const prevFiltered = this.filterBySelection(prevData);
+    const layeredData = dataFiltered.reduce((result, current) => {
       const { type } = current;
-      if (type in result) {
-        result[type] = [...result[type], current];
-      } else {
-        result[type] = [current];
-      }
+      result[type] = !!result[type] ? [...result[type], current] : [current];
       return result;
     }, {});
 
@@ -245,9 +256,9 @@ export class CommitChartContainer extends React.Component {
           </div>
           <div>
             <MyDropdown
-              selected={selectedActivityType}
+              selected={selectedType}
               items={types}
-              allText={ALL_ACTIVITY_TYPES}
+              allText={ALL_TYPES}
               onSelect={this.changeType}
               onSelectAll={this.showAllTypes}
             />
@@ -269,7 +280,7 @@ export class CommitChartContainer extends React.Component {
         </TitleDiv>
         <Streamgraph
           data={Object.values(layeredData)}
-          prevData={[prevData]}
+          prevData={[prevFiltered]}
           startDate={startDate}
           endDate={endDate}
         />

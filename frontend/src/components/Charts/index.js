@@ -232,7 +232,7 @@ export class Streamgraph extends React.Component {
       .enter()
       .append("path")
       .attr("d", line)
-      .attr("stroke", "#fdae61")
+      .attr("stroke", "#cec1b5")
       .attr("stroke-width", "1")
       .attr("stroke-dasharray", "5,2")
       .attr("fill", "none");

@@ -49,22 +49,30 @@ export default class CallbackPage extends React.Component {
   };
 
   renderTeams = () => {
+    const { teams } = this.state;
+    const auth = new Auth();
+    const isGithub = auth.getGitService() === "github";
+
     return (
       <Container>
         <p>Your teams</p>
         <ul>
-          {this.state.teams.map(team => {
+          {teams.map(team => {
+            const { id, login, name } = team;
             return (
-              <li key={team.id}>
-                <Link to={`/report/${team.login}`}>{team.name}</Link>
+              <li key={id}>
+                <Link to={`/report/${login}`}>{name}</Link>
               </li>
             );
           })}
-          <li>
-            <a href="#" onClick={() => this.setupTeams()}>
-              Setup more teams
-            </a>
-          </li>
+
+          {isGithub ? (
+            <li>
+              <a href="#" onClick={() => this.setupTeams()}>
+                Setup more teams
+              </a>
+            </li>
+          ) : null}
         </ul>
       </Container>
     );
