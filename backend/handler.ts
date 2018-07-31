@@ -7,6 +7,7 @@ import {
 } from "aws-lambda";
 import authorizer from "./src/authorizer";
 import UserManager from "./src/users";
+import { sendEmail } from "./src/email";
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*", // Required for CORS support to work
@@ -125,6 +126,23 @@ export const pulls: Handler = (
           input: event
         })
       });
+    });
+  });
+};
+
+export const email: Handler = (
+  event: APIGatewayEvent,
+  context: Context,
+  cb: Callback
+) => {
+  sendEmail("arjun@gitstats.report", "Test").then(response => {
+    cb(null, {
+      statusCode: 200,
+      headers: HEADERS,
+      body: JSON.stringify({
+        message: "email sent",
+        input: event
+      })
     });
   });
 };
