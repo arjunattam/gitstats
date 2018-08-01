@@ -5,6 +5,8 @@ import { addXAxis } from "./utils";
 import "./index.css";
 
 const INTERVAL_SIZE = 4; // hours
+const MIN_Y = 3;
+const LEGEND_PADDING = 40;
 
 const PR_COLORS = {
   commit: "#ff31317d",
@@ -16,8 +18,6 @@ const STREAM_COLOR_RANGE = {
   pr_comment: "#3288bd"
 };
 
-const LEGEND_PADDING = 40;
-
 Date.prototype.addHours = function(h) {
   this.setTime(this.getTime() + h * 60 * 60 * 1000);
   return this;
@@ -27,7 +27,7 @@ const addLegend = (svg, width, colorMap) => {
   // Add legend
   var legend = svg
     .append("g")
-    .attr("class", "legend")
+    .attr("class", "g-legend")
     .attr("transform", `translate(${width / 2 - 40},${LEGEND_PADDING / 2})`);
 
   legend
@@ -55,30 +55,43 @@ const addLegend = (svg, width, colorMap) => {
 };
 
 export class Streamgraph extends React.Component {
+  state = {
+    hoverX: null,
+    hoverType: null
+  };
+
+  getRoundedDate = date => {
+    const parsed = new Date(date);
+    parsed.setUTCSeconds(0);
+    parsed.setUTCMilliseconds(0);
+    parsed.setUTCMinutes(0);
+    parsed.setUTCHours(
+      parsed.getUTCHours() - (parsed.getUTCHours() % INTERVAL_SIZE)
+    );
+    const lower = new Date(parsed);
+    const upper = new Date(lower).addHours(4);
+    const d = new Date(date);
+    const sorted = [lower, upper].sort((a, b) => {
+      const distanceA = Math.abs(d.getTime() - a.getTime());
+      const distanceB = Math.abs(d.getTime() - b.getTime());
+      return distanceA - distanceB;
+    });
+    return sorted[0];
+  };
+
   parseHelper(data, startDate, endDate) {
     let result = [];
 
     data.forEach(layer => {
       let layerType;
+
       if (layer.length) {
         layerType = layer[0].type;
       }
 
       const layerData = layer.reduce((acc, current) => {
-        const parsed = new Date(current.x);
-        parsed.setUTCSeconds(0);
-        parsed.setUTCMilliseconds(0);
-        parsed.setUTCMinutes(0);
-        parsed.setUTCHours(
-          parsed.getUTCHours() - (parsed.getUTCHours() % INTERVAL_SIZE)
-        );
-        const copy = new Date(parsed);
-
-        if (copy in acc) {
-          acc[copy] = acc[copy] + 1;
-        } else {
-          acc[copy] = 1;
-        }
+        const copy = this.getRoundedDate(current.x);
+        acc[copy] = copy in acc ? [...acc[copy], current] : [current];
         return acc;
       }, {});
 
@@ -105,9 +118,11 @@ export class Streamgraph extends React.Component {
           }
         }
 
+        const contents = j in layerData ? layerData[j] : [];
         layerResult.push({
           x: new Date(j),
-          y: { start, end: j in layerData ? start + layerData[j] : start },
+          y: { start, end: start + contents.length },
+          contents,
           type: layerType
         });
       }
@@ -144,8 +159,29 @@ export class Streamgraph extends React.Component {
 
     return flattened.reduce((acc, curr) => {
       return Math.max(acc, curr.y.end);
-    }, 10);
+    }, MIN_Y);
   }
+
+  getHoverContent = data => {
+    const { hoverX, hoverType } = this.state;
+
+    const selectedType = data.filter(layerData => {
+      return layerData.length && layerData[0].type === hoverType;
+    });
+
+    if (selectedType.length) {
+      const hoverLayer = selectedType[0];
+      const filtered = hoverLayer.filter(
+        item => item.x.getTime() === hoverX.getTime()
+      );
+
+      if (filtered.length) {
+        return filtered[0].contents;
+      }
+    }
+
+    return [];
+  };
 
   render() {
     const div = new ReactFauxDOM.Element("div");
@@ -153,6 +189,7 @@ export class Streamgraph extends React.Component {
     const data = this.parsedData();
     const prevData = this.parsedPrevData();
     const maxY = this.getMaxY([...data, ...prevData]);
+    const hoverContents = this.getHoverContent(data);
 
     var width = 600;
     var height = 150 + LEGEND_PADDING;
@@ -183,6 +220,7 @@ export class Streamgraph extends React.Component {
     // Chart content
     var content = svg
       .append("g")
+      .classed("g-content", true)
       .attr("transform", `translate(0,${LEGEND_PADDING})`);
 
     var area = d3
@@ -205,14 +243,74 @@ export class Streamgraph extends React.Component {
       .enter()
       .append("path")
       .attr("d", area)
-      .attr("fill", function(d, i) {
+      .attr("fill", d => {
         if (d.length) {
-          return STREAM_COLOR_RANGE[d[0].type];
+          const layerType = d[0].type;
+          const { hoverType } = this.state;
+          const isAlpha = hoverType && hoverType !== layerType;
+          const alpha = isAlpha ? "9d" : "";
+          const baseColor = STREAM_COLOR_RANGE[layerType];
+          return `${baseColor}${alpha}`;
         }
       })
-      .on("mouseover", function(d, i) {
-        // console.log("mouse over", d, i);
+      .on("mousemove", d => {
+        const CONTENT_SELECTOR = "g.g-content";
+        const node = d3.select(CONTENT_SELECTOR).node();
+        const mouse = d3.mouse(node);
+        const inverted = x.invert(mouse[0]);
+        const xTime = this.getRoundedDate(inverted);
+        const data = d.filter(item => item.x.getTime() === xTime.getTime());
+        let hoverType;
+
+        if (data.length) {
+          hoverType = data[0].type;
+        }
+
+        this.setState({ hoverX: xTime, hoverType });
+      })
+      .on("mouseout", () => {
+        this.setState({ hoverX: null, hoverType: null });
       });
+
+    // Plot hover line
+    if (this.state.hoverX) {
+      content
+        .append("line")
+        .attr("stroke", "#fff")
+        .attr("stroke-width", "1")
+        .attr("class", "no-pointer-events")
+        .attr("y1", y(0))
+        .attr("y2", y(maxY))
+        .attr("x1", x(this.state.hoverX))
+        .attr("x2", x(this.state.hoverX));
+    }
+
+    // Plot hover contents
+    if (hoverContents.length > 0) {
+      const text = hoverContents
+        .filter(item => !!item.message)
+        .map(item => item.message);
+
+      if (text.length) {
+        const trimmed = text.slice(0, 5).map(d => `· ${d}`);
+
+        if (trimmed.length < text.length) {
+          const diff = text.length - trimmed.length;
+          trimmed.push(`and ${diff} more...`);
+        }
+
+        var messageText = content.append("text").attr("class", "message-text");
+
+        messageText
+          .selectAll("tspan")
+          .data(trimmed)
+          .enter()
+          .append("tspan")
+          .attr("x", "25")
+          .attr("y", (d, i) => `${1.4 * i}em`)
+          .text(d => d);
+      }
+    }
 
     // Plot previous data - with no fill
     var line = d3
@@ -232,6 +330,7 @@ export class Streamgraph extends React.Component {
       .enter()
       .append("path")
       .attr("d", line)
+      .attr("class", "no-pointer-events")
       .attr("stroke", "#cec1b5")
       .attr("stroke-width", "1")
       .attr("stroke-dasharray", "5,2")

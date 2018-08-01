@@ -162,11 +162,13 @@ export class CommitChartContainer extends React.Component {
       commits.forEach(authorCommits => {
         const { author, commits } = authorCommits;
         commits.forEach(commitObject => {
+          const { message, date } = commitObject;
           allData.push({
             author,
             repo,
+            message,
             type: "commit",
-            x: commitObject.date,
+            x: date,
             y: 1
           });
         });
@@ -178,11 +180,13 @@ export class CommitChartContainer extends React.Component {
       pulls.forEach(prItem => {
         const { comments } = prItem;
         comments.forEach(comment => {
+          // TODO: comment does not have message
+          const { author, date } = comment;
           allData.push({
-            author: comment.author,
+            author,
             repo,
             type: "pr_comment",
-            x: comment.date,
+            x: date,
             y: 1
           });
         });
@@ -217,6 +221,7 @@ export class CommitChartContainer extends React.Component {
           item.type === selectedType
       );
   };
+
   getDropdownOptions = (allData, key) => {
     const filtered = this.filterBySelection(allData, key);
     const keyWiseSums = filtered.reduce((total, current) => {

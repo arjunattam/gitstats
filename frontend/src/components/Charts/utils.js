@@ -20,6 +20,6 @@ export const addXAxis = (svg, startDate, endDate, x, actualHeight) => {
 
   // Remove ticks for the middle value
   svg.selectAll("line").attr("y2", function(d) {
-    return d.getUTCHours() === 12 ? 0 : 6;
+    return d && d.getUTCHours() === 12 ? 0 : 6;
   });
 };

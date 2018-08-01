@@ -272,6 +272,7 @@ export default class GithubService extends APICaller {
                     }));
                   // TODO: the comments does not include approval/rejection comments
                   // eg, in this PR: https://github.com/getsentry/responses/pull/210
+                  // TODO: should this return message also?
                   const comments = prNode.comments.nodes.map(commentNode => ({
                     author: commentNode.author.login,
                     date: commentNode.createdAt

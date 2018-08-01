@@ -20,9 +20,14 @@
 }
 
 .tick text,
-.legend text {
+.g-legend text {
   font-size: 7px;
   fill: #999;
+}
+
+.message-text {
+  font-size: 8px;
+  fill: #333;
 }
 
 .tick line {
@@ -33,4 +38,8 @@
 .domain {
   stroke: #999;
   stroke-width: 0.5;
+}
+
+.no-pointer-events {
+  pointer-events: none;
 }
