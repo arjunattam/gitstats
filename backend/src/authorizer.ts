@@ -13,10 +13,9 @@ const getAllResources = methodArn => {
   var apiGatewayArnTmp = split[5].split("/");
   const apiId = apiGatewayArnTmp[0];
   const stage = apiGatewayArnTmp[1];
-  const method = apiGatewayArnTmp[2];
   return `${split[0]}:${split[1]}:${split[2]}:${split[3]}:${
     split[4]
-  }:${apiId}/${stage}/${method}/*`;
+  }:${apiId}/${stage}/*`;
 };
 
 const generatePolicy = (principalId, effect, resource) => {
