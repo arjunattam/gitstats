@@ -62,8 +62,8 @@ export const ReportContainer = props => {
   // Construct weekly data
   let weeklyData = [];
   const { repos } = reportJson;
-  if (repos.length) {
-    weeklyData = repos.map(repo => {
+  if (repos && repos.length > 0) {
+    weeklyData = repos.filter(repo => !repo.stats.is_pending).map(repo => {
       return {
         repo: repo.name,
         commits: repo.stats.authors
