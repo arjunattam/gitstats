@@ -8,14 +8,9 @@ const INTERVAL_SIZE = 4; // hours
 const MIN_Y = 3;
 const LEGEND_PADDING = 40;
 
-const PR_COLORS = {
-  commit: "#ff31317d",
-  pr_comment: "#5252b97d"
-};
-
-const STREAM_COLOR_RANGE = {
-  commit: "#fee08b",
-  pr_comment: "#3288bd"
+const COLORS = {
+  commit: "#ffb154",
+  pr_comment: "#5b88d6"
 };
 
 Date.prototype.addHours = function(h) {
@@ -193,7 +188,7 @@ export class Streamgraph extends React.Component {
 
     var width = 600;
     var height = 150 + LEGEND_PADDING;
-    var margin = 20;
+    var margin = 25;
     var actualHeight = height - margin - LEGEND_PADDING;
     var actualWidth = width - 2 * margin;
 
@@ -215,7 +210,7 @@ export class Streamgraph extends React.Component {
       .domain([0, maxY + 2])
       .range([actualHeight, 0]);
 
-    addLegend(svg, width, STREAM_COLOR_RANGE);
+    addLegend(svg, width, COLORS);
 
     // Chart content
     var content = svg
@@ -249,7 +244,7 @@ export class Streamgraph extends React.Component {
           const { hoverType } = this.state;
           const isAlpha = hoverType && hoverType !== layerType;
           const alpha = isAlpha ? "9d" : "";
-          const baseColor = STREAM_COLOR_RANGE[layerType];
+          const baseColor = COLORS[layerType];
           return `${baseColor}${alpha}`;
         }
       })
@@ -306,7 +301,7 @@ export class Streamgraph extends React.Component {
           .data(trimmed)
           .enter()
           .append("tspan")
-          .attr("x", "25")
+          .attr("x", `${margin + 5}`)
           .attr("y", (d, i) => `${1.4 * i}em`)
           .text(d => d);
       }
@@ -331,7 +326,7 @@ export class Streamgraph extends React.Component {
       .append("path")
       .attr("d", line)
       .attr("class", "no-pointer-events")
-      .attr("stroke", "#cec1b5")
+      .attr("stroke", "#333")
       .attr("stroke-width", "1")
       .attr("stroke-dasharray", "5,2")
       .attr("fill", "none");
@@ -348,7 +343,7 @@ export class Streamgraph extends React.Component {
   }
 }
 
-export class PRActivity extends React.Component {
+export class TimelineChart extends React.Component {
   renderPR(prData, svg, x, y, yValue) {
     const { created_at, closed_at, commits, comments } = prData;
     const { title, url, number } = prData;
@@ -388,7 +383,7 @@ export class PRActivity extends React.Component {
         return y(d[1]);
       })
       .attr("r", 3)
-      .attr("fill", PR_COLORS.pr_comment);
+      .attr("fill", COLORS.pr_comment);
 
     // Plot commits
     repoRoot
@@ -410,7 +405,7 @@ export class PRActivity extends React.Component {
         return y(d[1]);
       })
       .attr("r", 3)
-      .attr("fill", PR_COLORS.commit);
+      .attr("fill", COLORS.commit);
 
     // Title with url
     repoRoot
@@ -437,7 +432,7 @@ export class PRActivity extends React.Component {
 
     var width = 600;
     var height = 30 * Math.max(MIN_COUNT, count) + LEGEND_PADDING;
-    var margin = 20;
+    var margin = 25;
     var actualHeight = height - margin - LEGEND_PADDING;
     var actualWidth = width - 2 * margin;
 
@@ -446,6 +441,7 @@ export class PRActivity extends React.Component {
       .domain([axisStart, axisEnd])
       .range([margin, margin + actualWidth])
       .clamp(true);
+
     var y = d3
       .scaleLinear()
       .domain([0, Math.max(MIN_COUNT, count)])
@@ -459,7 +455,7 @@ export class PRActivity extends React.Component {
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`);
 
-    addLegend(svg, width, PR_COLORS);
+    addLegend(svg, width, COLORS);
 
     // Chart content
     var content = svg
@@ -471,6 +467,89 @@ export class PRActivity extends React.Component {
     });
 
     addXAxis(content, startDate, endDate, x, actualHeight);
+    return div.toReact();
+  }
+}
+
+export class BarChart extends React.Component {
+  render() {
+    const div = new ReactFauxDOM.Element("div");
+    const { data } = this.props;
+
+    const MIN_Y_VALUE = 5;
+    var width = 600;
+    var height = 150 + LEGEND_PADDING;
+    var margin = 25;
+    var actualHeight = height - margin - LEGEND_PADDING;
+    var actualWidth = width - 2 * margin;
+
+    var x = d3
+      .scaleBand()
+      .rangeRound([margin, margin + actualWidth])
+      .padding(0.3)
+      .domain(
+        data.map(function(d) {
+          return d.week;
+        })
+      );
+
+    var y = d3
+      .scaleLinear()
+      .rangeRound([actualHeight, 0])
+      .domain([
+        0,
+        d3.max(data, function(d) {
+          return Math.max(d.value, MIN_Y_VALUE);
+        })
+      ]);
+
+    let svg = d3
+      .select(div)
+      .classed("svg-container", true)
+      .append("svg")
+      .attr("preserveAspectRatio", "xMinYMin meet")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .classed("svg-content-responsive", true);
+
+    // Chart content
+    var content = svg
+      .append("g")
+      .classed("g-content", true)
+      .attr("transform", `translate(0,${LEGEND_PADDING})`);
+
+    content
+      .append("g")
+      .attr("transform", `translate(0,${actualHeight})`)
+      .call(
+        d3.axisBottom(x).tickFormat(function(d) {
+          const date = new Date(d * 1000);
+          const formatter = d3.timeFormat("%b %d");
+          return `Week of ${formatter(date)}`;
+        })
+      );
+
+    content
+      .append("g")
+      .attr("transform", `translate(${margin},0)`)
+      .call(d3.axisLeft(y));
+
+    content
+      .selectAll(".bar")
+      .data(data)
+      .enter()
+      .append("rect")
+      .attr("fill", COLORS.commit)
+      .attr("x", function(d) {
+        return x(d.week);
+      })
+      .attr("y", function(d) {
+        return y(d.value);
+      })
+      .attr("width", x.bandwidth())
+      .attr("height", function(d) {
+        return actualHeight - y(d.value);
+      });
+
     return div.toReact();
   }
 }

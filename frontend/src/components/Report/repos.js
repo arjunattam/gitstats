@@ -13,15 +13,22 @@ const RepoName = ({ name, description }) => {
   );
 };
 
-export const Repos = ({ repos, isLoading }) => {
+export const Repos = ({ period, repos, isLoading }) => {
   const data = repos
     ? repos
         .map(repo => {
           return {
             ...repo,
-            commits: getCommits(repos.filter(r => r.name === repo.name)),
-            prsMerged: getPRsMerged(repos.filter(r => r.name === repo.name)),
+            commits: getCommits(
+              period,
+              repos.filter(r => r.name === repo.name)
+            ),
+            prsMerged: getPRsMerged(
+              period,
+              repos.filter(r => r.name === repo.name)
+            ),
             linesChanged: getLinesChanged(
+              period,
               repos.filter(r => r.name === repo.name)
             )
           };

@@ -45,19 +45,31 @@ export const Value = ({ previous, next, transformer }) => {
   );
 };
 
-const getStatsData = (repos, key, authorFilter) => {
+const getStatsData = (period, repos, key, authorFilter) => {
+  const { next, previous } = period;
+  const nextTs = +new Date(next) / 1000;
+  const previousTs = +new Date(previous) / 1000;
+
   const repoCommits = repos.map(repo => {
     const { authors } = repo.stats;
     let commits = [];
+
     if (authors) {
       const filtered = authors.filter(
         author => (authorFilter ? author.login === authorFilter : true)
       );
       commits = filtered.map(author => author[key]);
     }
+
     return {
-      previous: commits.reduce((s, v) => s + v.previous, 0),
-      next: commits.reduce((s, v) => s + v.next, 0)
+      previous: commits.reduce((s, v) => {
+        const f = !!v ? v.filter(value => value.week === previousTs) : [];
+        return f.length ? s + f[0].value : s;
+      }, 0),
+      next: commits.reduce((s, v) => {
+        const f = !!v ? v.filter(value => value.week === nextTs) : [];
+        return f.length ? s + f[0].value : s;
+      }, 0)
     };
   });
 
@@ -67,13 +79,13 @@ const getStatsData = (repos, key, authorFilter) => {
   };
 };
 
-export const getCommits = (repos, authorFilter) => {
-  return getStatsData(repos, "commits", authorFilter);
+export const getCommits = (period, repos, authorFilter) => {
+  return getStatsData(period, repos, "commits", authorFilter);
 };
 
-export const getLinesChanged = (repos, authorFilter) => {
-  const added = getStatsData(repos, "lines_added", authorFilter);
-  const deleted = getStatsData(repos, "lines_deleted", authorFilter);
+export const getLinesChanged = (period, repos, authorFilter) => {
+  const added = getStatsData(period, repos, "lines_added", authorFilter);
+  const deleted = getStatsData(period, repos, "lines_deleted", authorFilter);
 
   return {
     previous: added.previous + deleted.previous,
@@ -81,7 +93,7 @@ export const getLinesChanged = (repos, authorFilter) => {
   };
 };
 
-const getPRsData = (repos, key, authorFilter) => {
+const getPRsData = (period, repos, key, authorFilter) => {
   const repoPRs = repos.map(repo => {
     const data = repo.prs;
     let prs = [];
@@ -103,12 +115,12 @@ const getPRsData = (repos, key, authorFilter) => {
   };
 };
 
-export const getPRsMerged = (repos, authorFilter) => {
-  return getPRsData(repos, "prs_merged", authorFilter);
+export const getPRsMerged = (period, repos, authorFilter) => {
+  return getPRsData(period, repos, "prs_merged", authorFilter);
 };
 
-export const getPRsOpened = (repos, authorFilter) => {
-  return getPRsData(repos, "prs_opened", authorFilter);
+export const getPRsOpened = (period, repos, authorFilter) => {
+  return getPRsData(period, repos, "prs_opened", authorFilter);
 };
 
 function median(values) {
@@ -120,7 +132,7 @@ function median(values) {
   else return (values[half - 1] + values[half]) / 2.0;
 }
 
-export const getPRsTime = (repos, authorFilter) => {
+export const getPRsTime = (period, repos, authorFilter) => {
   const repoPRs = repos.map(repo => {
     const data = repo.prs;
     let prs = [];

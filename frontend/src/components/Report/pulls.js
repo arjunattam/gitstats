@@ -34,7 +34,7 @@ function millisecondsToStr(milliseconds) {
   return "less than a second"; //'just now' //or other string you like;
 }
 
-export const Pulls = ({ repos, isLoading }) => {
+export const Pulls = ({ period, repos, isLoading }) => {
   const hasAllData = repos
     ? !repos.filter(repo => repo.stats.is_pending).length
     : false;
@@ -45,10 +45,10 @@ export const Pulls = ({ repos, isLoading }) => {
           isLoading: !hasAllData,
           values: [
             "Total",
-            <Value {...getPRsOpened(repos)} />,
-            <Value {...getPRsMerged(repos)} />,
+            <Value {...getPRsOpened(period, repos)} />,
+            <Value {...getPRsMerged(period, repos)} />,
             <Value
-              {...getPRsTime(repos)}
+              {...getPRsTime(period, repos)}
               transformer={value => millisecondsToStr(value * 1000)}
             />
           ]

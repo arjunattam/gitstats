@@ -37,20 +37,16 @@ export type RepoPR = {
   };
 };
 
+type WeekValues = {
+  week: number;
+  value: number;
+};
+
 export type AuthorStats = {
   login: string;
-  commits: {
-    previous: number;
-    next: number;
-  };
-  lines_added: {
-    previous: number;
-    next: number;
-  };
-  lines_deleted: {
-    previous: number;
-    next: number;
-  };
+  commits: WeekValues[];
+  lines_added: WeekValues[];
+  lines_deleted: WeekValues[];
 };
 
 export type RepoStats = {

@@ -327,22 +327,33 @@ export default class BitbucketService {
       });
 
       return Promise.all(promises).then(responses => {
-        // Each response is an array of { hash, date, added, deleted }
-        // for corresponding author
         let result: types.AuthorStats[] = [];
         let index;
+
         for (index = 0; index < authors.length; index++) {
+          const commits = getComparativeCounts(responses[index], "date");
+          const linesAdded = getComparativeSums(
+            responses[index],
+            "date",
+            "added"
+          );
+          const linesDeleted = getComparativeSums(
+            responses[index],
+            "date",
+            "deleted"
+          );
+          const weekStats = ({ next, previous }) => [
+            { week: this.periodPrev.unix(), value: previous },
+            { week: this.periodNext.unix(), value: next }
+          ];
           result.push({
             login: authors[index],
-            commits: getComparativeCounts(responses[index], "date"),
-            lines_added: getComparativeSums(responses[index], "date", "added"),
-            lines_deleted: getComparativeSums(
-              responses[index],
-              "date",
-              "deleted"
-            )
+            commits: weekStats(commits),
+            lines_added: weekStats(linesAdded),
+            lines_deleted: weekStats(linesDeleted)
           });
         }
+
         return { is_pending: false, authors: result };
       });
     });

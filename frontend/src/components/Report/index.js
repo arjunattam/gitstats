@@ -13,7 +13,11 @@ import { Members } from "./members";
 import { Repos } from "./repos";
 import { Pulls } from "./pulls";
 import { EmailSender } from "./email";
-import { CommitChartContainer, PRChartContainer } from "./charts";
+import {
+  CommitChartContainer,
+  PRChartContainer,
+  WeeklyChartContainer
+} from "./charts";
 
 const ReportTitle = ({ period, isLoading }) => {
   if (isLoading) {
@@ -55,10 +59,28 @@ export const ReportContainer = props => {
     endDate: thisWeekStart
   };
 
+  // Construct weekly data
+  let weeklyData = [];
+  const { repos } = reportJson;
+  if (repos.length) {
+    weeklyData = repos.map(repo => {
+      return {
+        repo: repo.name,
+        commits: repo.stats.authors
+          .filter(author => !!author.commits)
+          .map(author => ({
+            author: author.login,
+            values: author.commits
+          }))
+      };
+    });
+  }
+
   return (
     <Container>
       <ReportTitle {...reportJson} isLoading={isLoading} />
       <Summary {...reportJson} isLoading={isLoading} />
+      <WeeklyChartContainer data={weeklyData} />
       <CommitChartContainer
         {...dates}
         commitsData={commitsData}

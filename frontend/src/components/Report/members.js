@@ -8,7 +8,7 @@ import {
 } from "./utils";
 import Table from "./table";
 
-export const Members = ({ repos, members, isLoading }) => {
+export const Members = ({ period, repos, members, isLoading }) => {
   const hasAllData = repos
     ? !repos.filter(repo => repo.stats.is_pending).length
     : false;
@@ -17,9 +17,9 @@ export const Members = ({ repos, members, isLoading }) => {
         .map(member => {
           return {
             ...member,
-            commits: getCommits(repos, member.login),
-            prsMerged: getPRsMerged(repos, member.login),
-            linesChanged: getLinesChanged(repos, member.login)
+            commits: getCommits(period, repos, member.login),
+            prsMerged: getPRsMerged(period, repos, member.login),
+            linesChanged: getLinesChanged(period, repos, member.login)
           };
         })
         .sort((a, b) => b.commits.next - a.commits.next)

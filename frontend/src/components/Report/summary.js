@@ -8,10 +8,11 @@ import {
 } from "./utils";
 import Table from "./table";
 
-export const Summary = ({ owner, repos, isLoading }) => {
+export const Summary = ({ period, owner, repos, isLoading }) => {
   const hasAllData = repos
     ? !repos.filter(repo => repo.stats.is_pending).length
     : false;
+
   const rowData = owner
     ? [
         {
@@ -19,9 +20,9 @@ export const Summary = ({ owner, repos, isLoading }) => {
           isLoading: !hasAllData,
           values: [
             <Member login={owner.name} avatar={owner.avatar} />,
-            <Value {...getCommits(repos)} />,
-            <Value {...getPRsMerged(repos)} />,
-            <Value {...getLinesChanged(repos)} />
+            <Value {...getCommits(period, repos)} />,
+            <Value {...getPRsMerged(period, repos)} />,
+            <Value {...getLinesChanged(period, repos)} />
           ]
         }
       ]

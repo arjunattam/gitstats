@@ -145,7 +145,7 @@ export const email: Handler = (
       statusCode: 200,
       headers: HEADERS,
       body: JSON.stringify({
-        message: "email sent",
+        message: {},
         input: event
       })
     });

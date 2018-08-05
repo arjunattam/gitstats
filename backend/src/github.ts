@@ -117,32 +117,31 @@ export default class GithubService extends APICaller {
       } else if (statusCode === 204) {
         return { is_pending: false, authors: [] };
       } else if (statusCode === 200) {
+        const allWeeks = [0, 1, 2, 3, 4].map(value =>
+          moment(this.periodNext)
+            .subtract(value, "weeks")
+            .unix()
+        );
+        const getAttr = (weeksData, ts, attrKey) => {
+          const filtered = weeksData.filter(data => data.w === ts);
+          const value = filtered.length > 0 ? filtered[0][attrKey] : 0;
+          return {
+            week: ts,
+            value
+          };
+        };
+
         const authors = body
           .map(result => {
-            const periodPrev = this.periodPrev.unix();
-            const periodNext = this.periodNext.unix();
-            const prevWeek = result.weeks.filter(data => data.w === periodPrev);
-            const nextWeek = result.weeks.filter(data => data.w === periodNext);
+            const { author, weeks } = result;
             return {
-              login: result.author.login,
-              commits: {
-                previous: prevWeek.length === 1 ? prevWeek[0].c : 0,
-                next: nextWeek.length === 1 ? nextWeek[0].c : 0
-              },
-              lines_added: {
-                previous: prevWeek.length === 1 ? prevWeek[0].a : 0,
-                next: nextWeek.length === 1 ? nextWeek[0].a : 0
-              },
-              lines_deleted: {
-                previous: prevWeek.length === 1 ? prevWeek[0].d : 0,
-                next: nextWeek.length === 1 ? nextWeek[0].d : 0
-              }
+              login: author.login,
+              commits: allWeeks.map(ts => getAttr(weeks, ts, "c")),
+              lines_added: allWeeks.map(ts => getAttr(weeks, ts, "a")),
+              lines_deleted: allWeeks.map(ts => getAttr(weeks, ts, "d"))
             };
           })
-          .filter(
-            author =>
-              author.commits && (author.commits.next || author.commits.previous)
-          );
+          .filter(author => !!author.commits);
         return { is_pending: false, authors };
       }
     });
