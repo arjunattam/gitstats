@@ -2,11 +2,7 @@ import * as moment from "moment";
 import * as types from "./types";
 const rp = require("request-promise-native");
 const url = require("url");
-import {
-  getComparativeDurations,
-  getComparativeCounts,
-  getComparativeSums
-} from "./utils";
+import { getComparativeDurations, getComparativeCounts } from "./utils";
 
 export default class BitbucketService {
   baseUrl: string;
@@ -28,9 +24,9 @@ export default class BitbucketService {
       .subtract(1, "weeks");
   }
 
-  isInDuration(date: string) {
+  isInDuration(date: string, minDateValue) {
     return (
-      moment(date) > this.periodPrev &&
+      moment(date) > minDateValue &&
       moment(date) <
         moment()
           .utc()
@@ -68,7 +64,7 @@ export default class BitbucketService {
   // Source https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
   access = (p, o) => p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o);
 
-  getAllTillDate({ path, qs }, aggregateValues, key) {
+  getAllTillDate({ path, qs }, aggregateValues, key, minDateValue) {
     // Assumes the response is sorted in desc by key (which is true for commits)
     // key can be a nested field (using .) or a combination of fields (using ,)
     // eg, key as update.date,comment.created_on checks for two nested fields
@@ -85,7 +81,7 @@ export default class BitbucketService {
           }
         });
 
-        return !keyValue || moment(keyValue) > this.periodPrev;
+        return !keyValue || moment(keyValue) > minDateValue;
       });
 
       if (filtered.length < values.length) {
@@ -102,7 +98,8 @@ export default class BitbucketService {
         return this.getAllTillDate(
           { path, qs: { ...qs, ...query } },
           newAggregate,
-          key
+          key,
+          minDateValue
         );
       } else {
         return newAggregate;
@@ -275,7 +272,8 @@ export default class BitbucketService {
         return this.getAllTillDate(
           params,
           [],
-          "update.date,comment.created_on"
+          "update.date,comment.created_on",
+          this.periodPrev
         ).then(result => {
           // result has comments, commits (update), approvals
           return pulls.map(pr => ({
@@ -318,48 +316,37 @@ export default class BitbucketService {
   }
 
   statistics(repo: string) {
-    return this.commits(repo).then(response => {
-      // response is an object with key as author and value as commit[]
+    const minDateValue = moment(this.periodNext).subtract(4, "weeks");
+
+    return this.commits(repo, minDateValue).then(response => {
       const authors = Object.keys(response);
-      const promises = authors.map(author => {
+      const result: types.AuthorStats[] = authors.map(author => {
         const commits = response[author];
-        return this.diffstat(repo, commits);
+
+        const commitsResult = [0, 1, 2, 3, 4].map(value => {
+          const start = moment(this.periodNext).subtract(value, "weeks");
+          const end = moment(start).add(1, "weeks");
+          return {
+            week: start.unix(),
+            value: commits.filter(
+              c => moment(c.date) > start && moment(c.date) < end
+            ).length
+          };
+        });
+
+        return {
+          login: author,
+          commits: commitsResult,
+          lines_added: [],
+          lines_deleted: []
+        };
       });
 
-      return Promise.all(promises).then(responses => {
-        let result: types.AuthorStats[] = [];
-        let index;
-
-        for (index = 0; index < authors.length; index++) {
-          const commits = getComparativeCounts(responses[index], "date");
-          const linesAdded = getComparativeSums(
-            responses[index],
-            "date",
-            "added"
-          );
-          const linesDeleted = getComparativeSums(
-            responses[index],
-            "date",
-            "deleted"
-          );
-          const weekStats = ({ next, previous }) => [
-            { week: this.periodPrev.unix(), value: previous },
-            { week: this.periodNext.unix(), value: next }
-          ];
-          result.push({
-            login: authors[index],
-            commits: weekStats(commits),
-            lines_added: weekStats(linesAdded),
-            lines_deleted: weekStats(linesDeleted)
-          });
-        }
-
-        return { is_pending: false, authors: result };
-      });
+      return { is_pending: false, authors: result };
     });
   }
 
-  commits(repo: string) {
+  commits(repo: string, minDateValue: moment.Moment) {
     // Returns all commits in the repo, all branches
     // https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits
     return this.getAllTillDate(
@@ -371,12 +358,13 @@ export default class BitbucketService {
         }
       },
       [],
-      "date"
+      "date",
+      minDateValue
     ).then(values => {
       let authorWiseCommits = {};
       values.forEach(commit => {
         const { date } = commit;
-        const isInDuration = this.isInDuration(date);
+        const isInDuration = this.isInDuration(date, minDateValue);
         const { user, raw } = commit.author;
         // This user might not have a linked bitbucket account
         // eg, raw is `Tarun Gupta <tarungupta@Taruns-MacBook-Pro.local>`
@@ -400,7 +388,9 @@ export default class BitbucketService {
 
   allCommits(): Promise<types.Commits[]> {
     return this.repos().then(repos => {
-      const promises = repos.map(repo => this.commits(repo.name));
+      const promises = repos.map(repo =>
+        this.commits(repo.name, this.periodPrev)
+      );
       return Promise.all(promises).then(responses => {
         return responses.map((response, idx) => {
           const authors = Object.keys(response);
