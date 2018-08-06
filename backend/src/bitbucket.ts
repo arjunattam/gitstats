@@ -147,6 +147,34 @@ export default class BitbucketService {
       });
   }
 
+  emailReport() {
+    return Promise.all([this.repos(), this.ownerInfo()])
+      .then(responses => {
+        return {
+          period: { previous: this.periodPrev, next: this.periodNext },
+          owner: responses[1],
+          repos: responses[0]
+        };
+      })
+      .then(response => {
+        const { repos } = response;
+        const stats = repos.map(repo => this.statistics(repo.name));
+        return Promise.all(stats).then(statsValues => {
+          let repoResult = [];
+          let index;
+
+          for (index = 0; index < repos.length; index++) {
+            repoResult.push({ ...repos[index], stats: statsValues[index] });
+          }
+
+          return {
+            ...response,
+            repos: repoResult
+          };
+        });
+      });
+  }
+
   repos(): Promise<types.Repo[]> {
     return this.getAll(
       {

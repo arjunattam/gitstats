@@ -135,19 +135,23 @@ export const email: Handler = (
   context: Context,
   cb: Callback
 ) => {
+  const accessToken = getToken(event.headers);
   const body = JSON.parse(event.body);
   const { to, team } = body;
-  const subject = "Your gitstats report";
-  const dataContext = { name: team };
+  const manager = new UserManager(accessToken, team);
 
-  sendEmail(to, subject, dataContext).then(response => {
-    cb(null, {
-      statusCode: 200,
-      headers: HEADERS,
-      body: JSON.stringify({
-        message: {},
-        input: event
-      })
+  manager.getEmailContext().then(context => {
+    const { subject } = context;
+
+    sendEmail(to, subject, context).then(response => {
+      cb(null, {
+        statusCode: 200,
+        headers: HEADERS,
+        body: JSON.stringify({
+          message: {},
+          input: event
+        })
+      });
     });
   });
 };

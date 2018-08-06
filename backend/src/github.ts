@@ -49,6 +49,34 @@ export default class GithubService extends APICaller {
       });
   }
 
+  emailReport() {
+    return this.repos()
+      .then(repos => {
+        const stats = repos.map(repo => this.statsWrapper(repo.name));
+
+        return Promise.all(stats).then(statsValues => {
+          let repoResult = [];
+          let index;
+
+          for (index = 0; index < repos.length; index++) {
+            const stats = statsValues[index];
+            repoResult.push({ ...repos[index], stats });
+          }
+
+          const period = { previous: this.periodPrev, next: this.periodNext };
+          return { period, repos: repoResult };
+        });
+      })
+      .then(report => {
+        return this.ownerInfo().then(owner => {
+          return {
+            ...report,
+            owner
+          };
+        });
+      });
+  }
+
   repos(): Promise<types.Repo[]> {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
     // We can also use https://api.github.com/installation/repositories
@@ -100,6 +128,26 @@ export default class GithubService extends APICaller {
     }).then(response => {
       const { login, name, avatar_url } = response.body;
       return { login, name, avatar: avatar_url };
+    });
+  }
+
+  statsWrapper(repo: string): Promise<types.RepoStats> {
+    return new Promise(resolve => {
+      this.statsHelper(resolve, repo);
+    });
+  }
+
+  statsHelper(resolve, repo) {
+    this.statistics(repo).then(response => {
+      const { is_pending } = response;
+
+      if (!is_pending) {
+        resolve(response);
+      } else {
+        setTimeout(() => {
+          this.statsHelper(resolve, repo);
+        }, 500);
+      }
     });
   }
 
