@@ -7,7 +7,7 @@ import {
   getPRActivity,
   getCommits
 } from "../../utils/api";
-import { TitleLoader } from "./loaders";
+import { ReportTitle } from "./title";
 import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
@@ -18,36 +18,6 @@ import {
   PRChartContainer,
   WeeklyChartContainer
 } from "./charts";
-
-const ReportTitle = ({ period, isLoading }) => {
-  if (isLoading) {
-    return <TitleLoader />;
-  }
-
-  const { next } = period;
-  const n = new Date(next);
-  const month = n.getMonth();
-  const day = n.getDate();
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-  ];
-  return (
-    <p className="lead">
-      Report for the week of {monthNames[month]} {day} - {day + 6}
-    </p>
-  );
-};
 
 export const ReportContainer = props => {
   const { reportJson, isLoading, prActivityData, commitsData, team } = props;
