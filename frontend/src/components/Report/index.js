@@ -11,13 +11,8 @@ import { ReportTitle } from "./title";
 import { Summary } from "./summary";
 import { Members } from "./members";
 import { Repos } from "./repos";
-import { Pulls } from "./pulls";
 import { EmailSender } from "./email";
-import {
-  CommitChartContainer,
-  PRChartContainer,
-  WeeklyChartContainer
-} from "./charts";
+import { CommitChartContainer, PRChartContainer } from "./charts";
 
 export const ReportContainer = props => {
   const { reportJson, isLoading, prActivityData, commitsData, team } = props;
@@ -29,37 +24,23 @@ export const ReportContainer = props => {
     endDate: thisWeekStart
   };
 
-  // Construct weekly data
-  // let weeklyData = [];
-  // const { repos } = reportJson;
-  // if (repos && repos.length > 0) {
-  //   weeklyData = repos.filter(repo => !repo.stats.is_pending).map(repo => {
-  //     return {
-  //       repo: repo.name,
-  //       commits: repo.stats.authors
-  //         .filter(author => !!author.commits)
-  //         .map(author => ({
-  //           author: author.login,
-  //           values: author.commits
-  //         }))
-  //     };
-  //   });
-  // }
-
   return (
     <Container>
       <ReportTitle {...reportJson} isLoading={isLoading} />
       <Summary {...reportJson} isLoading={isLoading} />
-      {/* <WeeklyChartContainer data={weeklyData} /> */}
+      <PRChartContainer
+        {...dates}
+        reportJson={reportJson}
+        isLoading={isLoading}
+        data={prActivityData}
+      />
+      <Members {...reportJson} isLoading={isLoading} />
+      <Repos {...reportJson} isLoading={isLoading} />
       <CommitChartContainer
         {...dates}
         commitsData={commitsData}
         prData={prActivityData}
       />
-      <Members {...reportJson} isLoading={isLoading} />
-      <Pulls {...reportJson} isLoading={isLoading} />
-      <PRChartContainer {...dates} data={prActivityData} />
-      <Repos {...reportJson} isLoading={isLoading} />
       <EmailSender team={team} />
     </Container>
   );

@@ -7,6 +7,7 @@ import {
   DropdownItem
 } from "reactstrap";
 import { Streamgraph, TimelineChart, BarChart } from "../Charts";
+import { Pulls } from "./pulls";
 
 const ALL_REPOS = "All repos";
 const ALL_MEMBERS = "All members";
@@ -332,7 +333,8 @@ export class PRChartContainer extends React.Component {
   };
 
   render() {
-    const { data } = this.props;
+    const { data, reportJson, isLoading } = this.props;
+    const { repos: reportRepos } = reportJson;
     const { selectedRepo: stateSelected } = this.state;
     const selectedRepo = stateSelected || this.getDefaultSelected();
 
@@ -351,7 +353,7 @@ export class PRChartContainer extends React.Component {
       <div>
         <TitleDiv>
           <div>
-            <strong>PR activity</strong> this week
+            <strong>Pull Requests</strong> this week
           </div>
           <div>
             <MyDropdown
@@ -361,6 +363,11 @@ export class PRChartContainer extends React.Component {
             />
           </div>
         </TitleDiv>
+        <Pulls
+          {...reportJson}
+          isLoading={isLoading}
+          repos={reportRepos.filter(repo => repo.name === selectedRepo)}
+        />
         <TimelineChart {...this.props} data={pullsData} />
       </div>
     );

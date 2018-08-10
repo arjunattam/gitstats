@@ -362,28 +362,6 @@ export class TimelineChart extends React.Component {
       .attr("height", 15)
       .attr("fill", "#d9f0fde3");
 
-    // Plot comments
-    repoRoot
-      .append("g")
-      .selectAll("scatter-dots")
-      .data(
-        comments
-          .filter(
-            c => new Date(c.date) < endDate && new Date(c.date) > startDate
-          )
-          .map(c => [c.date, yValue + 0.45])
-      )
-      .enter()
-      .append("svg:circle")
-      .attr("cx", function(d, i) {
-        return x(new Date(d[0]));
-      })
-      .attr("cy", function(d) {
-        return y(d[1]);
-      })
-      .attr("r", 3)
-      .attr("fill", COLORS.pr_comment);
-
     // Plot commits
     repoRoot
       .append("g")
@@ -405,6 +383,28 @@ export class TimelineChart extends React.Component {
       })
       .attr("r", 3)
       .attr("fill", COLORS.commit);
+
+    // Plot comments
+    repoRoot
+      .append("g")
+      .selectAll("scatter-dots")
+      .data(
+        comments
+          .filter(
+            c => new Date(c.date) < endDate && new Date(c.date) > startDate
+          )
+          .map(c => [c.date, yValue + 0.45])
+      )
+      .enter()
+      .append("svg:circle")
+      .attr("cx", function(d, i) {
+        return x(new Date(d[0]));
+      })
+      .attr("cy", function(d) {
+        return y(d[1]);
+      })
+      .attr("r", 3)
+      .attr("fill", COLORS.pr_comment);
 
     // Title with url
     repoRoot

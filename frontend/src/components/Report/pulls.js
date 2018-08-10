@@ -1,10 +1,9 @@
 import React from "react";
 import { Value, getPRsTime, getPRsOpened, getPRsMerged } from "./utils";
+import { Row, Col } from "reactstrap";
 import Table from "./table";
 
 function millisecondsToStr(milliseconds) {
-  // TIP: to find current time in milliseconds, use:
-  // var  current_time_milliseconds = new Date().getTime();
   function numberEnding(number) {
     return number > 1 ? "s" : "";
   }
@@ -14,7 +13,6 @@ function millisecondsToStr(milliseconds) {
   if (years) {
     return years + " year" + numberEnding(years);
   }
-
   var days = Math.floor((temp %= 31536000) / 86400);
   if (days) {
     return days + " day" + numberEnding(days);
@@ -31,7 +29,7 @@ function millisecondsToStr(milliseconds) {
   if (seconds) {
     return seconds + " second" + numberEnding(seconds);
   }
-  return "less than a second"; //'just now' //or other string you like;
+  return "less than a second";
 }
 
 export const Pulls = ({ period, repos, isLoading }) => {
@@ -44,7 +42,6 @@ export const Pulls = ({ period, repos, isLoading }) => {
           key: "total",
           isLoading: !hasAllData,
           values: [
-            "Total",
             <Value {...getPRsOpened(period, repos)} />,
             <Value {...getPRsMerged(period, repos)} />,
             <Value
@@ -58,7 +55,7 @@ export const Pulls = ({ period, repos, isLoading }) => {
 
   return (
     <Table
-      rowHeadings={["PRs", "Opened", "Merged", "Median time to merge"]}
+      rowHeadings={["Opened", "Merged", "Median time to merge"]}
       rowLimit={5}
       isLoading={isLoading}
       rowData={rowData}

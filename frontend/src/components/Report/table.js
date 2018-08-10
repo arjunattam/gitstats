@@ -15,7 +15,7 @@ class TableRow extends React.Component {
     return isLoading ? (
       <tr>
         <td>{values[0]}</td>
-        <td colSpan="3">
+        <td colSpan="2">
           <TitleLoader />
         </td>
       </tr>
@@ -24,7 +24,6 @@ class TableRow extends React.Component {
         <td>{values[0]}</td>
         <td>{values[1]}</td>
         <td>{values[2]}</td>
-        <td>{values[3]}</td>
       </tr>
     );
   }
@@ -34,10 +33,9 @@ const THeader = ({ rowHeadings }) => {
   return (
     <thead className="thead-light">
       <tr>
-        <th style={{ width: "32%" }}>{rowHeadings[0]}</th>
-        <th style={{ width: "34%" }}>{rowHeadings[1]}</th>
-        <th style={{ width: "22%" }}>{rowHeadings[2]}</th>
-        <th style={{ width: "10%" }}>{rowHeadings[3]}</th>
+        <th style={{ width: "33%" }}>{rowHeadings[0]}</th>
+        <th style={{ width: "33%" }}>{rowHeadings[1]}</th>
+        <th style={{ width: "33%" }}>{rowHeadings[2]}</th>
       </tr>
     </thead>
   );
