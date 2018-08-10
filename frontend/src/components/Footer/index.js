@@ -4,13 +4,11 @@ import { Container } from "reactstrap";
 const Footer = () => (
   <Container
     style={{
-      padding: "50px 0",
-      marginTop: 100,
       textAlign: "center",
-      borderTop: "1px solid #eee",
       fontSize: "small",
-      color: "#bbb"
+      color: "#bdbfcc"
     }}
+    className="py-5"
   >
     <p>team@gitstats.report</p>
   </Container>

@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Value,
-  Member,
-  getCommits,
-  getPRsMerged,
-  getLinesChanged
-} from "./utils";
+import { Value, Member, getCommits, getPRsMerged } from "./utils";
 import Table from "./table";
 
 export const Members = ({ period, repos, members, isLoading }) => {
@@ -18,12 +12,11 @@ export const Members = ({ period, repos, members, isLoading }) => {
           return {
             ...member,
             commits: getCommits(period, repos, member.login),
-            prsMerged: getPRsMerged(period, repos, member.login),
-            linesChanged: getLinesChanged(period, repos, member.login)
+            prsMerged: getPRsMerged(period, repos, member.login)
           };
         })
-        .sort((a, b) => b.commits.next - a.commits.next)
         .filter(member => member.commits.previous || member.commits.next)
+        .sort((a, b) => b.commits.next - a.commits.next)
     : [];
   const rowData = data.map(d => ({
     key: d.login,
@@ -31,14 +24,13 @@ export const Members = ({ period, repos, members, isLoading }) => {
     values: [
       <Member {...d} />,
       <Value {...d.commits} />,
-      <Value {...d.prsMerged} />,
-      <Value {...d.linesChanged} />
+      <Value {...d.prsMerged} />
     ]
   }));
 
   return (
     <Table
-      rowHeadings={["Member", "Commits", "PRs merged", "Lines changed"]}
+      rowHeadings={["Member", "Commits", "PRs merged"]}
       rowLimit={5}
       isLoading={isLoading}
       rowData={rowData}

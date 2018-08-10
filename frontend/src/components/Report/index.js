@@ -30,27 +30,27 @@ export const ReportContainer = props => {
   };
 
   // Construct weekly data
-  let weeklyData = [];
-  const { repos } = reportJson;
-  if (repos && repos.length > 0) {
-    weeklyData = repos.filter(repo => !repo.stats.is_pending).map(repo => {
-      return {
-        repo: repo.name,
-        commits: repo.stats.authors
-          .filter(author => !!author.commits)
-          .map(author => ({
-            author: author.login,
-            values: author.commits
-          }))
-      };
-    });
-  }
+  // let weeklyData = [];
+  // const { repos } = reportJson;
+  // if (repos && repos.length > 0) {
+  //   weeklyData = repos.filter(repo => !repo.stats.is_pending).map(repo => {
+  //     return {
+  //       repo: repo.name,
+  //       commits: repo.stats.authors
+  //         .filter(author => !!author.commits)
+  //         .map(author => ({
+  //           author: author.login,
+  //           values: author.commits
+  //         }))
+  //     };
+  //   });
+  // }
 
   return (
     <Container>
       <ReportTitle {...reportJson} isLoading={isLoading} />
       <Summary {...reportJson} isLoading={isLoading} />
-      <WeeklyChartContainer data={weeklyData} />
+      {/* <WeeklyChartContainer data={weeklyData} /> */}
       <CommitChartContainer
         {...dates}
         commitsData={commitsData}
@@ -156,7 +156,11 @@ class Report extends React.Component {
   render() {
     const { params } = this.props.match;
     const { name: team } = params;
-    return <ReportContainer {...this.state} team={team} />;
+    return (
+      <div className="py-5">
+        <ReportContainer {...this.state} team={team} />
+      </div>
+    );
   }
 }
 

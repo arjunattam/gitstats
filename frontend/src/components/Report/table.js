@@ -35,16 +35,20 @@ const THeader = ({ rowHeadings }) => {
     <thead className="thead-light">
       <tr>
         <th style={{ width: "32%" }}>{rowHeadings[0]}</th>
-        <th style={{ width: "22%" }}>{rowHeadings[1]}</th>
+        <th style={{ width: "34%" }}>{rowHeadings[1]}</th>
         <th style={{ width: "22%" }}>{rowHeadings[2]}</th>
-        <th style={{ width: "22%" }}>{rowHeadings[3]}</th>
+        <th style={{ width: "10%" }}>{rowHeadings[3]}</th>
       </tr>
     </thead>
   );
 };
 
 const TBody = ({ rowData }) => (
-  <tbody>{rowData.map(data => <TableRow key={data.key} {...data} />)}</tbody>
+  <tbody>
+    {rowData.map(data => (
+      <TableRow key={data.key} {...data} />
+    ))}
+  </tbody>
 );
 
 const ExpandButton = ({ onClick, text }) => (
@@ -56,7 +60,7 @@ const ExpandButton = ({ onClick, text }) => (
 );
 
 const BaseTable = ({ children }) => (
-  <table className="table table-hover" style={{ margin: "40px 0 0" }}>
+  <table className="table" style={{ margin: "40px 0 0" }}>
     {children}
   </table>
 );

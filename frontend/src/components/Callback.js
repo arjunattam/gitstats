@@ -80,9 +80,11 @@ export default class CallbackPage extends React.Component {
 
   render() {
     return (
-      <Container>
-        {this.state.isLoading ? this.renderLoading() : this.renderTeams()}
-      </Container>
+      <div className="py-5">
+        <Container>
+          {this.state.isLoading ? this.renderLoading() : this.renderTeams()}
+        </Container>
+      </div>
     );
   }
 }

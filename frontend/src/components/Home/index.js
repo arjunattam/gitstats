@@ -8,21 +8,27 @@ import {
 } from "../../utils/data";
 
 const Home = () => (
-  <Container>
-    <div className="m-3">
-      <p className="lead">
-        Git stats to <strong>track your engineering momentum</strong>. See
-        example.
-      </p>
+  <div>
+    <div className="dark-section darker">
+      <Container>
+        <div className="px-3 py-5">
+          <h3>Lead your engineering with facts, not feelings</h3>
+          <div>Track git stats for your GitHub and Bitbucket teams</div>
+        </div>
+      </Container>
     </div>
-    <div className="my-4">
-      <ReportContainer
-        reportJson={MOCK_REPORT_DATA.message}
-        prActivityData={MOCK_PR_DATA.message}
-        commitsData={MOCK_COMMITS_DATA.message}
-      />
+    <div>
+      <Container>
+        <div className="py-5">
+          <ReportContainer
+            reportJson={MOCK_REPORT_DATA.message}
+            prActivityData={MOCK_PR_DATA.message}
+            commitsData={MOCK_COMMITS_DATA.message}
+          />
+        </div>
+      </Container>
     </div>
-  </Container>
+  </div>
 );
 
 export default Home;

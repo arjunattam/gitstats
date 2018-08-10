@@ -13,13 +13,17 @@ const App = () => (
   <div>
     <Router>
       <div>
-        <Route component={Header} />
-        <Route exact path="/" component={Home} />
-        <Route path="/callback" component={Callback} />
-        <PrivateRoute path="/report/:name" component={Report} />
+        <div className="dark-section">
+          <Header />
+        </div>
+        <div className="light-section">
+          <Route exact path="/" component={Home} />
+          <Route path="/callback" component={Callback} />
+          <PrivateRoute path="/report/:name" component={Report} />
+        </div>
       </div>
     </Router>
-    <div>
+    <div className="dark-section darker">
       <Footer />
     </div>
   </div>

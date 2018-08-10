@@ -1,4 +1,5 @@
 import React from "react";
+import { Sparkline } from "../Charts";
 
 export const Member = ({ login, avatar }) => {
   return (
@@ -9,7 +10,7 @@ export const Member = ({ login, avatar }) => {
   );
 };
 
-export const Value = ({ previous, next, transformer }) => {
+export const Value = ({ previous, next, all, transformer }) => {
   let change;
   let classModifier = `badge-secondary`;
 
@@ -36,12 +37,13 @@ export const Value = ({ previous, next, transformer }) => {
   }
 
   return (
-    <span>
+    <div>
       {transformer ? transformer(next) : next}
       <small>
         <span className={`m-2 badge ${classModifier}`}>{change}</span>
       </small>
-    </span>
+      {all ? <Sparkline data={all} /> : null}
+    </div>
   );
 };
 
@@ -50,32 +52,48 @@ const getStatsData = (period, repos, key, authorFilter) => {
   const nextTs = +new Date(next) / 1000;
   const previousTs = +new Date(previous) / 1000;
 
-  const repoCommits = repos.map(repo => {
+  const repoValues = repos.map(repo => {
     const { authors } = repo.stats;
-    let commits = [];
+    let values = [];
 
     if (authors) {
       const filtered = authors.filter(
         author => (authorFilter ? author.login === authorFilter : true)
       );
-      commits = filtered.map(author => author[key]);
+      values = filtered.map(author => author[key]);
     }
 
     return {
-      previous: commits.reduce((s, v) => {
+      previous: values.reduce((s, v) => {
         const f = !!v ? v.filter(value => value.week === previousTs) : [];
         return f.length ? s + f[0].value : s;
       }, 0),
-      next: commits.reduce((s, v) => {
+      next: values.reduce((s, v) => {
         const f = !!v ? v.filter(value => value.week === nextTs) : [];
         return f.length ? s + f[0].value : s;
-      }, 0)
+      }, 0),
+      values
     };
   });
 
+  const weekWise = repoValues.reduce((s, v) => {
+    const { values } = v;
+    values.forEach(valueArray => {
+      valueArray.forEach(({ week, value }) => {
+        s[week] = week in s ? s[week] + value : value;
+      });
+    });
+    return s;
+  }, {});
+  let all = [];
+  Object.keys(weekWise).forEach(
+    key => (all = [...all, { week: key, value: weekWise[key] }])
+  );
+
   return {
-    previous: repoCommits.reduce((s, v) => s + v.previous, 0),
-    next: repoCommits.reduce((s, v) => s + v.next, 0)
+    previous: repoValues.reduce((s, v) => s + v.previous, 0),
+    next: repoValues.reduce((s, v) => s + v.next, 0),
+    all
   };
 };
 

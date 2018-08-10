@@ -1,5 +1,5 @@
 import React from "react";
-import { Value, getCommits, getPRsMerged, getLinesChanged } from "./utils";
+import { Value, getCommits, getPRsMerged } from "./utils";
 import Table from "./table";
 
 const RepoName = ({ name, description }) => {
@@ -26,10 +26,6 @@ export const Repos = ({ period, repos, isLoading }) => {
             prsMerged: getPRsMerged(
               period,
               repos.filter(r => r.name === repo.name)
-            ),
-            linesChanged: getLinesChanged(
-              period,
-              repos.filter(r => r.name === repo.name)
             )
           };
         })
@@ -47,15 +43,14 @@ export const Repos = ({ period, repos, isLoading }) => {
       values: [
         <RepoName {...d} />,
         <Value {...d.commits} />,
-        <Value {...d.prsMerged} />,
-        <Value {...d.linesChanged} />
+        <Value {...d.prsMerged} />
       ]
     };
   });
 
   return (
     <Table
-      rowHeadings={["Repository", "Commits", "PRs merged", "Lines changed"]}
+      rowHeadings={["Repository", "Commits", "PRs merged"]}
       rowLimit={5}
       isLoading={isLoading}
       rowData={rowData}

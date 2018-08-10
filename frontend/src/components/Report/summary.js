@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Value,
-  Member,
-  getCommits,
-  getPRsMerged,
-  getLinesChanged
-} from "./utils";
+import { Value, Member, getCommits, getPRsMerged } from "./utils";
 import Table from "./table";
 
 export const Summary = ({ period, owner, repos, isLoading }) => {
@@ -21,15 +15,15 @@ export const Summary = ({ period, owner, repos, isLoading }) => {
           values: [
             <Member login={owner.name} avatar={owner.avatar} />,
             <Value {...getCommits(period, repos)} />,
-            <Value {...getPRsMerged(period, repos)} />,
-            <Value {...getLinesChanged(period, repos)} />
+            <Value {...getPRsMerged(period, repos)} />
           ]
         }
       ]
     : [{}];
+
   return (
     <Table
-      rowHeadings={["Team", "Commits", "PRs merged", "Lines changed"]}
+      rowHeadings={["Team", "Commits", "PRs merged"]}
       rowLimit={5}
       isLoading={isLoading}
       rowData={rowData}
