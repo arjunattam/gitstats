@@ -366,7 +366,11 @@ export class PRChartContainer extends React.Component {
         <Pulls
           {...reportJson}
           isLoading={isLoading}
-          repos={reportRepos.filter(repo => repo.name === selectedRepo)}
+          repos={
+            reportRepos
+              ? reportRepos.filter(repo => repo.name === selectedRepo)
+              : []
+          }
         />
         <TimelineChart {...this.props} data={pullsData} />
       </div>
