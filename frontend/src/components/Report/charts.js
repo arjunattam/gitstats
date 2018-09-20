@@ -309,7 +309,8 @@ export class PRChartContainer extends React.Component {
           text: repo,
           value: this.filteredPulls(pulls).length
         }))
-        .filter(item => item.value > 0);
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value);
 
       if (filtered.length) {
         selectedRepo = filtered[0].text;
