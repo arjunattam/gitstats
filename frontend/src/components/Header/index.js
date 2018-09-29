@@ -2,9 +2,9 @@ import React from "react";
 import { Container, Navbar, NavbarBrand, Button } from "reactstrap";
 import { customHistory as history } from "../Router";
 import { Link } from "react-router-dom";
-import Auth from "../../utils/auth";
+import { Auth } from "../../utils/auth";
 
-class AuthState extends React.Component {
+class AuthLinks extends React.Component {
   state = { isLoggedIn: false };
 
   componentDidMount() {
@@ -47,7 +47,7 @@ const Header = () => (
   <Container>
     <Navbar>
       <NavbarBrand href="/">gitstats.report</NavbarBrand>
-      <AuthState />
+      <AuthLinks />
     </Navbar>
   </Container>
 );

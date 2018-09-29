@@ -3,7 +3,7 @@ import { getComparativeCounts, getComparativeDurations } from "./utils";
 import * as types from "./types";
 import * as moment from "moment";
 
-export default class GithubService extends APICaller {
+export default class GithubService extends APICaller implements types.IService {
   report() {
     return Promise.all([this.repos(), this.members(), this.ownerInfo()])
       .then(responses => {
@@ -49,38 +49,30 @@ export default class GithubService extends APICaller {
       });
   }
 
-  emailReport() {
-    return this.repos()
-      .then(repos => {
-        const stats = repos.map(repo => this.statsWrapper(repo.name));
+  async emailReport() {
+    const repos = await this.repos();
+    const owner = await this.ownerInfo();
+    const statsValues = await Promise.all(
+      repos.map(repo => this.statsWrapper(repo.name))
+    );
 
-        return Promise.all(stats).then(statsValues => {
-          let repoResult = [];
-          let index;
+    let repoResult: types.RepoWithStats[] = [];
+    let index;
 
-          for (index = 0; index < repos.length; index++) {
-            const stats = statsValues[index];
-            repoResult.push({ ...repos[index], stats });
-          }
+    for (index = 0; index < repos.length; index++) {
+      const stats = statsValues[index];
+      repoResult.push({ ...repos[index], stats });
+    }
 
-          const period = { previous: this.periodPrev, next: this.periodNext };
-          return { period, repos: repoResult };
-        });
-      })
-      .then(report => {
-        return this.ownerInfo().then(owner => {
-          return {
-            ...report,
-            owner
-          };
-        });
-      });
+    const period = { previous: this.periodPrev, next: this.periodNext };
+    return { owner, period, repos: repoResult };
   }
 
-  repos(): Promise<types.Repo[]> {
+  async repos(): Promise<types.Repo[]> {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
     // We can also use https://api.github.com/installation/repositories
     // but that limits us to the organisations in the installation
+
     // TODO(arjun): this will not work for usernames
     const params = {
       path: `orgs/${this.owner}/repos`
@@ -91,44 +83,42 @@ export default class GithubService extends APICaller {
       //   direction: "desc"
       // }
     };
-    return this.getAllPages([], params).then(repos =>
-      repos
-        .filter(repo => moment(repo.updated_at) > this.periodPrev)
-        .map(repo => ({
-          name: repo.name,
-          description: repo.description,
-          is_private: repo.private,
-          is_fork: repo.fork,
-          stargazers_count: repo.stargazers_count,
-          updated_at: repo.updated_at
-        }))
-    );
+
+    const result = await this.getAllPages([], params);
+    return result
+      .filter(repo => moment(repo.updated_at) > this.periodPrev)
+      .map(repo => ({
+        name: repo.name,
+        description: repo.description,
+        is_private: repo.private,
+        is_fork: repo.fork,
+        stargazers_count: repo.stargazers_count,
+        updated_at: repo.updated_at
+      }));
   }
 
-  members(): Promise<types.Member[]> {
+  async members(): Promise<types.Member[]> {
     // Doc: https://developer.github.com/v3/orgs/members/#members-list
     // TODO(arjun): this will not work for usernames
     const params = {
       path: `orgs/${this.owner}/members`
     };
-    return this.getAllPages([], params).then(members => {
-      return members.map(member => ({
-        login: member.login,
-        name: member.login,
-        avatar: member.avatar_url
-      }));
-    });
+    const result = this.getAllPages([], params);
+    return result.map(member => ({
+      login: member.login,
+      name: member.login,
+      avatar: member.avatar_url
+    }));
   }
 
-  ownerInfo(): Promise<types.Owner> {
-    return this.get({
+  async ownerInfo(): Promise<types.Owner> {
+    const response = await this.get({
       path: `users/${this.owner}`,
       headers: {},
       qs: {}
-    }).then(response => {
-      const { login, name, avatar_url } = response.body;
-      return { login, name, avatar: avatar_url };
     });
+    const { login, name, avatar_url } = response.body;
+    return { login, name, avatar: avatar_url };
   }
 
   statsWrapper(repo: string): Promise<types.RepoStats> {
@@ -233,10 +223,13 @@ export default class GithubService extends APICaller {
     });
   }
 
-  organisation() {
-    return this.get({ path: `orgs/${this.owner}`, headers: {}, qs: {} }).then(
-      response => response.body
-    );
+  async organisation() {
+    const response = await this.get({
+      path: `orgs/${this.owner}`,
+      headers: {},
+      qs: {}
+    });
+    return response.body;
   }
 
   prActivity() {
@@ -345,38 +338,6 @@ export default class GithubService extends APICaller {
             });
         });
       });
-  }
-
-  issues(repo: string) {
-    // TODO(arjun): this can be used for both issues and PRs, which means we cannot
-    // differentiate between a closed PR and a merged PR
-    const params = {
-      path: `repos/${this.owner}/${repo}/issues`,
-      qs: {
-        state: "all",
-        since: this.periodPrev.toISOString()
-      }
-    };
-    return this.getAllPages([], params).then(response => {
-      const filtered = response.filter(issue => !issue.pull_request);
-      return {
-        name: "issues_created",
-        values: getComparativeCounts(filtered, "created_at")
-      };
-    });
-  }
-
-  stargazers(repo: string) {
-    // This doesn't work for repos that have >40,000 stars because
-    // API returns only 400 pages (100 records per page)
-    const params = {
-      path: `repos/${this.owner}/${repo}/stargazers`,
-      headers: { Accept: "application/vnd.github.v3.star+json" },
-      qs: {}
-    };
-    return this.getAllForAsc(params, "starred_at").then(response => {
-      return getComparativeCounts(response, "starred_at");
-    });
   }
 
   commits(repo: string): Promise<types.RepoCommits[]> {

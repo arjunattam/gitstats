@@ -1,8 +1,8 @@
 import React from "react";
-import Auth from "../utils/auth";
 import { Link } from "react-router-dom";
 import { Container } from "reactstrap";
 import { getTeams } from "../utils/api";
+import { Auth } from "../utils/auth";
 
 const GH_SETUP_LINK = "https://github.com/apps/gitstats-dev/installations/new";
 
@@ -11,9 +11,10 @@ export default class CallbackPage extends React.Component {
 
   handleAuthentication = cb => {
     const auth = new Auth();
-    const nextState = this.props;
+    const { location } = this.props;
 
-    if (/access_token|id_token|error/.test(nextState.location.hash)) {
+    if (/access_token|id_token|error/.test(location.hash)) {
+      // The url has the token strings, which means this was opened from Auth0
       auth.handleAuthentication(cb);
     } else {
       cb();
@@ -28,14 +29,7 @@ export default class CallbackPage extends React.Component {
     this.handleAuthentication(() => {
       getTeams().then(response => {
         const { message } = response;
-
-        if (message.length > 0) {
-          // We have some teams
-          this.setState({ teams: message, isLoading: false });
-        } else {
-          // No teams
-          this.setupTeams();
-        }
+        this.setState({ teams: message, isLoading: false });
       });
     });
   }

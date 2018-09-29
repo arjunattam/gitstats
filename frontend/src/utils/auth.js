@@ -18,7 +18,7 @@ class Storage {
   }
 }
 
-export default class Auth {
+export class Auth {
   webAuth = new auth0.WebAuth({
     domain: AUTH0_DOMAIN,
     audience: AUTH0_AUDIENCE,
@@ -34,9 +34,12 @@ export default class Auth {
 
   handleAuthentication = cb => {
     this.webAuth.parseHash((err, authResult) => {
-      if (authResult && authResult.accessToken && authResult.idToken) {
+      const isValid =
+        authResult && authResult.accessToken && authResult.idToken;
+
+      if (isValid) {
         this.setSession(authResult);
-      } else if (err) {
+      } else {
         console.log(err);
       }
 
@@ -48,6 +51,7 @@ export default class Auth {
     let expiresAt = JSON.stringify(
       authResult.expiresIn * 1000 + new Date().getTime()
     );
+
     Storage.set("access_token", authResult.accessToken);
     Storage.set("id_token", authResult.idToken);
     Storage.set("expires_at", expiresAt);

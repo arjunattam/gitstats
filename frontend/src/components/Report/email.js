@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Form, FormGroup, Label, Input } from "reactstrap";
-import Auth from "../../utils/auth";
+import { Auth } from "../../utils/auth";
 import { sendEmail } from "../../utils/api";
 
 export class EmailSender extends React.Component {

@@ -1,61 +1,34 @@
 import axios from "axios";
-import Auth from "./auth";
+import { Auth } from "./auth";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 // const BASE_URL = "http://localhost:8000";
 
-export const getTeams = () => {
+export const getTeams = () => get(`${BASE_URL}/teams`);
+
+export const getCommits = owner => get(`${BASE_URL}/commits/${owner}`);
+
+export const getPRActivity = owner => get(`${BASE_URL}/pulls/${owner}`);
+
+export const getReport = owner => get(`${BASE_URL}/report/${owner}`);
+
+export const getRepoStats = (owner, repo) =>
+  get(`${BASE_URL}/stats/${owner}/${repo}`);
+
+export const sendEmail = (toEmail, team) =>
+  post(`${BASE_URL}/email`, { to: toEmail, team });
+
+const get = async path => {
   const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/teams`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => response.data);
+  const response = await axios.get(path, {
+    headers: auth.getAuthHeader()
+  });
+  return response.data;
 };
 
-export const getCommits = user => {
+const post = async (path, body) => {
   const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/commits/${user}`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => response.data);
-};
-
-export const getPRActivity = user => {
-  const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/pulls/${user}`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => response.data);
-};
-
-export const getReport = username => {
-  const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/report/${username}`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => response.data);
-};
-
-export const getRepoStats = (username, repo) => {
-  const auth = new Auth();
-  return axios
-    .get(`${BASE_URL}/stats/${username}/${repo}`, {
-      headers: auth.getAuthHeader()
-    })
-    .then(response => response.data);
-};
-
-export const sendEmail = (toEmail, team) => {
-  const auth = new Auth();
-  return axios.post(
-    `${BASE_URL}/email`,
-    { to: toEmail, team },
-    {
-      headers: auth.getAuthHeader()
-    }
-  );
+  return axios.post(path, body, {
+    headers: auth.getAuthHeader()
+  });
 };

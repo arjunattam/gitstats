@@ -4,7 +4,7 @@ const rp = require("request-promise-native");
 const url = require("url");
 import { getComparativeDurations, getComparativeCounts } from "./utils";
 
-export default class BitbucketService {
+export default class BitbucketService implements types.IService {
   baseUrl: string;
   periodPrev: moment.Moment;
   periodNext: moment.Moment;

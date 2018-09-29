@@ -1,13 +1,14 @@
-import Auth0Manager from "./auth0";
+const rp = require("request-promise-native");
 import {
   ServiceManager,
   ServiceTeam,
   GithubManager,
   BitbucketManager
 } from "./manager";
-import BitbucketService from "./bitbucket";
-import GithubService from "./github";
+import BitbucketService from "./services/bitbucket";
+import GithubService from "./services/github";
 import * as moment from "moment";
+import { IService } from "./services/types";
 const jwt = require("jsonwebtoken");
 
 enum Service {
@@ -22,10 +23,53 @@ type EmailContext = {
   reportLink: string;
 };
 
+class Auth0Client {
+  managementToken: string | undefined;
+
+  setupToken(): Promise<void> {
+    // This sets up the management token for Auth0, allowing us to fetch data from Auth0
+    const {
+      AUTH0_MANAGER_TOKEN_URL: uri,
+      AUTH0_MANAGER_AUDIENCE: audience,
+      AUTH0_MANAGER_CLIENT_ID: clientId,
+      AUTH0_MANAGER_CLIENT_SECRET: clientSecret
+    } = process.env;
+
+    return rp({
+      uri,
+      method: "POST",
+      body: {
+        client_id: clientId,
+        client_secret: clientSecret,
+        audience,
+        grant_type: "client_credentials"
+      },
+      json: true
+    }).then(response => {
+      this.managementToken = response.access_token;
+    });
+  }
+
+  async getUser(userId: string) {
+    if (!this.managementToken) {
+      await this.setupToken();
+    }
+
+    const { AUTH0_MANAGER_AUDIENCE: baseUrl } = process.env;
+    return rp({
+      uri: `${baseUrl}users/${userId}`,
+      headers: {
+        Authorization: `Bearer ${this.managementToken}`
+      },
+      json: true
+    });
+  }
+}
+
 export default class UserManager {
   userId: string;
   service: Service;
-  auth0Manager: Auth0Manager | undefined;
+  auth0Client: Auth0Client | undefined;
   userAccessToken: string | undefined;
   userRefreshToken: string | undefined;
   serviceManager: ServiceManager | undefined;
@@ -40,30 +84,56 @@ export default class UserManager {
       this.service = Service.bitbucket;
     }
 
-    this.auth0Manager = new Auth0Manager();
+    this.auth0Client = new Auth0Client();
   }
 
-  getServiceClient() {
-    return this.getUserDetails()
-      .then(() => this.getServiceToken())
-      .then(token => {
-        let client;
+  async getServiceClient(): Promise<IService> {
+    let client;
+    await this.setupServiceManager();
+    const token = await this.serviceManager.getTeamToken();
 
-        if (this.service === "github") {
-          client = new GithubService(token, this.accountName);
-        } else if (this.service === "bitbucket") {
-          client = new BitbucketService(token, this.accountName);
-        }
+    console.log("token", token);
 
-        return client;
-      });
+    if (this.service === Service.github) {
+      client = new GithubService(token, this.accountName);
+    } else if (this.service === Service.bitbucket) {
+      client = new BitbucketService(token, this.accountName);
+    }
+
+    return client;
   }
 
-  getServiceTeams(): Promise<ServiceTeam[]> {
-    return this.getUserDetails().then(() => this.serviceManager.getTeams());
+  async getServiceTeams(): Promise<ServiceTeam[]> {
+    await this.setupServiceManager();
+    return this.serviceManager.getTeams();
   }
 
-  getEmailContext(): Promise<EmailContext> {
+  private async setupServiceManager() {
+    const user = await this.auth0Client.getUser(this.userId);
+    const { identities } = user;
+    const serviceIdentity = identities.filter(i => i.provider === this.service);
+    this.userAccessToken = serviceIdentity[0].access_token;
+    this.userRefreshToken = serviceIdentity[0].refresh_token;
+
+    if (this.service === Service.github) {
+      this.serviceManager = new GithubManager(
+        this.userAccessToken,
+        this.userRefreshToken,
+        this.accountName
+      );
+    } else if (this.service === Service.bitbucket) {
+      this.serviceManager = new BitbucketManager(
+        this.userAccessToken,
+        this.userRefreshToken,
+        this.accountName
+      );
+    }
+  }
+
+  async getEmailContext(): Promise<EmailContext> {
+    const client = await this.getServiceClient();
+    const report = await client.emailReport();
+
     return this.getServiceClient()
       .then(client => client.emailReport())
       .then(report => {
@@ -138,37 +208,5 @@ export default class UserManager {
       .map(k => k + "=" + encodeURIComponent(params[k]))
       .join("&");
     return `https://image-charts.com/chart?${query}`;
-  }
-
-  private getUserDetails() {
-    return this.auth0Manager
-      .getToken()
-      .then(() => this.auth0Manager.getUser(this.userId))
-      .then(response => {
-        const { identities } = response;
-        const serviceIdentity = identities.filter(
-          i => i.provider === this.service
-        );
-        this.userAccessToken = serviceIdentity[0].access_token;
-        this.userRefreshToken = serviceIdentity[0].refresh_token;
-
-        if (this.service === "github") {
-          this.serviceManager = new GithubManager(
-            this.userAccessToken,
-            this.userRefreshToken,
-            this.accountName
-          );
-        } else if (this.service === "bitbucket") {
-          this.serviceManager = new BitbucketManager(
-            this.userAccessToken,
-            this.userRefreshToken,
-            this.accountName
-          );
-        }
-      });
-  }
-
-  private getServiceToken(): Promise<string> {
-    return this.serviceManager.getTeamToken();
   }
 }
