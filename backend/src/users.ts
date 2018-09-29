@@ -21,6 +21,7 @@ type EmailContext = {
   subject: string;
   chartUrl: string;
   reportLink: string;
+  summaryText: string;
 };
 
 class Auth0Client {
@@ -92,8 +93,6 @@ export default class UserManager {
     await this.setupServiceManager();
     const token = await this.serviceManager.getTeamToken();
 
-    console.log("token", token);
-
     if (this.service === Service.github) {
       client = new GithubService(token, this.accountName);
     } else if (this.service === Service.bitbucket) {
@@ -133,44 +132,37 @@ export default class UserManager {
   async getEmailContext(): Promise<EmailContext> {
     const client = await this.getServiceClient();
     const report = await client.emailReport();
+    let weekWiseData = {};
+    const { owner, period, repos } = report;
+    const { next } = period;
+    const { name } = owner;
 
-    return this.getServiceClient()
-      .then(client => client.emailReport())
-      .then(report => {
-        let weekWiseData = {};
-        const { owner, period, repos } = report;
-        const { next } = period;
-        const { name } = owner;
-
-        repos.forEach(repo => {
-          const { stats } = repo;
-          const { authors } = stats;
-          authors.forEach(authorStats => {
-            const { commits } = authorStats;
-            commits.forEach(({ week, value }) => {
-              if (week in weekWiseData) {
-                weekWiseData[week] = value + weekWiseData[week];
-              } else {
-                weekWiseData[week] = value;
-              }
-            });
-          });
+    repos.forEach(repo => {
+      const { stats } = repo;
+      const { authors } = stats;
+      authors.forEach(authorStats => {
+        const { commits } = authorStats;
+        commits.forEach(({ week, value }) => {
+          if (week in weekWiseData) {
+            weekWiseData[week] = value + weekWiseData[week];
+          } else {
+            weekWiseData[week] = value;
+          }
         });
-
-        const keys = Object.keys(weekWiseData).sort();
-        const data = keys.map(key => weekWiseData[key]);
-        const keysFormatted = keys.map(key =>
-          moment.unix(+key).format("MMM D")
-        );
-
-        return {
-          name,
-          subject: `${name}: gitstats for the week of ${next.format("MMM D")}`,
-          summaryText: this.getSummaryText(data),
-          chartUrl: this.constructChartUrl(data, keysFormatted),
-          reportLink: "https://gitstats.report/"
-        };
       });
+    });
+
+    const keys = Object.keys(weekWiseData).sort();
+    const data = keys.map(key => weekWiseData[key]);
+    const keysFormatted = keys.map(key => moment.unix(+key).format("MMM D"));
+
+    return {
+      name,
+      subject: `${name}: gitstats for the week of ${next.format("MMM D")}`,
+      summaryText: this.getSummaryText(data),
+      chartUrl: this.constructChartUrl(data, keysFormatted),
+      reportLink: "https://gitstats.report/"
+    };
   }
 
   private getSummaryText(data) {

@@ -21,7 +21,7 @@ export abstract class ServiceManager {
 }
 
 export class GithubManager extends ServiceManager {
-  makeRequest({ uri, qs, headers, method }) {
+  request({ uri, qs, headers, method }) {
     return rp({
       uri,
       qs,
@@ -36,44 +36,43 @@ export class GithubManager extends ServiceManager {
     });
   }
 
-  getTeams(): Promise<ServiceTeam[]> {
-    return this.makeRequest({
+  async getTeams(): Promise<ServiceTeam[]> {
+    const response = await this.request({
       uri: "user/installations",
       qs: {
         access_token: this.accessToken
       },
       headers: {},
       method: "GET"
-    }).then(response => {
-      const { installations } = response;
-      const parsed: ServiceTeam[] = installations.map(ins => ({
-        id: ins.id,
-        login: ins.account.login,
-        name: ins.account.login,
-        avatar: ins.account.avatar_url,
-        type: ins.account.type
-      }));
-      return parsed;
     });
+
+    const { installations } = response;
+    const parsed: ServiceTeam[] = installations.map(ins => ({
+      id: ins.id,
+      login: ins.account.login,
+      name: ins.account.login,
+      avatar: ins.account.avatar_url,
+      type: ins.account.type
+    }));
+    return parsed;
   }
 
-  getTeamForToken(): Promise<ServiceTeam> {
-    return this.getTeams().then(installations => {
-      let filtered;
+  async getTeamForToken(): Promise<ServiceTeam> {
+    const installations = await this.getTeams();
+    let filtered;
 
-      if (this.teamName) {
-        filtered = installations.filter(i => i.name === this.teamName);
-      }
+    if (this.teamName) {
+      filtered = installations.filter(i => i.name === this.teamName);
+    }
 
-      if (filtered.length > 0) {
-        return filtered[0];
-      } else {
-        return installations[0];
-      }
-    });
+    if (filtered.length > 0) {
+      return filtered[0];
+    } else {
+      return installations[0];
+    }
   }
 
-  getTeamToken(): Promise<string> {
+  async getTeamToken(): Promise<string> {
     const payload = {
       iat: moment().unix(),
       exp: moment()
@@ -86,18 +85,15 @@ export class GithubManager extends ServiceManager {
     });
 
     // Github tokens depend on the team (= installation)
-    return this.getTeamForToken().then(team => {
-      const { id, name } = team;
-      return this.makeRequest({
-        uri: `installations/${id}/access_tokens`,
-        qs: {},
-        headers: { Authorization: `Bearer ${token}` },
-        method: "POST"
-      }).then(response => {
-        const { token } = response;
-        return token;
-      });
+    const team = await this.getTeamForToken();
+    const { id } = team;
+    const response = await this.request({
+      uri: `installations/${id}/access_tokens`,
+      qs: {},
+      headers: { Authorization: `Bearer ${token}` },
+      method: "POST"
     });
+    return response.token;
   }
 }
 
