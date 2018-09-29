@@ -9,7 +9,7 @@ import Footer from "./Footer";
 import { Route } from "react-router-dom";
 import "./App.css";
 
-const ReportPage = match => <Report owner={match.params.name} />;
+const ReportPage = ({ match }) => <Report owner={match.params.name} />;
 
 const App = () => (
   <div>
