@@ -10,6 +10,13 @@ provider:
   region: us-west-1
   runtime: nodejs8.10
   environment: ${file(./env.yml):${opt:stage, self:provider.stage}}
+  vpc:
+    securityGroupIds:
+      - sg-01134f82f6c567c4f
+    subnetIds:
+      # Only private subnets for this VPC
+      - subnet-06ee3eb9ff02b8a42
+      - subnet-00c4c8aadc781fcc6
 
 functions:
   auth:

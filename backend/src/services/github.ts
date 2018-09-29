@@ -103,7 +103,7 @@ export default class GithubService extends APICaller implements types.IService {
     const params = {
       path: `orgs/${this.owner}/members`
     };
-    const result = this.getAllPages([], params);
+    const result = await this.getAllPages([], params);
     return result.map(member => ({
       login: member.login,
       name: member.login,

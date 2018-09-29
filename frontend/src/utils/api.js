@@ -28,7 +28,8 @@ const get = async path => {
 
 const post = async (path, body) => {
   const auth = new Auth();
-  return axios.post(path, body, {
+  const response = await axios.post(path, body, {
     headers: auth.getAuthHeader()
   });
+  return response.data;
 };

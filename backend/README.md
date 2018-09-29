@@ -15,3 +15,10 @@
     ```
 
 3.  Run with vscode debugger: F5 inside vscode
+
+## VPC
+
+The Lambda functions run inside a VPC, which is also where the ElastiCache instance (Redis) runs.
+
+- [This link](https://causecode.com/serverless-with-aws-elasticache/) details how that is setup.
+- [Docs link](https://aws.amazon.com/premiumsupport/knowledge-center/internet-access-lambda-function/) for giving internet access to Lambda functions inside VPC.
