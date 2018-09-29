@@ -18,18 +18,27 @@ export const getRepoStats = (owner, repo) =>
 export const sendEmail = (toEmail, team) =>
   post(`${BASE_URL}/email`, { to: toEmail, team });
 
-const get = async path => {
+const getHeader = () => {
   const auth = new Auth();
+  let accessToken = auth.getAccessToken();
+
+  if (!accessToken) {
+    accessToken = "dummy-token-for-homepage";
+  }
+
+  return { Authorization: `bearer ${accessToken}` };
+};
+
+const get = async path => {
   const response = await axios.get(path, {
-    headers: auth.getAuthHeader()
+    headers: getHeader()
   });
   return response.data;
 };
 
 const post = async (path, body) => {
-  const auth = new Auth();
   const response = await axios.post(path, body, {
-    headers: auth.getAuthHeader()
+    headers: getHeader()
   });
   return response.data;
 };

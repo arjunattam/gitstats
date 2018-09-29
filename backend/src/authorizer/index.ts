@@ -37,7 +37,7 @@ const generatePolicy = (principalId, effect, resource) => {
   return authResponse;
 };
 
-const isHomepageRequest = (event): boolean => {
+const isHomepageRequest = (event: CustomAuthorizerEvent): boolean => {
   return event.methodArn.indexOf("getsentry") >= 0;
 };
 

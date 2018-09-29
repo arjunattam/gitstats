@@ -28,7 +28,7 @@ const getManager = (event: APIGatewayEvent, owner?: string) => {
   let accessToken = getToken(event);
   const isHomepageRequest = owner === "getsentry";
 
-  if (!accessToken && isHomepageRequest) {
+  if (isHomepageRequest) {
     accessToken = process.env.DEFAULT_ACCESS_TOKEN;
   }
 

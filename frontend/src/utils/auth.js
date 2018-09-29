@@ -74,9 +74,8 @@ export class Auth {
     return idToken ? jwtDecode(idToken) : {};
   };
 
-  getAuthHeader = () => {
-    const accessToken = Storage.get("access_token");
-    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  getAccessToken = () => {
+    return Storage.get("access_token");
   };
 
   getGitService = () => {
