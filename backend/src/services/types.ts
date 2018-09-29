@@ -1,11 +1,16 @@
 import { Moment } from "moment";
 
-export interface IService {
-  report();
-  emailReport: () => Promise<EmailReport>;
-  statistics: (repo: string) => Promise<RepoStats>;
-  allCommits: () => Promise<Commits[]>;
-  prActivity: () => Promise<any>;
+export abstract class ServiceClient {
+  constructor(
+    public token: string,
+    public owner: string,
+    public weekStart: Moment
+  ) {}
+  abstract report: () => Promise<any>;
+  abstract emailReport: () => Promise<EmailReport>;
+  abstract statistics: (repo: string) => Promise<RepoStats>;
+  abstract allCommits: () => Promise<Commits[]>;
+  abstract prActivity: () => Promise<any>;
 }
 
 export type EmailReport = {

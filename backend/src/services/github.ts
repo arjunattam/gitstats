@@ -1,10 +1,27 @@
-import APICaller from "./api";
+import { GithubAPICaller } from "./api";
 import { getComparativeCounts, getComparativeDurations } from "./utils";
 import * as types from "./types";
 import * as moment from "moment";
 
-export default class GithubService extends APICaller implements types.IService {
-  report() {
+export default class GithubService extends types.ServiceClient {
+  helper: GithubAPICaller;
+  periodPrev: moment.Moment;
+  periodNext: moment.Moment;
+
+  constructor(
+    public token: string,
+    public owner: string,
+    public weekStart: moment.Moment
+  ) {
+    super(token, owner, weekStart);
+    // We use Sunday-Saturday as the definition of the week
+    // This is because of how the Github stats API returns weeks
+    this.periodPrev = this.weekStart.subtract(1, "weeks");
+    this.periodNext = this.weekStart;
+    this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
+  }
+
+  report = () => {
     return Promise.all([this.repos(), this.members(), this.ownerInfo()])
       .then(responses => {
         const repos = responses[0];
@@ -47,9 +64,9 @@ export default class GithubService extends APICaller implements types.IService {
           return { ...result, repos: repoResult };
         });
       });
-  }
+  };
 
-  async emailReport() {
+  emailReport = async () => {
     const repos = await this.repos();
     const owner = await this.ownerInfo();
     const statsValues = await Promise.all(
@@ -66,7 +83,7 @@ export default class GithubService extends APICaller implements types.IService {
 
     const period = { previous: this.periodPrev, next: this.periodNext };
     return { owner, period, repos: repoResult };
-  }
+  };
 
   async repos(): Promise<types.Repo[]> {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
@@ -84,7 +101,7 @@ export default class GithubService extends APICaller implements types.IService {
       // }
     };
 
-    const result = await this.getAllPages([], params);
+    const result = await this.helper.getAllPages([], params);
     return result
       .filter(repo => moment(repo.updated_at) > this.periodPrev)
       .map(repo => ({
@@ -103,7 +120,7 @@ export default class GithubService extends APICaller implements types.IService {
     const params = {
       path: `orgs/${this.owner}/members`
     };
-    const result = await this.getAllPages([], params);
+    const result = await this.helper.getAllPages([], params);
     return result.map(member => ({
       login: member.login,
       name: member.login,
@@ -112,7 +129,7 @@ export default class GithubService extends APICaller implements types.IService {
   }
 
   async ownerInfo(): Promise<types.Owner> {
-    const response = await this.get({
+    const response = await this.helper.get({
       path: `users/${this.owner}`,
       headers: {},
       qs: {}
@@ -141,49 +158,51 @@ export default class GithubService extends APICaller implements types.IService {
     });
   }
 
-  statistics(repo: string): Promise<types.RepoStats> {
-    return this.get({
-      path: `repos/${this.owner}/${repo}/stats/contributors`,
-      headers: {},
-      qs: {}
-    }).then(response => {
-      const { statusCode } = response;
-      const { body } = response;
+  statistics = (repo: string): Promise<types.RepoStats> => {
+    return this.helper
+      .get({
+        path: `repos/${this.owner}/${repo}/stats/contributors`,
+        headers: {},
+        qs: {}
+      })
+      .then(response => {
+        const { statusCode } = response;
+        const { body } = response;
 
-      if (statusCode === 202) {
-        return { is_pending: true };
-      } else if (statusCode === 204) {
-        return { is_pending: false, authors: [] };
-      } else if (statusCode === 200) {
-        const allWeeks = [0, 1, 2, 3, 4].map(value =>
-          moment(this.periodNext)
-            .subtract(value, "weeks")
-            .unix()
-        );
-        const getAttr = (weeksData, ts, attrKey) => {
-          const filtered = weeksData.filter(data => data.w === ts);
-          const value = filtered.length > 0 ? filtered[0][attrKey] : 0;
-          return {
-            week: ts,
-            value
-          };
-        };
-
-        const authors = body
-          .map(result => {
-            const { author, weeks } = result;
+        if (statusCode === 202) {
+          return { is_pending: true };
+        } else if (statusCode === 204) {
+          return { is_pending: false, authors: [] };
+        } else if (statusCode === 200) {
+          const allWeeks = [0, 1, 2, 3, 4].map(value =>
+            moment(this.periodNext)
+              .subtract(value, "weeks")
+              .unix()
+          );
+          const getAttr = (weeksData, ts, attrKey) => {
+            const filtered = weeksData.filter(data => data.w === ts);
+            const value = filtered.length > 0 ? filtered[0][attrKey] : 0;
             return {
-              login: author.login,
-              commits: allWeeks.map(ts => getAttr(weeks, ts, "c")),
-              lines_added: allWeeks.map(ts => getAttr(weeks, ts, "a")),
-              lines_deleted: allWeeks.map(ts => getAttr(weeks, ts, "d"))
+              week: ts,
+              value
             };
-          })
-          .filter(author => !!author.commits);
-        return { is_pending: false, authors };
-      }
-    });
-  }
+          };
+
+          const authors = body
+            .map(result => {
+              const { author, weeks } = result;
+              return {
+                login: author.login,
+                commits: allWeeks.map(ts => getAttr(weeks, ts, "c")),
+                lines_added: allWeeks.map(ts => getAttr(weeks, ts, "a")),
+                lines_deleted: allWeeks.map(ts => getAttr(weeks, ts, "d"))
+              };
+            })
+            .filter(author => !!author.commits);
+          return { is_pending: false, authors };
+        }
+      });
+  };
 
   pullsList(repo: string) {
     const params = {
@@ -195,7 +214,7 @@ export default class GithubService extends APICaller implements types.IService {
         per_page: 50 // overriding because 100 seems too much for one repo
       }
     };
-    return this.getAllForDesc([], params, "updated_at");
+    return this.helper.getAllForDesc([], params, "updated_at");
   }
 
   pulls(repo: string): Promise<types.RepoPR[]> {
@@ -224,7 +243,7 @@ export default class GithubService extends APICaller implements types.IService {
   }
 
   async organisation() {
-    const response = await this.get({
+    const response = await this.helper.get({
       path: `orgs/${this.owner}`,
       headers: {},
       qs: {}
@@ -232,7 +251,7 @@ export default class GithubService extends APICaller implements types.IService {
     return response.body;
   }
 
-  prActivity() {
+  prActivity = () => {
     return this.organisation()
       .then(({ node_id }) => {
         // TODO - this sets a limit of 10 for repos and limit of 20 for PRs
@@ -287,7 +306,7 @@ export default class GithubService extends APICaller implements types.IService {
     }`;
       })
       .then(query => {
-        return this.graphqlPost({ query }).then(response => {
+        return this.helper.graphqlPost({ query }).then(response => {
           const responseNode = response.body.data.nodes[0];
           return responseNode.repositories.nodes
             .filter(
@@ -338,7 +357,7 @@ export default class GithubService extends APICaller implements types.IService {
             });
         });
       });
-  }
+  };
 
   commits(repo: string): Promise<types.RepoCommits[]> {
     // Only default branch (master)
@@ -349,7 +368,7 @@ export default class GithubService extends APICaller implements types.IService {
         per_page: 100
       }
     };
-    return this.getAllPages([], params).then(values => {
+    return this.helper.getAllPages([], params).then(values => {
       const commits = values
         .filter(response => !!response.author)
         .map(response => ({
@@ -376,7 +395,7 @@ export default class GithubService extends APICaller implements types.IService {
     });
   }
 
-  allCommits(): Promise<types.Commits[]> {
+  allCommits = (): Promise<types.Commits[]> => {
     return this.repos().then(repos => {
       // Filtering to public repos only because the Github Apps
       // integration does not ask for commits permissions.
@@ -389,5 +408,5 @@ export default class GithubService extends APICaller implements types.IService {
         }));
       });
     });
-  }
+  };
 }

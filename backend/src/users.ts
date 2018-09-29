@@ -8,7 +8,7 @@ import {
 import BitbucketService from "./services/bitbucket";
 import GithubService from "./services/github";
 import * as moment from "moment";
-import { IService } from "./services/types";
+import { ServiceClient } from "./services/types";
 
 enum Service {
   github = "github",
@@ -83,15 +83,19 @@ export default class UserManager {
     this.auth0Client = new Auth0Client();
   }
 
-  async getServiceClient(): Promise<IService> {
+  async getServiceClient(): Promise<ServiceClient> {
     let client;
     await this.setupServiceManager();
     const token = await this.serviceManager.getTeamToken();
+    const weekStart = moment()
+      .utc()
+      .startOf("week")
+      .subtract(1, "weeks");
 
     if (this.service === Service.github) {
-      client = new GithubService(token, this.ownerName);
+      client = new GithubService(token, this.ownerName, weekStart);
     } else if (this.service === Service.bitbucket) {
-      client = new BitbucketService(token, this.ownerName);
+      client = new BitbucketService(token, this.ownerName, weekStart);
     }
 
     return client;

@@ -4,24 +4,23 @@ const rp = require("request-promise-native");
 const url = require("url");
 import { getComparativeDurations, getComparativeCounts } from "./utils";
 
-export default class BitbucketService implements types.IService {
+export default class BitbucketService extends types.ServiceClient {
   baseUrl: string;
   periodPrev: moment.Moment;
   periodNext: moment.Moment;
 
-  constructor(private token: string, private owner: string) {
+  constructor(
+    public token: string,
+    public owner: string,
+    public weekStart: moment.Moment
+  ) {
+    super(token, owner, weekStart);
     this.baseUrl = "https://api.bitbucket.org/2.0/";
 
     // We use Sunday-Saturday as the definition of the week
     // This is because of how the Github stats API returns weeks
-    this.periodPrev = moment() // this is the last timestamp
-      .utc()
-      .startOf("week")
-      .subtract(2, "weeks");
-    this.periodNext = moment()
-      .utc()
-      .startOf("week")
-      .subtract(1, "weeks");
+    this.periodPrev = this.weekStart.subtract(1, "weeks");
+    this.periodNext = this.weekStart;
   }
 
   isInDuration(date: string, minDateValue) {
@@ -118,7 +117,7 @@ export default class BitbucketService implements types.IService {
     return values.join(`&${key}=`);
   }
 
-  report() {
+  report = () => {
     return Promise.all([this.repos(), this.members(), this.ownerInfo()])
       .then(responses => {
         return {
@@ -145,9 +144,9 @@ export default class BitbucketService implements types.IService {
           };
         });
       });
-  }
+  };
 
-  emailReport() {
+  emailReport = () => {
     return Promise.all([this.repos(), this.ownerInfo()])
       .then(responses => {
         return {
@@ -173,7 +172,7 @@ export default class BitbucketService implements types.IService {
           };
         });
       });
-  }
+  };
 
   repos(): Promise<types.Repo[]> {
     return this.getAll(
@@ -331,7 +330,7 @@ export default class BitbucketService implements types.IService {
       });
   }
 
-  prActivity() {
+  prActivity = () => {
     return this.repos().then(repos => {
       const promises = repos.map(repo => this.repoPRActivity(repo.name));
       return Promise.all(promises).then(responses => {
@@ -341,9 +340,9 @@ export default class BitbucketService implements types.IService {
         }));
       });
     });
-  }
+  };
 
-  statistics(repo: string) {
+  statistics = (repo: string) => {
     const minDateValue = moment(this.periodNext).subtract(4, "weeks");
 
     return this.commits(repo, minDateValue).then(response => {
@@ -372,7 +371,7 @@ export default class BitbucketService implements types.IService {
 
       return { is_pending: false, authors: result };
     });
-  }
+  };
 
   commits(repo: string, minDateValue: moment.Moment) {
     // Returns all commits in the repo, all branches
@@ -414,7 +413,7 @@ export default class BitbucketService implements types.IService {
     });
   }
 
-  allCommits(): Promise<types.Commits[]> {
+  allCommits = (): Promise<types.Commits[]> => {
     return this.repos().then(repos => {
       const promises = repos.map(repo =>
         this.commits(repo.name, this.periodPrev)
@@ -438,7 +437,7 @@ export default class BitbucketService implements types.IService {
         });
       });
     });
-  }
+  };
 
   diffstat(repo: string, commits: any[]) {
     // Each commit has hash and date

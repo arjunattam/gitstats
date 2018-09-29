@@ -2,24 +2,15 @@ import * as moment from "moment";
 const rp = require("request-promise-native");
 const parseLink = require("parse-link-header");
 
-export default class APICaller {
+export class GithubAPICaller {
   baseUrl: string;
-  periodPrev: moment.Moment;
-  periodNext: moment.Moment;
 
-  constructor(private token: string, public owner: string) {
+  constructor(
+    public token: string,
+    public periodPrev: moment.Moment,
+    public periodNext: moment.Moment
+  ) {
     this.baseUrl = "https://api.github.com/";
-
-    // We use Sunday-Saturday as the definition of the week
-    // This is because of how the Github stats API returns weeks
-    this.periodPrev = moment()
-      .utc()
-      .startOf("week")
-      .subtract(2, "weeks");
-    this.periodNext = moment()
-      .utc()
-      .startOf("week")
-      .subtract(1, "weeks");
   }
 
   get({ path, headers, qs }) {
