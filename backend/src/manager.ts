@@ -57,21 +57,6 @@ export class GithubManager extends ServiceManager {
     return parsed;
   }
 
-  async getTeamForToken(): Promise<ServiceTeam> {
-    const installations = await this.getTeams();
-    let filtered;
-
-    if (this.teamName) {
-      filtered = installations.filter(i => i.name === this.teamName);
-    }
-
-    if (filtered.length > 0) {
-      return filtered[0];
-    } else {
-      return installations[0];
-    }
-  }
-
   async getTeamToken(): Promise<string> {
     const payload = {
       iat: moment().unix(),
@@ -95,21 +80,58 @@ export class GithubManager extends ServiceManager {
     });
     return response.token;
   }
+
+  private async getTeamForToken(): Promise<ServiceTeam> {
+    const installations = await this.getTeams();
+    let filtered;
+
+    if (this.teamName) {
+      filtered = installations.filter(i => i.name === this.teamName);
+    }
+
+    if (filtered.length > 0) {
+      return filtered[0];
+    } else {
+      return installations[0];
+    }
+  }
 }
 
 export class BitbucketManager extends ServiceManager {
   newAccessToken: string | undefined;
 
-  getNewToken(): Promise<string> {
+  async getTeams(): Promise<ServiceTeam[]> {
+    await this.getNewToken();
+    const response = await rp({
+      uri: `https://api.bitbucket.org/2.0/teams`,
+      qs: { role: "member" },
+      headers: { Authorization: `Bearer ${this.newAccessToken}` },
+      json: true
+    });
+    const { values } = response;
+    return values.map(team => ({
+      id: team.uuid,
+      login: team.username,
+      name: team.display_name,
+      avatar: team.links.avatar.href,
+      type: team.type
+    }));
+  }
+
+  getTeamToken(): Promise<string> {
+    return this.getNewToken();
+  }
+
+  private async getNewToken(): Promise<string> {
     if (this.newAccessToken) {
-      return new Promise((resolve, _) => resolve(this.newAccessToken));
+      return Promise.resolve(this.newAccessToken);
     } else {
       const { BITBUCKET_CLIENT_ID, BITBUCKET_CLIENT_SECRET } = process.env;
       const encodedAuth = Buffer.from(
         `${BITBUCKET_CLIENT_ID}:${BITBUCKET_CLIENT_SECRET}`
       ).toString("base64");
 
-      return rp({
+      const response = await rp({
         uri: `https://bitbucket.org/site/oauth2/access_token`,
         method: "POST",
         formData: {
@@ -118,36 +140,9 @@ export class BitbucketManager extends ServiceManager {
         },
         json: true,
         headers: { Authorization: `Basic ${encodedAuth}` }
-      }).then(response => {
-        this.newAccessToken = response.access_token;
-        return response.access_token;
       });
+      this.newAccessToken = response.access_token;
+      return response.access_token;
     }
-  }
-
-  getTeams(): Promise<ServiceTeam[]> {
-    return this.getNewToken()
-      .then(() => {
-        return rp({
-          uri: `https://api.bitbucket.org/2.0/teams`,
-          qs: { role: "member" },
-          headers: { Authorization: `Bearer ${this.newAccessToken}` },
-          json: true
-        });
-      })
-      .then(response => {
-        const { values } = response;
-        return values.map(team => ({
-          id: team.uuid,
-          login: team.username,
-          name: team.display_name,
-          avatar: team.links.avatar.href,
-          type: team.type
-        }));
-      });
-  }
-
-  getTeamToken(): Promise<string> {
-    return this.getNewToken();
   }
 }

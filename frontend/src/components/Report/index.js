@@ -46,7 +46,7 @@ export const ReportContainer = props => {
   );
 };
 
-class Report extends React.Component {
+export class Report extends React.Component {
   state = {
     isLoading: true,
     reportJson: {},
@@ -55,8 +55,7 @@ class Report extends React.Component {
   };
 
   update() {
-    const { params } = this.props.match;
-    const { name: team } = params;
+    const { owner: team } = this.props;
 
     getReport(team).then(response => {
       const { repos } = response.message;
@@ -87,8 +86,7 @@ class Report extends React.Component {
   }
 
   updateRepo(repo) {
-    const { params } = this.props.match;
-    const { name: team } = params;
+    const { owner: team } = this.props;
 
     getRepoStats(team, repo)
       .then(response => {
@@ -121,10 +119,10 @@ class Report extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { params } = this.props.match;
-    const { params: prev } = prevProps.match;
+    const { owner: newOwner } = this.props;
+    const { owner: prevOwner } = this.props;
 
-    if (prev && prev.name !== params.name) {
+    if (newOwner !== prevOwner) {
       this.setState({ reportJson: {}, isLoading: true });
       this.update();
     }
@@ -135,8 +133,7 @@ class Report extends React.Component {
   }
 
   render() {
-    const { params } = this.props.match;
-    const { name: team } = params;
+    const { owner: team } = this.props;
     return (
       <div className="py-5">
         <ReportContainer {...this.state} team={team} />
@@ -144,5 +141,3 @@ class Report extends React.Component {
     );
   }
 }
-
-export default Report;

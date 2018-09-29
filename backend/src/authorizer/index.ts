@@ -37,7 +37,16 @@ const generatePolicy = (principalId, effect, resource) => {
   return authResponse;
 };
 
+const isHomepageRequest = (event): boolean => {
+  return event.methodArn.indexOf("getsentry") >= 0;
+};
+
 const authorizer = (event: CustomAuthorizerEvent, cb: Callback) => {
+  if (isHomepageRequest(event)) {
+    const USER_ID = "homepage-request-id";
+    return cb(null, generatePolicy(USER_ID, "Allow", event.methodArn));
+  }
+
   if (!event.authorizationToken) {
     return cb(new Error("Unauthorized"));
   }

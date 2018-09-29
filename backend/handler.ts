@@ -5,6 +5,7 @@ import {
   Handler,
   CustomAuthorizerEvent
 } from "aws-lambda";
+import * as jwt from "jsonwebtoken";
 import authorizer from "./src/authorizer";
 import UserManager from "./src/users";
 import { sendEmail } from "./src/email";
@@ -14,8 +15,26 @@ const HEADERS = {
   "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
 };
 
-const getToken = headers => {
-  return headers.Authorization.split(" ")[1];
+const getToken = (event: APIGatewayEvent) => {
+  const { headers } = event;
+  const { Authorization } = headers;
+
+  if (!!Authorization) {
+    return Authorization.split(" ")[1];
+  }
+};
+
+const getManager = (event: APIGatewayEvent, owner?: string) => {
+  let accessToken = getToken(event);
+  const isHomepageRequest = owner === "getsentry";
+
+  if (!accessToken && isHomepageRequest) {
+    accessToken = process.env.DEFAULT_ACCESS_TOKEN;
+  }
+
+  const decoded = jwt.decode(accessToken);
+  const { sub: userId } = decoded;
+  return new UserManager(userId, owner);
 };
 
 export const report: Handler = (
@@ -23,9 +42,8 @@ export const report: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  const accessToken = getToken(event.headers);
   const { owner } = event.pathParameters;
-  const manager = new UserManager(accessToken, owner);
+  const manager = getManager(event, owner);
 
   manager.getServiceClient().then(client =>
     client.report().then(response => {
@@ -46,9 +64,8 @@ export const stats: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  const accessToken = getToken(event.headers);
   const { owner, repo } = event.pathParameters;
-  const manager = new UserManager(accessToken, owner);
+  const manager = getManager(event, owner);
 
   manager.getServiceClient().then(client =>
     client.statistics(repo).then(response => {
@@ -69,8 +86,7 @@ export const teams: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  const accessToken = getToken(event.headers);
-  const manager = new UserManager(accessToken);
+  const manager = getManager(event);
 
   manager.getServiceTeams().then(response => {
     cb(null, {
@@ -89,9 +105,8 @@ export const commits: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  const accessToken = getToken(event.headers);
   const { owner } = event.pathParameters;
-  const manager = new UserManager(accessToken, owner);
+  const manager = getManager(event, owner);
 
   manager.getServiceClient().then(client =>
     client.allCommits().then(response => {
@@ -112,9 +127,8 @@ export const pulls: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  const accessToken = getToken(event.headers);
   const { owner } = event.pathParameters;
-  const manager = new UserManager(accessToken, owner);
+  const manager = getManager(event, owner);
 
   manager.getServiceClient().then(client => {
     return client.prActivity().then(response => {
@@ -135,10 +149,9 @@ export const email: Handler = (
   context: Context,
   cb: Callback
 ) => {
-  const accessToken = getToken(event.headers);
   const body = JSON.parse(event.body);
   const { to, team } = body;
-  const manager = new UserManager(accessToken, team);
+  const manager = getManager(event, team);
 
   manager.getEmailContext().then(context => {
     const { subject } = context;

@@ -1,11 +1,8 @@
 import React from "react";
 import { Container } from "reactstrap";
-import { ReportContainer } from "../Report";
-import {
-  MOCK_REPORT_DATA,
-  MOCK_PR_DATA,
-  MOCK_COMMITS_DATA
-} from "../../utils/data";
+import { Report } from "../Report";
+
+const SENTRY_OWNER_NAME = "getsentry";
 
 const Home = () => (
   <div>
@@ -20,11 +17,7 @@ const Home = () => (
     <div>
       <Container>
         <div className="py-5">
-          <ReportContainer
-            reportJson={MOCK_REPORT_DATA.message}
-            prActivityData={MOCK_PR_DATA.message}
-            commitsData={MOCK_COMMITS_DATA.message}
-          />
+          <Report owner={SENTRY_OWNER_NAME} />
         </div>
       </Container>
     </div>

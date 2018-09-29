@@ -9,7 +9,6 @@ import BitbucketService from "./services/bitbucket";
 import GithubService from "./services/github";
 import * as moment from "moment";
 import { IService } from "./services/types";
-const jwt = require("jsonwebtoken");
 
 enum Service {
   github = "github",
@@ -68,17 +67,13 @@ class Auth0Client {
 }
 
 export default class UserManager {
-  userId: string;
   service: Service;
   auth0Client: Auth0Client | undefined;
   userAccessToken: string | undefined;
   userRefreshToken: string | undefined;
   serviceManager: ServiceManager | undefined;
 
-  constructor(accessToken: string, private accountName?: string) {
-    const decoded = jwt.decode(accessToken);
-    this.userId = decoded.sub;
-
+  constructor(private userId: string, private ownerName?: string) {
     if (this.userId.startsWith("github")) {
       this.service = Service.github;
     } else if (this.userId.startsWith("bitbucket")) {
@@ -94,9 +89,9 @@ export default class UserManager {
     const token = await this.serviceManager.getTeamToken();
 
     if (this.service === Service.github) {
-      client = new GithubService(token, this.accountName);
+      client = new GithubService(token, this.ownerName);
     } else if (this.service === Service.bitbucket) {
-      client = new BitbucketService(token, this.accountName);
+      client = new BitbucketService(token, this.ownerName);
     }
 
     return client;
@@ -118,13 +113,13 @@ export default class UserManager {
       this.serviceManager = new GithubManager(
         this.userAccessToken,
         this.userRefreshToken,
-        this.accountName
+        this.ownerName
       );
     } else if (this.service === Service.bitbucket) {
       this.serviceManager = new BitbucketManager(
         this.userAccessToken,
         this.userRefreshToken,
-        this.accountName
+        this.ownerName
       );
     }
   }
