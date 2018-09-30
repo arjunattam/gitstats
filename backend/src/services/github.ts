@@ -16,12 +16,12 @@ export default class GithubService extends types.ServiceClient {
     super(token, owner, weekStart);
     // We use Sunday-Saturday as the definition of the week
     // This is because of how the Github stats API returns weeks
-    this.periodPrev = this.weekStart.subtract(1, "weeks");
-    this.periodNext = this.weekStart;
+    this.periodPrev = moment(this.weekStart).subtract(1, "weeks");
+    this.periodNext = moment(this.weekStart);
     this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
   }
 
-  report = () => {
+  report = (): Promise<types.Report> => {
     return Promise.all([this.repos(), this.members(), this.ownerInfo()])
       .then(responses => {
         const repos = responses[0];

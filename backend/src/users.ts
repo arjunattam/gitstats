@@ -83,14 +83,11 @@ export default class UserManager {
     this.auth0Client = new Auth0Client();
   }
 
-  async getServiceClient(): Promise<ServiceClient> {
+  async getServiceClient(weekStartDate: string): Promise<ServiceClient> {
     let client;
     await this.setupServiceManager();
     const token = await this.serviceManager.getTeamToken();
-    const weekStart = moment()
-      .utc()
-      .startOf("week")
-      .subtract(1, "weeks");
+    const weekStart = moment(`${weekStartDate}T00:00:00Z`); // only supports UTC
 
     if (this.service === Service.github) {
       client = new GithubService(token, this.ownerName, weekStart);
@@ -128,8 +125,8 @@ export default class UserManager {
     }
   }
 
-  async getEmailContext(): Promise<EmailContext> {
-    const client = await this.getServiceClient();
+  async getEmailContext(weekStartDate: string): Promise<EmailContext> {
+    const client = await this.getServiceClient(weekStartDate);
     const report = await client.emailReport();
     let weekWiseData = {};
     const { owner, period, repos } = report;

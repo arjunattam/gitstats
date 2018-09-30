@@ -1,5 +1,8 @@
 import React from "react";
 import * as d3 from "d3";
+import startOfWeek from "date-fns/start_of_week";
+import format from "date-fns/format";
+import subWeeks from "date-fns/sub_weeks";
 import { Container } from "reactstrap";
 import {
   getReport,
@@ -14,8 +17,23 @@ import { Repos } from "./repos";
 import { EmailSender } from "./email";
 import { CommitChartContainer, PRChartContainer } from "./charts";
 
+const getWeekStart = () => {
+  // Returns start of last week (sunday)
+  const now = new Date();
+  const previousWeek = subWeeks(now, 1);
+  const start = startOfWeek(previousWeek, { weekStartsOn: 0 });
+  return format(start, "YYYY-MM-DD");
+};
+
 export const ReportContainer = props => {
-  const { reportJson, isLoading, prActivityData, commitsData, team } = props;
+  const {
+    reportJson,
+    isLoading,
+    prActivityData,
+    commitsData,
+    team,
+    weekStart
+  } = props;
   const thisWeekStart = d3.utcSunday(new Date());
   const copy = new Date(thisWeekStart);
   const startDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() - 7)));
@@ -41,13 +59,14 @@ export const ReportContainer = props => {
         commitsData={commitsData}
         prData={prActivityData}
       />
-      <EmailSender team={team} />
+      <EmailSender team={team} weekStart={weekStart} />
     </Container>
   );
 };
 
 export class Report extends React.Component {
   state = {
+    weekStart: "",
     isLoading: true,
     reportJson: {},
     prActivityData: [],
@@ -56,8 +75,9 @@ export class Report extends React.Component {
 
   update() {
     const { owner: team } = this.props;
+    const { weekStart } = this.state;
 
-    getReport(team).then(response => {
+    getReport(team, weekStart).then(response => {
       const { repos } = response.message;
       const pendingRepos = repos.filter(repo => repo.stats.is_pending);
       pendingRepos.forEach(repo => {
@@ -70,14 +90,14 @@ export class Report extends React.Component {
       });
     });
 
-    getPRActivity(team).then(response => {
+    getPRActivity(team, weekStart).then(response => {
       const { message } = response;
       this.setState({
         prActivityData: message
       });
     });
 
-    getCommits(team).then(response => {
+    getCommits(team, weekStart).then(response => {
       const { message } = response;
       this.setState({
         commitsData: message
@@ -87,8 +107,9 @@ export class Report extends React.Component {
 
   updateRepo(repo) {
     const { owner: team } = this.props;
+    const { weekStart } = this.state;
 
-    getRepoStats(team, repo)
+    getRepoStats(team, repo, weekStart)
       .then(response => {
         const { stats } = response.message;
         const { is_pending } = stats;
@@ -129,7 +150,7 @@ export class Report extends React.Component {
   }
 
   componentDidMount() {
-    this.update();
+    this.setState({ weekStart: getWeekStart() }, () => this.update());
   }
 
   render() {

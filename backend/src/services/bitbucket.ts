@@ -19,8 +19,8 @@ export default class BitbucketService extends types.ServiceClient {
 
     // We use Sunday-Saturday as the definition of the week
     // This is because of how the Github stats API returns weeks
-    this.periodPrev = this.weekStart.subtract(1, "weeks");
-    this.periodNext = this.weekStart;
+    this.periodPrev = moment(this.weekStart).subtract(1, "weeks");
+    this.periodNext = moment(this.weekStart);
   }
 
   isInDuration(date: string, minDateValue) {

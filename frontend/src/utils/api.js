@@ -6,17 +6,20 @@ const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 
 export const getTeams = () => get(`${BASE_URL}/teams`);
 
-export const getCommits = owner => get(`${BASE_URL}/commits/${owner}`);
+export const getCommits = (owner, weekStart) =>
+  get(`${BASE_URL}/commits/${owner}?week_start=${weekStart}`);
 
-export const getPRActivity = owner => get(`${BASE_URL}/pulls/${owner}`);
+export const getPRActivity = (owner, weekStart) =>
+  get(`${BASE_URL}/pulls/${owner}?week_start=${weekStart}`);
 
-export const getReport = owner => get(`${BASE_URL}/report/${owner}`);
+export const getReport = (owner, weekStart) =>
+  get(`${BASE_URL}/report/${owner}?week_start=${weekStart}`);
 
-export const getRepoStats = (owner, repo) =>
-  get(`${BASE_URL}/stats/${owner}/${repo}`);
+export const getRepoStats = (owner, repo, weekStart) =>
+  get(`${BASE_URL}/stats/${owner}/${repo}?week_start=${weekStart}`);
 
-export const sendEmail = (toEmail, team) =>
-  post(`${BASE_URL}/email`, { to: toEmail, team });
+export const sendEmail = (toEmail, team, weekStart) =>
+  post(`${BASE_URL}/email`, { to: toEmail, team, week_start: weekStart });
 
 const getHeader = () => {
   const auth = new Auth();

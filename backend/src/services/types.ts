@@ -6,12 +6,19 @@ export abstract class ServiceClient {
     public owner: string,
     public weekStart: Moment
   ) {}
-  abstract report: () => Promise<any>;
+  abstract report: () => Promise<Report>;
   abstract emailReport: () => Promise<EmailReport>;
   abstract statistics: (repo: string) => Promise<RepoStats>;
   abstract allCommits: () => Promise<Commits[]>;
   abstract prActivity: () => Promise<any>;
 }
+
+export type Report = {
+  period: Period;
+  owner: Owner;
+  members: Member[];
+  repos: RepoForReport[];
+};
 
 export type EmailReport = {
   owner: Owner;
@@ -51,6 +58,8 @@ export type RepoStats = {
 };
 
 export type RepoWithStats = Repo & { stats: RepoStats };
+
+export type RepoForReport = Repo & { stats: RepoStats; prs: RepoPR[] };
 
 // TODO(arjun): we can potentially add the reviewer
 // and also the time taken to review

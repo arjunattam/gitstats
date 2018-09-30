@@ -49,39 +49,79 @@ const buildResponse = (event, message: any) => {
   };
 };
 
-const getCacheKey = (event: APIGatewayEvent) => {
+const getCacheKey = (path: string, weekStart: string) => {
   // TODO: add date to this key
   // Q: what if two users have access to the same org
   // but with different permissions?
   // TODO: we should add user id also?
-  return event.path;
+  const suffix = "deploy-3";
+  return `${path}-${weekStart}-${suffix}`;
 };
 
-const DEFAULT_CACHE_EXPIRY = 1800; // 30 minutes
+const DEFAULT_CACHE_EXPIRY = 3600; // in seconds
 
-export const report: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const cacheKey = getCacheKey(event);
+const getCachedClientResponse = async (
+  event: APIGatewayEvent,
+  manager: UserManager,
+  methodName: string,
+  params: any[]
+) => {
+  // Checks redis first, else calls the client method
+  const { path, queryStringParameters } = event;
+  const { week_start: weekStart } = queryStringParameters;
+
+  const cacheKey = getCacheKey(path, weekStart);
   const cacheValue = await redis.get(cacheKey);
 
   if (!!cacheValue) {
     const parsedJson = JSON.parse(cacheValue);
-    return buildResponse(event, parsedJson);
+    return parsedJson;
   }
 
-  const client = await manager.getServiceClient();
-  const report = await client.report();
-  await redis.set(cacheKey, JSON.stringify(report), DEFAULT_CACHE_EXPIRY);
-  return buildResponse(event, report);
+  const client = await manager.getServiceClient(weekStart);
+  const response = await client[methodName](...params);
+  await redis.set(cacheKey, JSON.stringify(response), DEFAULT_CACHE_EXPIRY);
+  return response;
+};
+
+export const report: Handler = async (event: APIGatewayEvent) => {
+  const { owner } = event.pathParameters;
+  const manager = getManager(event, owner);
+  const response = await getCachedClientResponse(event, manager, "report", []);
+  return buildResponse(event, response);
 };
 
 export const stats: Handler = async (event: APIGatewayEvent) => {
   const { owner, repo } = event.pathParameters;
   const manager = getManager(event, owner);
-  const client = await manager.getServiceClient();
-  const response = await client.statistics(repo);
+  const response = await getCachedClientResponse(event, manager, "statistics", [
+    repo
+  ]);
   return buildResponse(event, { repo, stats: response });
+};
+
+export const commits: Handler = async (event: APIGatewayEvent) => {
+  const { owner } = event.pathParameters;
+  const manager = getManager(event, owner);
+  const response = await getCachedClientResponse(
+    event,
+    manager,
+    "allCommits",
+    []
+  );
+  return buildResponse(event, response);
+};
+
+export const pulls: Handler = async (event: APIGatewayEvent) => {
+  const { owner } = event.pathParameters;
+  const manager = getManager(event, owner);
+  const response = await getCachedClientResponse(
+    event,
+    manager,
+    "prActivity",
+    []
+  );
+  return buildResponse(event, response);
 };
 
 export const teams: Handler = async (event: APIGatewayEvent) => {
@@ -90,27 +130,12 @@ export const teams: Handler = async (event: APIGatewayEvent) => {
   return buildResponse(event, teams);
 };
 
-export const commits: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const client = await manager.getServiceClient();
-  const response = await client.allCommits();
-  return buildResponse(event, response);
-};
-
-export const pulls: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const client = await manager.getServiceClient();
-  const response = await client.prActivity();
-  return buildResponse(event, response);
-};
-
 export const email: Handler = async (event: APIGatewayEvent) => {
   const body = JSON.parse(event.body);
-  const { to, team } = body;
+  const { to, team, week_start: weekStart } = body;
   const manager = getManager(event, team);
-  const context = await manager.getEmailContext();
+  const context = await manager.getEmailContext(weekStart);
+
   const { subject } = context;
   await sendEmail(to, subject, context);
   return buildResponse(event, {});
