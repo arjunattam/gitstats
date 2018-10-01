@@ -73,7 +73,7 @@ export default class UserManager {
   userRefreshToken: string | undefined;
   serviceManager: ServiceManager | undefined;
 
-  constructor(private userId: string, private ownerName?: string) {
+  constructor(public userId: string, public ownerName?: string) {
     if (this.userId.startsWith("github")) {
       this.service = Service.github;
     } else if (this.userId.startsWith("bitbucket")) {

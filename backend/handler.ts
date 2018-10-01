@@ -49,13 +49,9 @@ const buildResponse = (event, message: any) => {
   };
 };
 
-const getCacheKey = (path: string, weekStart: string) => {
-  // TODO: add date to this key
-  // Q: what if two users have access to the same org
-  // but with different permissions?
-  // TODO: we should add user id also?
+const getCacheKey = (path: string, userId: string, weekStart: string) => {
   const suffix = "deploy-3";
-  return `${path}-${weekStart}-${suffix}`;
+  return `${userId}-${path}-${weekStart}-${suffix}`;
 };
 
 const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds
@@ -70,7 +66,7 @@ const getCachedClientResponse = async (
   const { path, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;
 
-  const cacheKey = getCacheKey(path, weekStart);
+  const cacheKey = getCacheKey(path, manager.userId, weekStart);
   const cacheValue = await redis.get(cacheKey);
 
   if (!!cacheValue) {
