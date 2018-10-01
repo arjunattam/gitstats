@@ -58,7 +58,7 @@ const getCacheKey = (path: string, weekStart: string) => {
   return `${path}-${weekStart}-${suffix}`;
 };
 
-const DEFAULT_CACHE_EXPIRY = 3600; // in seconds
+const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds
 
 const getCachedClientResponse = async (
   event: APIGatewayEvent,

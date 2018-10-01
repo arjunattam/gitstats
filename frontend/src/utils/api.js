@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Auth } from "./auth";
+import { getAccessToken } from "./auth";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 // const BASE_URL = "http://localhost:8000";
@@ -22,8 +22,7 @@ export const sendEmail = (toEmail, team, weekStart) =>
   post(`${BASE_URL}/email`, { to: toEmail, team, week_start: weekStart });
 
 const getHeader = () => {
-  const auth = new Auth();
-  let accessToken = auth.getAccessToken();
+  let accessToken = getAccessToken();
 
   if (!accessToken) {
     accessToken = "dummy-token-for-homepage";

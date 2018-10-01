@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Form, FormGroup, Label, Input } from "reactstrap";
-import { Auth } from "../../utils/auth";
+import { isAuthenticated, getUserProfile } from "../../utils/auth";
 import { sendEmail } from "../../utils/api";
 
 export class EmailSender extends React.Component {
@@ -10,8 +10,7 @@ export class EmailSender extends React.Component {
   };
 
   componentDidMount() {
-    const auth = new Auth();
-    const { email } = auth.getUserProfile();
+    const { email } = getUserProfile();
     this.setState({ emailInput: email });
   }
 
@@ -33,9 +32,8 @@ export class EmailSender extends React.Component {
   };
 
   render() {
-    const auth = new Auth();
     const { isLoading } = this.state;
-    const isLogged = auth.isAuthenticated();
+    const isLogged = isAuthenticated();
 
     return isLogged ? (
       <div style={{ marginTop: 60 }}>

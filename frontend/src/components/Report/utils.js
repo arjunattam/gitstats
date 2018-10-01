@@ -3,10 +3,10 @@ import { Sparkline } from "../Charts";
 
 export const Member = ({ login, avatar }) => {
   return (
-    <span>
-      <img src={avatar} style={{ width: 20 }} alt={login} />
-      <span className="m-2">{login}</span>
-    </span>
+    <div style={{ display: "inline-block" }}>
+      <img src={avatar} style={{ width: 25, borderRadius: 2 }} alt={login} />
+      <span className="mx-2">{login}</span>
+    </div>
   );
 };
 

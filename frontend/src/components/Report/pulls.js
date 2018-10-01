@@ -1,6 +1,5 @@
 import React from "react";
 import { Value, getPRsTime, getPRsOpened, getPRsMerged } from "./utils";
-import { Row, Col } from "reactstrap";
 import Table from "./table";
 
 function millisecondsToStr(milliseconds) {

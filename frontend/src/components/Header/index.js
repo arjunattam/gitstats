@@ -1,53 +1,77 @@
 import React from "react";
-import { Container, Navbar, NavbarBrand, Button } from "reactstrap";
-import { customHistory as history } from "../Router";
+import { connect } from "react-redux";
+import { bindActionCreators } from "redux";
+import * as actions from "../../actions";
 import { Link } from "react-router-dom";
-import { Auth } from "../../utils/auth";
+import { Container, Navbar, Button } from "reactstrap";
+import { customHistory as history } from "../Router";
+import { Member } from "../Report/utils";
+import { TeamsDropDown } from "./teams";
 
-class AuthLinks extends React.Component {
-  state = { isLoggedIn: false };
-
-  componentDidMount() {
-    this.auth = new Auth();
-    this.updateAuthState();
-  }
-
-  updateAuthState = () => {
-    this.setState({ isLoggedIn: this.auth.isAuthenticated() });
-  };
-
-  login = () => {
-    this.auth.login();
-    this.updateAuthState();
-  };
-
-  logout = () => {
-    this.auth.logout();
-    this.updateAuthState();
-    history.replace("/");
-  };
-
+class LogoutLinks extends React.Component {
   render() {
-    return this.state.isLoggedIn ? (
+    const { onLogout, user, teams } = this.props;
+    return (
       <div>
-        <Link className="m-3" to="/callback">
-          Your teams
-        </Link>
-        <Button onClick={() => this.logout()}>Logout</Button>
-      </div>
-    ) : (
-      <div>
-        <Button onClick={() => this.login()}>Login</Button>
+        <TeamsDropDown teamNames={teams} />
+        <Member login={user.name} avatar={user.picture} />
+        <Button className="mx-3" onClick={onLogout}>
+          Logout
+        </Button>
       </div>
     );
   }
 }
 
+const LoginLinks = ({ onLogin }) => {
+  return (
+    <div>
+      <Button className="mx-3" onClick={onLogin}>
+        Login
+      </Button>
+    </div>
+  );
+};
+
+class AuthLinks extends React.Component {
+  constructor(props) {
+    super(props);
+    this.actions = bindActionCreators(actions, this.props.dispatch);
+  }
+
+  login = () => {
+    this.actions.login();
+  };
+
+  logout = () => {
+    this.actions.logout();
+    history.replace("/");
+  };
+
+  render() {
+    const { isLoggedIn } = this.props.data;
+    return isLoggedIn ? (
+      <LogoutLinks {...this.props.data} onLogout={() => this.logout()} />
+    ) : (
+      <LoginLinks onLogin={() => this.login()} />
+    );
+  }
+}
+
+function mapStateToProps(state) {
+  const { data } = state;
+  return { data };
+}
+
+const AuthLinksRedux = connect(mapStateToProps)(AuthLinks);
+
 const Header = () => (
   <Container>
     <Navbar>
-      <NavbarBrand href="/">gitstats.report</NavbarBrand>
-      <AuthLinks />
+      <Link to={"/"} className="navbar-brand">
+        gitstats.report
+      </Link>
+      <AuthLinksRedux />
     </Navbar>
   </Container>
 );
