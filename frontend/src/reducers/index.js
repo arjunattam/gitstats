@@ -3,6 +3,7 @@ import { createReducer } from "redux-create-reducer";
 const initialState = {
   isLoggedIn: false,
   user: {},
+  service: undefined,
   teams: []
 };
 
@@ -28,9 +29,13 @@ export default createReducer(initialState, {
   FETCH_TEAMS_FULFILLED: (state, action) => {
     const { payload } = action;
     const { message: teams } = payload;
+    const withService = teams.map(team => ({
+      ...team,
+      service: state.service
+    }));
     return {
       ...state,
-      teams
+      teams: withService
     };
   }
 });

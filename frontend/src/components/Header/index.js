@@ -5,7 +5,7 @@ import * as actions from "../../actions";
 import { Link } from "react-router-dom";
 import { Container, Navbar, Button } from "reactstrap";
 import { customHistory as history } from "../Router";
-import { Member } from "../Report/utils";
+import { MemberName } from "../Common";
 import { TeamsDropDown } from "./teams";
 
 class LogoutLinks extends React.Component {
@@ -14,7 +14,7 @@ class LogoutLinks extends React.Component {
     return (
       <div>
         <TeamsDropDown teams={teams} />
-        <Member login={user.name} avatar={user.avatar} />
+        <MemberName login={user.name} avatar={user.avatar} />
         <Button className="mx-3" onClick={onLogout}>
           Logout
         </Button>

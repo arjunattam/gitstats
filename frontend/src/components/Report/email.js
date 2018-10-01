@@ -20,7 +20,7 @@ export class EmailSender extends React.Component {
     const { team, weekStart } = this.props;
     this.setState({ isLoading: true });
 
-    sendEmail(emailInput, team, weekStart).then(() => {
+    sendEmail(emailInput, team.login, weekStart).then(() => {
       this.setState({ isLoading: false });
     });
   };

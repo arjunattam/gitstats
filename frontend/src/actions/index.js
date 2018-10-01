@@ -1,6 +1,7 @@
 import {
   isAuthenticated,
   getUserProfile,
+  getGitService,
   logout as doLogout,
   AuthWidget
 } from "../utils/auth";
@@ -11,6 +12,7 @@ function getAuthPayload() {
   return {
     isLoggedIn: isAuthenticated(),
     user: { name: nickname, avatar: picture },
+    service: getGitService(),
     teams: []
   };
 }

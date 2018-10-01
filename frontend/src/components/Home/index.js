@@ -2,7 +2,12 @@ import React from "react";
 import { Container } from "reactstrap";
 import { Report } from "../Report";
 
-const SENTRY_OWNER_NAME = "getsentry";
+const SENTRY_TEAM = {
+  login: "getsentry",
+  name: "Sentry",
+  service: "github",
+  avatar: "https://avatars0.githubusercontent.com/u/1396951?v=4"
+};
 
 const Home = () => (
   <div>
@@ -16,8 +21,8 @@ const Home = () => (
     </div>
     <div>
       <Container>
-        <div className="py-5">
-          <Report owner={SENTRY_OWNER_NAME} />
+        <div className="py-3">
+          <Report owner={SENTRY_TEAM} />
         </div>
       </Container>
     </div>

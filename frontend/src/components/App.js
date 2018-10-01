@@ -2,7 +2,7 @@ import React from "react";
 import Header from "./Header";
 import Home from "./Home";
 import PrivateRoute from "./PrivateRoute";
-import { Report } from "./Report";
+import { ReportPage } from "./Report";
 import Router from "./Router";
 import Footer from "./Footer";
 import Onboarding from "./Onboarding";
@@ -10,8 +10,6 @@ import * as actions from "../actions";
 import store from "../store";
 import { Route } from "react-router-dom";
 import "./App.css";
-
-const ReportPage = ({ match }) => <Report owner={match.params.name} />;
 
 class App extends React.Component {
   componentDidMount() {

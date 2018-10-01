@@ -1,68 +1,14 @@
 import React from "react";
-import * as d3 from "d3";
-import startOfWeek from "date-fns/start_of_week";
-import format from "date-fns/format";
-import subWeeks from "date-fns/sub_weeks";
-import { Container } from "reactstrap";
+import { connect } from "react-redux";
 import {
   getReport,
   getRepoStats,
   getPRActivity,
   getCommits
 } from "../../utils/api";
-import { ReportTitle } from "./title";
-import { Summary } from "./summary";
-import { Members } from "./members";
-import { Repos } from "./repos";
-import { EmailSender } from "./email";
-import { CommitChartContainer, PRChartContainer } from "./charts";
-
-const getWeekStart = () => {
-  // Returns start of last week (sunday)
-  const now = new Date();
-  const previousWeek = subWeeks(now, 1);
-  const start = startOfWeek(previousWeek, { weekStartsOn: 0 });
-  return format(start, "YYYY-MM-DD");
-};
-
-export const ReportContainer = props => {
-  const {
-    reportJson,
-    isLoading,
-    prActivityData,
-    commitsData,
-    team,
-    weekStart
-  } = props;
-  const thisWeekStart = d3.utcSunday(new Date());
-  const copy = new Date(thisWeekStart);
-  const startDate = d3.utcSunday(new Date(copy.setDate(copy.getDate() - 7)));
-  const dates = {
-    startDate,
-    endDate: thisWeekStart
-  };
-
-  return (
-    <Container>
-      <ReportTitle {...reportJson} isLoading={isLoading} />
-      <Summary {...reportJson} isLoading={isLoading} />
-      <PRChartContainer
-        {...dates}
-        reportJson={reportJson}
-        isLoading={isLoading}
-        data={prActivityData}
-      />
-      <Members {...reportJson} isLoading={isLoading} />
-      <Repos {...reportJson} isLoading={isLoading} />
-      <CommitChartContainer
-        {...dates}
-        commitsData={commitsData}
-        prData={prActivityData}
-      />
-      <EmailSender team={team} weekStart={weekStart} />
-    </Container>
-  );
-};
+import { getWeekStart } from "../../utils/date";
+import { Container } from "./container";
+import { Header } from "./header";
 
 export class Report extends React.Component {
   state = {
@@ -77,7 +23,7 @@ export class Report extends React.Component {
     const { owner: team } = this.props;
     const { weekStart } = this.state;
 
-    getReport(team, weekStart).then(response => {
+    getReport(team.login, weekStart).then(response => {
       const { repos } = response.message;
       const pendingRepos = repos.filter(repo => repo.stats.is_pending);
       pendingRepos.forEach(repo => {
@@ -90,14 +36,14 @@ export class Report extends React.Component {
       });
     });
 
-    getPRActivity(team, weekStart).then(response => {
+    getPRActivity(team.login, weekStart).then(response => {
       const { message } = response;
       this.setState({
         prActivityData: message
       });
     });
 
-    getCommits(team, weekStart).then(response => {
+    getCommits(team.login, weekStart).then(response => {
       const { message } = response;
       this.setState({
         commitsData: message
@@ -109,7 +55,7 @@ export class Report extends React.Component {
     const { owner: team } = this.props;
     const { weekStart } = this.state;
 
-    getRepoStats(team, repo, weekStart)
+    getRepoStats(team.login, repo, weekStart)
       .then(response => {
         const { stats } = response.message;
         const { is_pending } = stats;
@@ -143,7 +89,7 @@ export class Report extends React.Component {
     const { owner: newOwner } = this.props;
     const { owner: prevOwner } = this.props;
 
-    if (newOwner !== prevOwner) {
+    if (newOwner.login !== prevOwner.login) {
       this.setState({ reportJson: {}, isLoading: true });
       this.update();
     }
@@ -155,10 +101,36 @@ export class Report extends React.Component {
 
   render() {
     const { owner: team } = this.props;
+    const { weekStart } = this.state;
     return (
-      <div className="py-5">
-        <ReportContainer {...this.state} team={team} />
+      <div className="py-4">
+        <Header team={team} weekStart={weekStart} />
+        <Container {...this.state} team={team} />
       </div>
     );
   }
 }
+
+const ReportPageContainer = ({ match, data }) => {
+  const { teams: storeTeams } = data;
+  const { name: selectedLogin } = match.params;
+  const filteredTeams = storeTeams.filter(team => team.login === selectedLogin);
+  let owner = {
+    login: selectedLogin
+  };
+
+  if (filteredTeams.length > 0) {
+    // We have this team in store
+    const selectedTeam = filteredTeams[0];
+    owner = { ...owner, ...selectedTeam };
+  }
+
+  return <Report owner={owner} />;
+};
+
+function mapStateToProps(state) {
+  const { data } = state;
+  return { data };
+}
+
+export const ReportPage = connect(mapStateToProps)(ReportPageContainer);

@@ -66,6 +66,15 @@ export const getAccessToken = () => {
   return Storage.get("access_token");
 };
 
+export const getGitService = () => {
+  const { sub } = getUserProfile();
+
+  if (!!sub) {
+    if (sub.indexOf("github") >= 0) return "github";
+    if (sub.indexOf("bitbucket") >= 0) return "bitbucket";
+  }
+};
+
 export const logout = () => {
   Storage.remove("access_token");
   Storage.remove("id_token");

@@ -1,6 +1,7 @@
 import React from "react";
-import { Value, Member, getCommits, getPRsMerged } from "./utils";
+import { Value, getCommits, getPRsMerged } from "./utils";
 import Table from "./table";
+import { MemberName } from "../Common";
 
 export const Summary = ({ period, owner, repos, isLoading }) => {
   const hasAllData = repos
@@ -13,7 +14,7 @@ export const Summary = ({ period, owner, repos, isLoading }) => {
           key: "summary",
           isLoading: !hasAllData,
           values: [
-            <Member login={owner.name} avatar={owner.avatar} />,
+            <MemberName login={owner.name} avatar={owner.avatar} />,
             <Value {...getCommits(period, repos)} />,
             <Value {...getPRsMerged(period, repos)} />
           ]
