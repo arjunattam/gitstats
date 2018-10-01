@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 
 export class TeamsDropDown extends React.Component {
   static propTypes = {
-    teamNames: PropTypes.arrayOf(PropTypes.string).isRequired
+    teams: PropTypes.arrayOf(PropTypes.object).isRequired
   };
 
   state = {
@@ -24,7 +24,7 @@ export class TeamsDropDown extends React.Component {
   };
 
   render() {
-    const { teamNames } = this.props;
+    const { teams } = this.props;
     return (
       <Dropdown
         style={{ display: "inline" }}
@@ -34,10 +34,10 @@ export class TeamsDropDown extends React.Component {
       >
         <DropdownToggle caret>Your teams</DropdownToggle>
         <DropdownMenu>
-          {teamNames.map(team => {
+          {teams.map(team => {
             return (
-              <Link to={`/report/${team}`}>
-                <DropdownItem key={team}>{team}</DropdownItem>
+              <Link to={`/report/${team.login}`} key={team.login}>
+                <DropdownItem>{team.name}</DropdownItem>
               </Link>
             );
           })}

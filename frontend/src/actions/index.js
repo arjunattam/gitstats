@@ -4,12 +4,14 @@ import {
   logout as doLogout,
   AuthWidget
 } from "../utils/auth";
+import { getTeams } from "../utils/api";
 
 function getAuthPayload() {
   const { nickname, picture } = getUserProfile();
   return {
     isLoggedIn: isAuthenticated(),
-    user: { name: nickname, picture }
+    user: { name: nickname, avatar: picture },
+    teams: []
   };
 }
 
@@ -44,4 +46,9 @@ export function logout() {
   };
 }
 
-export function fetchTeams(data) {}
+export function fetchTeams(data) {
+  return {
+    type: "FETCH_TEAMS",
+    payload: getTeams()
+  };
+}

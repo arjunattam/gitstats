@@ -13,8 +13,8 @@ class LogoutLinks extends React.Component {
     const { onLogout, user, teams } = this.props;
     return (
       <div>
-        <TeamsDropDown teamNames={teams} />
-        <Member login={user.name} avatar={user.picture} />
+        <TeamsDropDown teams={teams} />
+        <Member login={user.name} avatar={user.avatar} />
         <Button className="mx-3" onClick={onLogout}>
           Logout
         </Button>
@@ -47,6 +47,23 @@ class AuthLinks extends React.Component {
     this.actions.logout();
     history.replace("/");
   };
+
+  componentDidMount() {
+    const { isLoggedIn } = this.props.data;
+
+    if (isLoggedIn) {
+      this.actions.fetchTeams();
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { isLoggedIn: wasLoggedIn } = prevProps.data;
+    const { isLoggedIn } = this.props.data;
+
+    if (wasLoggedIn !== isLoggedIn && isLoggedIn) {
+      this.actions.fetchTeams();
+    }
+  }
 
   render() {
     const { isLoggedIn } = this.props.data;

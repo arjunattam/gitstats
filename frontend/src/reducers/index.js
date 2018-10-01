@@ -18,5 +18,19 @@ export default createReducer(initialState, {
       ...state,
       ...action.payload
     };
+  },
+  FETCH_TEAMS_PENDING: (state, action) => {
+    return {
+      ...state,
+      teams: []
+    };
+  },
+  FETCH_TEAMS_FULFILLED: (state, action) => {
+    const { payload } = action;
+    const { message: teams } = payload;
+    return {
+      ...state,
+      teams
+    };
   }
 });
