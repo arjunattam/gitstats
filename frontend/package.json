@@ -30,5 +30,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "@types/d3": "^5.0.0",
+    "@types/react-faux-dom": "^4.1.1"
   }
 }

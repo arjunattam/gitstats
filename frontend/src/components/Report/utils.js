@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkline } from "../Charts";
+import { Sparkline } from "../Charts/base/sparkline";
 
 export const Value = ({ previous, next, all, transformer }) => {
   let change;

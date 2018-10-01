@@ -3,6 +3,7 @@ import parse from "date-fns/parse";
 import format from "date-fns/format";
 import subWeeks from "date-fns/sub_weeks";
 import endOfWeek from "date-fns/end_of_week";
+import { addDays, addHours } from "date-fns";
 
 export const getWeekStart = () => {
   // Returns start of last week (which is a Sunday)
@@ -12,9 +13,26 @@ export const getWeekStart = () => {
   return format(start, "YYYY-MM-DD");
 };
 
-export const getWeekLabel = weekStart => {
-  const start = parse(weekStart);
+export const getWeek = weekStart => {
+  // weekStart looks like 2018-09-23
+  const start = parse(`${weekStart}T00:00:00Z`);
   const end = endOfWeek(start);
-  const formatter = d => format(d, "ddd, MMM D");
-  return `${formatter(start)} to ${formatter(end)}`;
+  return { start, end };
+};
+
+export const getChartBounds = weekStart => {
+  const start = parse(`${weekStart}T00:00:00Z`);
+  const end = addDays(start, 7);
+  return { startDate: start, endDate: end };
+};
+
+export const getLabels = date => {
+  return {
+    day: format(date, "dddd"),
+    date: format(date, "MMM D")
+  };
+};
+
+export const plusHours = (date, amount) => {
+  return addHours(date, amount);
 };

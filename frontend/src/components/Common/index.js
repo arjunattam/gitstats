@@ -6,6 +6,8 @@ const getTeamLink = (login, service) => {
       return `https://github.com/${login}`;
     case "bitbucket":
       return `https://bitbucket.org/${login}`;
+    default:
+      return ``;
   }
 };
 
@@ -19,6 +21,8 @@ const ServiceLink = ({ login, service }) => {
     case "bitbucket":
       text = "Bitbucket";
       break;
+    default:
+      text = "";
   }
 
   return (
@@ -33,9 +37,7 @@ export const TeamName = ({ name, avatar, login, service }) => {
     <div className="d-flex align-items-center">
       <img src={avatar} style={{ width: 35, borderRadius: 3 }} alt={name} />
       <span>
-        <span className="h3 px-2" style={{ marginBottom: 0 }}>
-          {name}
-        </span>
+        <span className="h3 px-2 my-0">{name}</span>
         <ServiceLink login={login} service={service} />
       </span>
     </div>
