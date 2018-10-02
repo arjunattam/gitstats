@@ -23,7 +23,12 @@ export default createReducer(initialState, {
   FETCH_TEAMS_PENDING: (state, action) => {
     return {
       ...state,
-      teams: []
+      teams: [
+        {
+          name: "Loading teams",
+          login: "loader"
+        }
+      ]
     };
   },
   FETCH_TEAMS_FULFILLED: (state, action) => {

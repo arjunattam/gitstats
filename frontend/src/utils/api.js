@@ -6,6 +6,8 @@ const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 
 export const getTeams = () => get(`${BASE_URL}/teams`);
 
+export const getTeamInfo = name => get(`${BASE_URL}/team/${name}`);
+
 export const getCommits = (owner, weekStart) =>
   get(`${BASE_URL}/commits/${owner}?week_start=${weekStart}`);
 

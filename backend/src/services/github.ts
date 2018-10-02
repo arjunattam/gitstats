@@ -128,7 +128,7 @@ export default class GithubService extends types.ServiceClient {
     }));
   }
 
-  async ownerInfo(): Promise<types.Owner> {
+  ownerInfo = async (): Promise<types.Owner> => {
     const response = await this.helper.get({
       path: `users/${this.owner}`,
       headers: {},
@@ -136,7 +136,7 @@ export default class GithubService extends types.ServiceClient {
     });
     const { login, name, avatar_url } = response.body;
     return { login, name, avatar: avatar_url };
-  }
+  };
 
   statsWrapper(repo: string): Promise<types.RepoStats> {
     return new Promise(resolve => {

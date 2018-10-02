@@ -15,7 +15,9 @@ const Home = () => (
       <Container>
         <div className="px-3 py-5">
           <h3>Lead your engineering team with facts, not feelings</h3>
-          <div>Weekly git stats for your GitHub and Bitbucket teams</div>
+          <div className="py-1">
+            Weekly git stats for your GitHub and Bitbucket teams
+          </div>
         </div>
       </Container>
     </div>

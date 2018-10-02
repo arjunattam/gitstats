@@ -87,7 +87,13 @@ export default class UserManager {
     let client;
     await this.setupServiceManager();
     const token = await this.serviceManager.getTeamToken();
-    const weekStart = moment(`${weekStartDate}T00:00:00Z`); // only supports UTC
+    let weekStart: moment.Moment;
+
+    if (!!weekStartDate) {
+      weekStart = moment(`${weekStartDate}T00:00:00Z`); // only supports UTC
+    } else {
+      weekStart = moment();
+    }
 
     if (this.service === Service.github) {
       client = new GithubService(token, this.ownerName, weekStart);

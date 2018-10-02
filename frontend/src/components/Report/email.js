@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Form, FormGroup, Label, Input } from "reactstrap";
+import { Container, Button, Form, FormGroup, Label, Input } from "reactstrap";
 import { isAuthenticated, getUserProfile } from "../../utils/auth";
 import { sendEmail } from "../../utils/api";
 
@@ -36,7 +36,7 @@ export class EmailSender extends React.Component {
     const isLogged = isAuthenticated();
 
     return isLogged ? (
-      <div style={{ marginTop: 60 }}>
+      <Container className="my-5">
         <h5>Send this report in an email</h5>
 
         <Form inline onSubmit={this.send}>
@@ -55,7 +55,7 @@ export class EmailSender extends React.Component {
 
           <Button>{isLoading ? "Sending..." : "Send email"}</Button>
         </Form>
-      </div>
+      </Container>
     ) : null;
   }
 }

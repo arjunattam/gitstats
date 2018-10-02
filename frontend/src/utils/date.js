@@ -3,7 +3,7 @@ import parse from "date-fns/parse";
 import format from "date-fns/format";
 import subWeeks from "date-fns/sub_weeks";
 import endOfWeek from "date-fns/end_of_week";
-import { addDays, addHours } from "date-fns";
+import { addDays, addHours, isWithinRange } from "date-fns";
 
 export const getWeekStart = () => {
   // Returns start of last week (which is a Sunday)
@@ -35,4 +35,10 @@ export const getLabels = date => {
 
 export const plusHours = (date, amount) => {
   return addHours(date, amount);
+};
+
+export const isInWeek = (date, weekStart) => {
+  const start = parse(weekStart);
+  const end = addDays(start, 7);
+  return isWithinRange(date, start, end);
 };

@@ -24,13 +24,16 @@ const RangeLabel = ({ start, end }) => {
   );
 };
 
-export const Header = ({ team, weekStart }) => {
-  return (
-    <Container>
-      <div className="d-flex justify-content-between align-items-center my-3">
-        <TeamName {...team} />
-        <RangeLabel {...getWeek(weekStart)} />
-      </div>
-    </Container>
-  );
-};
+export class Header extends React.Component {
+  render() {
+    const { team, weekStart } = this.props;
+    return (
+      <Container>
+        <div className="d-flex justify-content-between align-items-center my-3">
+          <TeamName {...team} />
+          <RangeLabel {...getWeek(weekStart)} />
+        </div>
+      </Container>
+    );
+  }
+}

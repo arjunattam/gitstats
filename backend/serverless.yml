@@ -32,6 +32,16 @@ functions:
           resp: http
           authorizer: auth
           cors: true
+  teamInfo:
+    handler: handler.teamInfo
+    timeout: 30
+    events:
+      - http:
+          method: get
+          path: team/{owner}
+          resp: http
+          authorizer: auth
+          cors: true
   report:
     handler: handler.report
     timeout: 30

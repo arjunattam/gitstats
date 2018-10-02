@@ -120,6 +120,14 @@ export const pulls: Handler = async (event: APIGatewayEvent) => {
   return buildResponse(event, response);
 };
 
+export const teamInfo: Handler = async (event: APIGatewayEvent) => {
+  const { owner } = event.pathParameters;
+  const manager = getManager(event, owner);
+  const client = await manager.getServiceClient(undefined);
+  const response = await client.ownerInfo();
+  return buildResponse(event, response);
+};
+
 export const teams: Handler = async (event: APIGatewayEvent) => {
   const manager = getManager(event);
   const teams = await manager.getServiceTeams();

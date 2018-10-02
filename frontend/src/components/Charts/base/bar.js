@@ -1,7 +1,7 @@
 import React from "react";
 import ReactFauxDOM from "react-faux-dom";
 import * as d3 from "d3";
-import { COLORS, LEGEND_PADDING } from "./utils";
+import { COLORS } from "./utils";
 import "./index.css";
 
 export class BarChart extends React.Component {
@@ -11,9 +11,9 @@ export class BarChart extends React.Component {
 
     const MIN_Y_VALUE = 5;
     var width = 600;
-    var height = 150 + LEGEND_PADDING;
-    var margin = 25;
-    var actualHeight = height - margin - LEGEND_PADDING;
+    var height = 200;
+    var margin = 0;
+    var actualHeight = height - margin;
     var actualWidth = width - 2 * margin;
 
     var x = d3
@@ -38,33 +38,12 @@ export class BarChart extends React.Component {
 
     let svg = d3
       .select(div)
-      .classed("svg-container", true)
+      .classed("inline-svg-container", true)
       .append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .classed("svg-content-responsive", true);
+      .attr("viewBox", `0 0 ${width} ${height}`);
 
-    // Chart content
-    var content = svg
-      .append("g")
-      .classed("g-content", true)
-      .attr("transform", `translate(0,${LEGEND_PADDING})`);
-
-    content
-      .append("g")
-      .attr("transform", `translate(0,${actualHeight})`)
-      .call(
-        d3.axisBottom(x).tickFormat(function(d) {
-          const date = new Date(d * 1000);
-          const formatter = d3.timeFormat("%b %d");
-          return `Week of ${formatter(date)}`;
-        })
-      );
-
-    content
-      .append("g")
-      .attr("transform", `translate(${margin},0)`)
-      .call(d3.axisLeft(y).ticks(3));
+    var content = svg.append("g").classed("g-content", true);
 
     content
       .selectAll(".bar")

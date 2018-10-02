@@ -210,16 +210,17 @@ export default class BitbucketService extends types.ServiceClient {
     });
   }
 
-  ownerInfo(): Promise<types.Owner> {
-    return this.get({
+  ownerInfo = async (): Promise<types.Owner> => {
+    const team = await this.get({
       path: `teams/${this.owner}`,
       qs: {}
-    }).then(team => ({
+    });
+    return {
       login: team.username,
       name: team.display_name,
       avatar: team.links.avatar.href
-    }));
-  }
+    };
+  };
 
   pullsApi(repo: string) {
     return this.getAll(

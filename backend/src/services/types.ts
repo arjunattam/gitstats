@@ -6,6 +6,7 @@ export abstract class ServiceClient {
     public owner: string,
     public weekStart: Moment
   ) {}
+  abstract ownerInfo: () => Promise<Owner>;
   abstract report: () => Promise<Report>;
   abstract emailReport: () => Promise<EmailReport>;
   abstract statistics: (repo: string) => Promise<RepoStats>;

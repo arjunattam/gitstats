@@ -9,12 +9,17 @@ import {
 import { getWeekStart } from "../../utils/date";
 import { Container } from "./container";
 import { Header } from "./header";
+import { EmailSender } from "./email";
 
 export class Report extends React.Component {
   state = {
     weekStart: "",
     isLoading: true,
-    reportJson: {},
+    reportJson: {
+      period: {},
+      owner: {},
+      repos: []
+    },
     prActivityData: [],
     commitsData: []
   };
@@ -87,7 +92,7 @@ export class Report extends React.Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { owner: newOwner } = this.props;
-    const { owner: prevOwner } = this.props;
+    const { owner: prevOwner } = prevProps;
 
     if (newOwner.login !== prevOwner.login) {
       this.setState({ reportJson: {}, isLoading: true });
@@ -105,7 +110,8 @@ export class Report extends React.Component {
     return (
       <div className="py-4">
         <Header team={team} weekStart={weekStart} />
-        <Container {...this.state} team={team} />
+        <Container {...this.state} />
+        <EmailSender team={team} weekStart={weekStart} />
       </div>
     );
   }

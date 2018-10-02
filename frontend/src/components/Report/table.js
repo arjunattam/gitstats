@@ -50,17 +50,11 @@ const TBody = ({ rowData }) => (
 );
 
 const ExpandButton = ({ onClick, text }) => (
-  <div className="mb-3" style={{ textAlign: "center" }}>
+  <div className="mb-3 text-center">
     <Button outline color="secondary" size="sm" onClick={onClick}>
       {text}
     </Button>
   </div>
-);
-
-const BaseTable = ({ children }) => (
-  <table className="table" style={{ margin: "40px 0 0" }}>
-    {children}
-  </table>
 );
 
 export default class Table extends React.Component {
@@ -87,8 +81,12 @@ export default class Table extends React.Component {
 
   renderExpandButton = () => {
     const { rowData, rowLimit } = this.props;
-    const isExpandable = rowData.length > rowLimit;
-    const text = this.state.isExpanded ? "Show less" : "Show all";
+    const length = rowData.length;
+    const isExpandable = length > rowLimit;
+    const text = this.state.isExpanded
+      ? "Show less"
+      : `Show all (${length} items)`;
+
     return isExpandable ? (
       <ExpandButton text={text} onClick={this.toggleExpand} />
     ) : null;
@@ -114,3 +112,9 @@ export default class Table extends React.Component {
     );
   }
 }
+
+const BaseTable = ({ children }) => (
+  <table className="table" style={{ margin: "40px 0 0" }}>
+    {children}
+  </table>
+);
