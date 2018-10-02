@@ -113,7 +113,7 @@ export default class GithubService extends types.ServiceClient {
 
   async members(): Promise<types.Member[]> {
     // Doc: https://developer.github.com/v3/orgs/members/#members-list
-    // TODO(arjun): this will not work for usernames
+    // This does not return full names -- we need to use graphql for that probably?
     const params = {
       path: `orgs/${this.owner}/members`
     };

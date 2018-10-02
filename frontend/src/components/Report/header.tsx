@@ -34,7 +34,7 @@ export class Header extends React.Component<IHeaderProps, {}> {
     const { team, weekStart } = this.props;
     return (
       <Container>
-        <div className="d-flex justify-content-between align-items-center my-3">
+        <div className="d-flex justify-content-between align-items-center my-4">
           <TeamName {...team} />
           <RangeLabel {...getWeek(weekStart)} />
         </div>

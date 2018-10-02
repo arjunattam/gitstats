@@ -17,26 +17,26 @@ export const TitleDiv = ({ children }) => (
   </div>
 );
 
-type ChartDropdownItem = {
+interface IChartDropdownItem {
   value: number;
   text: string;
-};
+}
 
-type ChartDropdownProps = {
-  items?: ChartDropdownItem[];
+interface IChartDropdownProps {
+  items?: IChartDropdownItem[];
   selected?: string;
   allText?: string;
-  onSelect?: (...args: any[]) => any;
-  onSelectAll?: (...args: any[]) => any;
-};
+  onSelect?: (text: string) => any;
+  onSelectAll?: () => any;
+}
 
-type ChartDropdownState = {
+interface IChartDropdownState {
   isOpen: boolean;
-};
+}
 
 export class ChartDropdown extends React.Component<
-  ChartDropdownProps,
-  ChartDropdownState
+  IChartDropdownProps,
+  IChartDropdownState
 > {
   public state = {
     isOpen: false
@@ -44,13 +44,14 @@ export class ChartDropdown extends React.Component<
 
   public render() {
     const { items, onSelect, allText, onSelectAll } = this.props;
+    const { isOpen } = this.state;
     const totalValue = this.getTotalValue();
     return (
       <Dropdown
+        className="d-inline-block mx-2"
         size="sm"
-        isOpen={this.state.isOpen}
+        isOpen={isOpen}
         toggle={this.toggle}
-        style={{ display: "inline-block", margin: 5 }}
       >
         <DropdownToggle caret={true}>{this.getSelectedText()}</DropdownToggle>
         <DropdownMenu>
@@ -90,12 +91,14 @@ export class ChartDropdown extends React.Component<
   private getSelectedText = () => {
     const { selected, items, allText } = this.props;
     let value;
+
     if (selected === allText) {
       value = this.getTotalValue();
     } else {
       const filtered = items.filter(i => i.text === selected);
       value = filtered.length > 0 ? filtered[0].value : 0;
     }
+
     return `${this.getLabel(selected)} (${value})`;
   };
 

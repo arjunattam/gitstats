@@ -3,6 +3,33 @@ interface IPeriod {
   next: string; // start of current week
 }
 
+interface IMember {
+  login: string;
+  name: string;
+  avatar: string;
+}
+
+interface IReportJson {
+  members: IMember[];
+  repos: IRepository[];
+}
+
+interface ICommits {
+  repo: string;
+  commits: ICommitData[];
+}
+
+interface ICommitData {
+  author: string;
+  commits: IAuthorCommit[];
+}
+
+interface IAuthorCommit {
+  date: string;
+  message: string;
+  sha: string;
+}
+
 interface IPullRequestComment {
   date: string;
   author: string;
@@ -43,13 +70,6 @@ interface IRepository {
   stargazers_count: number;
   updated_at: string;
   stats: IRepoStats;
-}
-
-interface ISummaryProps {
-  period: IPeriod;
-  repos: IRepository[];
-  prData: IPullRequestData[];
-  isLoading: boolean;
 }
 
 interface ITeam {

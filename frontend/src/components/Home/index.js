@@ -1,6 +1,6 @@
 import React from "react";
 import { Container } from "reactstrap";
-import { Report } from "../Report";
+import { Report } from "../Report/report";
 
 const SENTRY_TEAM = {
   login: "getsentry",
@@ -21,13 +21,7 @@ const Home = () => (
         </div>
       </Container>
     </div>
-    <div>
-      <Container>
-        <div className="py-3">
-          <Report team={SENTRY_TEAM} teamLogin={SENTRY_TEAM.login} />
-        </div>
-      </Container>
-    </div>
+    <Report team={SENTRY_TEAM} teamLogin={SENTRY_TEAM.login} />
   </div>
 );
 

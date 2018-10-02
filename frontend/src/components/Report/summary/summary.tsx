@@ -1,8 +1,45 @@
 import * as React from "react";
-import { Container, Row } from "reactstrap";
-import { isInWeek } from "../../utils/date";
-import { TextColWrapper, ValueColWrapper } from "./common";
-import { getCommits, getPRsMerged, getPRsOpened } from "./utils";
+import { Row } from "reactstrap";
+import { isInWeek } from "../../../utils/date";
+import { TextColWrapper, ValueColWrapper } from "../common";
+import { getCommits, getPRsMerged, getPRsOpened } from "../utils";
+
+interface ISummaryProps {
+  period: IPeriod;
+  repos: IRepository[];
+  prData: IPullRequestData[];
+  isLoading: boolean;
+}
+
+export const SummaryRow: React.SFC<ISummaryProps> = ({
+  period,
+  repos,
+  prData,
+  isLoading
+}) => {
+  const commits = getCommits(period, repos);
+  const { all: chartData } = commits;
+  const prsOpened = getPRsOpened(period, repos);
+  const prsMerged = getPRsMerged(period, repos);
+  const prComments = getPRComments(period, prData);
+  const activeRepos = getActiveRepo(period, repos);
+  const activeMembers = getActiveMember(period, repos);
+
+  return (
+    <div className="my-2">
+      <Row>
+        <ValueColWrapper {...commits} title={"Commits"} chartData={chartData} />
+        <ValueColWrapper {...prsOpened} title={"PRs opened"} />
+        <ValueColWrapper {...prsMerged} title={"PRs merged"} />
+        <ValueColWrapper {...prComments} title={"PR Comments"} />
+      </Row>
+      <Row>
+        <TextColWrapper {...activeRepos} title={"Most Active Repo"} />
+        <TextColWrapper {...activeMembers} title={"Most Active Member"} />
+      </Row>
+    </div>
+  );
+};
 
 const getActiveMember = (period: IPeriod, repos: IRepository[]) => {
   // TODO: only commits is a flawed metric?
@@ -121,34 +158,4 @@ const getPRComments = (period: IPeriod, prData: IPullRequestData[]) => {
     next: repoWise.reduce((acc, current) => acc + current.next, 0),
     previous: repoWise.reduce((acc, current) => acc + current.previous, 0)
   };
-};
-
-export const SummaryRow: React.SFC<ISummaryProps> = ({
-  period,
-  repos,
-  prData,
-  isLoading
-}) => {
-  const commits = getCommits(period, repos);
-  const { all: chartData } = commits;
-  const prsOpened = getPRsOpened(period, repos);
-  const prsMerged = getPRsMerged(period, repos);
-  const prComments = getPRComments(period, prData);
-  const activeRepos = getActiveRepo(period, repos);
-  const activeMembers = getActiveMember(period, repos);
-
-  return (
-    <Container className="my-5">
-      <Row>
-        <ValueColWrapper {...commits} title={"Commits"} chartData={chartData} />
-        <ValueColWrapper {...prsOpened} title={"PRs opened"} />
-        <ValueColWrapper {...prsMerged} title={"PRs merged"} />
-        <ValueColWrapper {...prComments} title={"PR Comments"} />
-      </Row>
-      <Row>
-        <TextColWrapper {...activeRepos} title={"Most Active Repo"} />
-        <TextColWrapper {...activeMembers} title={"Most Active Member"} />
-      </Row>
-    </Container>
-  );
 };

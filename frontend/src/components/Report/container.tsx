@@ -1,19 +1,18 @@
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { getChartBounds } from "../../utils/date";
-import { CommitChartContainer } from "../Charts/commits";
 import { PRChartContainer } from "../Charts/pulls";
 import { Members } from "./members";
 import { Repos } from "./repos";
-import { SummaryRow } from "./summary";
+import { SummaryContainer } from "./summary";
 
 interface IContainerProps {
   weekStart: string;
   isLoading: boolean;
   prActivityData: IPullRequestData[];
   period: IPeriod;
-  reportJson: any;
-  commitsData: any[];
+  reportJson: IReportJson;
+  commitsData: ICommits[];
 }
 
 export const Container: React.SFC<IContainerProps> = ({
@@ -24,21 +23,23 @@ export const Container: React.SFC<IContainerProps> = ({
   commitsData,
   weekStart
 }) => {
-  const dates = getChartBounds(weekStart);
-  console.log("dates", dates);
-  console.log("period", period);
-
+  const chartBounds = getChartBounds(weekStart);
+  const { repos } = reportJson;
+  // TODO: period is not in UTC
   return (
     <div>
-      <SummaryRow {...reportJson} period={period} prData={prActivityData} />
+      <SummaryContainer
+        period={period}
+        repos={repos}
+        isLoading={isLoading}
+        prActivityData={prActivityData}
+        commitsData={commitsData}
+        chartBounds={chartBounds}
+      />
+
       <BootstrapContainer>
-        <CommitChartContainer
-          {...dates}
-          commitsData={commitsData}
-          prData={prActivityData}
-        />
         <PRChartContainer
-          {...dates}
+          {...chartBounds}
           reportJson={reportJson}
           isLoading={isLoading}
           data={prActivityData}
