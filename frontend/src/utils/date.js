@@ -42,3 +42,8 @@ export const isInWeek = (date, weekStart) => {
   const end = addDays(start, 7);
   return isWithinRange(date, start, end);
 };
+
+export const getChartWeek = weekUnix => {
+  const parsed = parse(+weekUnix * 1000);
+  return format(parsed, "MMM D");
+};

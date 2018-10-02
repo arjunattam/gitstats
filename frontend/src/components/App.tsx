@@ -1,24 +1,22 @@
 import * as React from "react";
+import { Route } from "react-router-dom";
+import * as actions from "../actions";
+import store from "../store";
+import "./App.css";
+import Footer from "./Footer";
 import Header from "./Header";
 import Home from "./Home";
+import Onboarding from "./Onboarding";
 import PrivateRoute from "./PrivateRoute";
 import { ReportPage } from "./Report";
 import Router from "./Router";
-import Footer from "./Footer";
-import Onboarding from "./Onboarding";
-import * as actions from "../actions";
-import store from "../store";
-import { Route } from "react-router-dom";
-import "./App.css";
 
 class App extends React.Component<{}, {}> {
-  state = {};
-
-  componentDidMount() {
+  public componentDidMount() {
     store.dispatch(actions.initializeAuth());
   }
 
-  render() {
+  public render() {
     return (
       <div>
         <Router>
@@ -27,7 +25,7 @@ class App extends React.Component<{}, {}> {
               <Header />
             </div>
             <div className="light-section">
-              <Route exact path="/" component={Home} />
+              <Route exact={true} path="/" component={Home} />
               <PrivateRoute path="/report/:name" component={ReportPage} />
               <PrivateRoute path="/setup" component={Onboarding} />
             </div>

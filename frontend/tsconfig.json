@@ -14,8 +14,7 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "importHelpers": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "noUnusedLocals": true
+    "suppressImplicitAnyIndexErrors": true
   },
   "exclude": [
     "node_modules",

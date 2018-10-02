@@ -4,28 +4,42 @@ import { getChange, getCommits, getPRsMerged, getPRsOpened } from "./utils";
 import { BarChart } from "../Charts/base/bar";
 import { isInWeek } from "../../utils/date";
 
+const BaseValueCol = ({ children }) => {
+  return <Col className="border py-3">{children}</Col>;
+};
+
+const BaseValueTitle = ({ children }) => {
+  return <div className="text-muted small text-uppercase">{children}</div>;
+};
+
 const ValueCol = ({ title, value, summaryText }) => {
   return (
-    <Col className="border py-3">
-      <div className="text-muted small text-uppercase">{title}</div>
+    <BaseValueCol>
+      <BaseValueTitle>{title}</BaseValueTitle>
       <div className="h3 my-1">{value}</div>
       <div>{summaryText}</div>
-    </Col>
+    </BaseValueCol>
   );
 };
 
 const ValueColWithChart = ({ title, value, summaryText, chartData }) => {
+  const BASE_COLOR = `#ffb154`;
+  const ALPHA_COLOR = `${BASE_COLOR}60`;
   return (
-    <Col className="border py-3">
-      <div className="text-muted small text-uppercase">{title}</div>
+    <BaseValueCol>
+      <BaseValueTitle>{title}</BaseValueTitle>
       <div className="d-flex justify-content-between">
         <div>
           <div className="h3 my-1">{value}</div>
           <div className="text-nowrap">{summaryText}</div>
         </div>
-        <BarChart data={chartData} />
+        <BarChart
+          data={chartData}
+          color={ALPHA_COLOR}
+          selectedColor={BASE_COLOR}
+        />
       </div>
-    </Col>
+    </BaseValueCol>
   );
 };
 
