@@ -1,22 +1,29 @@
-import React from "react";
-import PropTypes from "prop-types";
-import ReactFauxDOM from "react-faux-dom";
 import * as d3 from "d3";
-import { COLORS, LEGEND_PADDING, addLegend, addXAxis } from "./utils";
-import "./index.css";
+import * as React from "react";
+import * as ReactFauxDOM from "react-faux-dom";
 import { plusHours } from "../../../utils/date";
+import "./index.css";
+import { addLegend, addXAxis, COLORS, LEGEND_PADDING } from "./utils";
 
 const INTERVAL_SIZE = 4; // hours
 const MIN_Y = 3;
 
-export class Streamgraph extends React.Component {
-  static propTypes = {
-    startDate: PropTypes.instanceOf(Date).isRequired,
-    endDate: PropTypes.instanceOf(Date).isRequired,
-    data: PropTypes.array.isRequired,
-    prevData: PropTypes.array.isRequired
-  };
+interface IStreamgraphProps {
+  startDate: Date;
+  endDate: Date;
+  data: any[];
+  prevData: any[];
+}
 
+interface IStreamgraphState {
+  hoverX: any;
+  hoverType: any;
+}
+
+export class Streamgraph extends React.Component<
+  IStreamgraphProps,
+  IStreamgraphState
+> {
   state = {
     hoverX: null,
     hoverType: null
@@ -46,13 +53,13 @@ export class Streamgraph extends React.Component {
 
     data.forEach(layer => {
       let layerType;
-
       if (layer.length) {
         layerType = layer[0].type;
       }
 
       const layerData = layer.reduce((acc, current) => {
-        const copy = this.getRoundedDate(current.x);
+        const rounded = this.getRoundedDate(current.x);
+        const copy = rounded.toString();
         acc[copy] = copy in acc ? [...acc[copy], current] : [current];
         return acc;
       }, {});
@@ -80,7 +87,9 @@ export class Streamgraph extends React.Component {
           }
         }
 
-        const contents = j in layerData ? layerData[j] : [];
+        const jString = j.toString();
+        const contents = jString in layerData ? layerData[jString] : [];
+
         layerResult.push({
           x: new Date(j),
           y: { start, end: start + contents.length },
@@ -91,7 +100,6 @@ export class Streamgraph extends React.Component {
 
       result.push(layerResult);
     });
-
     return result;
   }
 
@@ -106,7 +114,6 @@ export class Streamgraph extends React.Component {
     const prevStart = new Date(copy.setDate(copy.getDate() - 7));
     const prevEnd = new Date(startDate);
     const result = this.parseHelper(prevData, prevStart, prevEnd);
-
     // Add 7 days to result so that we can use the x-axis
     return result.map(resultLayer => {
       return resultLayer.map(data => {
@@ -118,7 +125,6 @@ export class Streamgraph extends React.Component {
   getMaxY(data) {
     let flattened = [];
     data.forEach(layer => flattened.push(...layer));
-
     return flattened.reduce((acc, curr) => {
       return Math.max(acc, curr.y.end);
     }, MIN_Y);
@@ -126,22 +132,18 @@ export class Streamgraph extends React.Component {
 
   getHoverContent = data => {
     const { hoverX, hoverType } = this.state;
-
     const selectedType = data.filter(layerData => {
       return layerData.length && layerData[0].type === hoverType;
     });
-
     if (selectedType.length) {
       const hoverLayer = selectedType[0];
       const filtered = hoverLayer.filter(
         item => item.x.getTime() === hoverX.getTime()
       );
-
       if (filtered.length) {
         return filtered[0].contents;
       }
     }
-
     return [];
   };
 
@@ -166,12 +168,10 @@ export class Streamgraph extends React.Component {
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`)
       .classed("svg-content-responsive", true);
-
     var x = d3
       .scaleTime()
       .domain([startDate, endDate])
       .range([margin, margin + actualWidth]);
-
     var y = d3
       .scaleLinear()
       .domain([0, maxY + 2])
@@ -188,13 +188,13 @@ export class Streamgraph extends React.Component {
     var area = d3
       .area()
       .curve(d3.curveMonotoneX)
-      .x(function(d) {
+      .x(function(d: any) {
         return x(d.x);
       })
-      .y0(function(d) {
+      .y0(function(d: any) {
         return y(d.y.start);
       })
-      .y1(function(d) {
+      .y1(function(d: any) {
         return y(d.y.end);
       });
 
@@ -217,17 +217,15 @@ export class Streamgraph extends React.Component {
       })
       .on("mousemove", d => {
         const CONTENT_SELECTOR = "g.g-content";
-        const node = d3.select(CONTENT_SELECTOR).node();
-        const mouse = d3.mouse(node);
+        const node: any = d3.select(CONTENT_SELECTOR).node();
+        const mouse: any = d3.mouse(node);
         const inverted = x.invert(mouse[0]);
         const xTime = this.getRoundedDate(inverted);
         const data = d.filter(item => item.x.getTime() === xTime.getTime());
         let hoverType;
-
         if (data.length) {
           hoverType = data[0].type;
         }
-
         this.setState({ hoverX: xTime, hoverType });
       })
       .on("mouseout", () => {
@@ -252,17 +250,13 @@ export class Streamgraph extends React.Component {
       const text = hoverContents
         .filter(item => !!item.message)
         .map(item => item.message);
-
       if (text.length) {
         const trimmed = text.slice(0, 5).map(d => `· ${d}`);
-
         if (trimmed.length < text.length) {
           const diff = text.length - trimmed.length;
           trimmed.push(`and ${diff} more...`);
         }
-
         var messageText = content.append("text").attr("class", "message-text");
-
         messageText
           .selectAll("tspan")
           .data(trimmed)
@@ -270,7 +264,7 @@ export class Streamgraph extends React.Component {
           .append("tspan")
           .attr("x", `${margin + 5}`)
           .attr("y", (d, i) => `${1.4 * i}em`)
-          .text(d => d);
+          .text((d: any) => d);
       }
     }
 
@@ -278,13 +272,12 @@ export class Streamgraph extends React.Component {
     var line = d3
       .line()
       .curve(d3.curveMonotoneX)
-      .x(function(d) {
+      .x(function(d: any) {
         return x(d.x);
       })
-      .y(function(d) {
+      .y(function(d: any) {
         return y(d.y.end);
       });
-
     content
       .append("g")
       .selectAll("path")
@@ -297,7 +290,6 @@ export class Streamgraph extends React.Component {
       .attr("stroke-width", "1")
       .attr("stroke-dasharray", "5,2")
       .attr("fill", "none");
-
     addXAxis(content, startDate, endDate, x, actualHeight);
 
     var yAxis = d3.axisLeft(y).ticks(2);
@@ -305,7 +297,6 @@ export class Streamgraph extends React.Component {
       .append("g")
       .attr("transform", `translate(${margin},0)`)
       .call(yAxis);
-
     return div.toReact();
   }
 }

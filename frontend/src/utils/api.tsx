@@ -25,11 +25,9 @@ export const sendEmail = (toEmail, team, weekStart) =>
 
 const getHeader = () => {
   let accessToken = getAccessToken();
-
   if (!accessToken) {
     accessToken = "dummy-token-for-homepage";
   }
-
   return { Authorization: `bearer ${accessToken}` };
 };
 

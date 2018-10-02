@@ -1,10 +1,9 @@
-import React from "react";
-import { Sparkline } from "../Charts/base/sparkline";
+import * as React from "react";
 
 export const getChange = (previous, next) => {
-  let isInfinity = false,
-    direction, // up, down
-    value = 0; // percentage change
+  let isInfinity = false;
+  let direction: "up" | "down";
+  let value = 0; // percentage change
 
   if (previous === 0) {
     if (next !== 0) {
@@ -17,7 +16,6 @@ export const getChange = (previous, next) => {
     value = Math.round(((1.0 * next) / previous - 1) * 100);
     direction = value > 0 ? "up" : "down";
     value = Math.abs(value);
-
     if (value > 1000) {
       isInfinity = true;
     }
@@ -30,7 +28,7 @@ export const getChange = (previous, next) => {
   };
 };
 
-export const Value = ({ previous, next, all, transformer }) => {
+export const Value = ({ previous, next, transformer }) => {
   let change;
   let classModifier = `badge-secondary`;
 
@@ -41,13 +39,11 @@ export const Value = ({ previous, next, all, transformer }) => {
     }
   } else {
     const numChange = Math.round(((1.0 * next) / previous - 1) * 100);
-
     if (numChange > 20) {
       classModifier = `badge-light`;
     } else if (numChange < -20) {
       classModifier = `badge-dark`;
     }
-
     if (numChange > 1000) {
       change = `↑ ∞`;
     } else {
@@ -62,20 +58,17 @@ export const Value = ({ previous, next, all, transformer }) => {
       <small>
         <span className={`m-2 badge ${classModifier}`}>{change}</span>
       </small>
-      {all ? <Sparkline data={all} /> : null}
     </div>
   );
 };
 
-const getStatsData = (period, repos, key, authorFilter) => {
+const getStatsData = (period, repos, key, authorFilter?) => {
   const { next, previous } = period;
   const nextTs = +new Date(next) / 1000;
   const previousTs = +new Date(previous) / 1000;
-
   const repoValues = repos.map(repo => {
     const { authors } = repo.stats;
     let values = [];
-
     if (authors) {
       const filtered = authors.filter(
         author => (authorFilter ? author.login === authorFilter : true)
@@ -118,21 +111,20 @@ const getStatsData = (period, repos, key, authorFilter) => {
   };
 };
 
-export const getCommits = (period, repos, authorFilter) => {
+export const getCommits = (period, repos, authorFilter?) => {
   return getStatsData(period, repos, "commits", authorFilter);
 };
 
-export const getLinesChanged = (period, repos, authorFilter) => {
+export const getLinesChanged = (period, repos, authorFilter?) => {
   const added = getStatsData(period, repos, "lines_added", authorFilter);
   const deleted = getStatsData(period, repos, "lines_deleted", authorFilter);
-
   return {
     previous: added.previous + deleted.previous,
     next: added.next + deleted.next
   };
 };
 
-const getPRsData = (period, repos, key, authorFilter) => {
+const getPRsData = (period, repos, key, authorFilter?) => {
   const repoPRs = repos.map(repo => {
     const data = repo.prs;
     let prs = [];
@@ -142,6 +134,7 @@ const getPRsData = (period, repos, key, authorFilter) => {
       );
       prs = filtered.map(author => author[key]);
     }
+
     return {
       previous: prs.reduce((s, v) => s + v.previous, 0),
       next: prs.reduce((s, v) => s + v.next, 0)
@@ -154,24 +147,26 @@ const getPRsData = (period, repos, key, authorFilter) => {
   };
 };
 
-export const getPRsMerged = (period, repos, authorFilter) => {
+export const getPRsMerged = (period, repos, authorFilter?) => {
   return getPRsData(period, repos, "prs_merged", authorFilter);
 };
 
-export const getPRsOpened = (period, repos, authorFilter) => {
+export const getPRsOpened = (period, repos, authorFilter?) => {
   return getPRsData(period, repos, "prs_opened", authorFilter);
 };
 
 function median(values) {
-  values.sort(function(a, b) {
-    return a - b;
-  });
-  var half = Math.floor(values.length / 2);
-  if (values.length % 2) return values[half];
-  else return (values[half - 1] + values[half]) / 2.0;
+  values.sort((a, b) => a - b);
+  const half = Math.floor(values.length / 2);
+
+  if (values.length % 2) {
+    return values[half];
+  } else {
+    return (values[half - 1] + values[half]) / 2.0;
+  }
 }
 
-export const getPRsTime = (period, repos, authorFilter) => {
+export const getPRsTime = (period, repos, authorFilter?) => {
   const repoPRs = repos.map(repo => {
     const data = repo.prs;
     let prs = [];
@@ -186,7 +181,6 @@ export const getPRsTime = (period, repos, authorFilter) => {
       next: prs.reduce((s, v) => [...s, ...v.next], [])
     };
   });
-
   return {
     previous: median(repoPRs.reduce((s, v) => [...s, ...v.previous], [])),
     next: median(repoPRs.reduce((s, v) => [...s, ...v.next], []))

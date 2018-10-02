@@ -1,122 +1,57 @@
-import React from "react";
-import { Container, Col, Row } from "reactstrap";
-import { getChange, getCommits, getPRsMerged, getPRsOpened } from "./utils";
-import { BarChart } from "../Charts/base/bar";
+import * as React from "react";
+import { Container, Row } from "reactstrap";
 import { isInWeek } from "../../utils/date";
+import { TextColWrapper, ValueColWrapper } from "./common";
+import { getCommits, getPRsMerged, getPRsOpened } from "./utils";
 
-const BaseValueCol = ({ children }) => {
-  return <Col className="border py-3">{children}</Col>;
-};
+interface IPeriod {
+  previous: string;
+  next: string;
+}
 
-const BaseValueTitle = ({ children }) => {
-  return <div className="text-muted small text-uppercase">{children}</div>;
-};
+interface IPullRequestComment {
+  date: string;
+  author: string;
+}
 
-const ValueCol = ({ title, value, summaryText }) => {
-  return (
-    <BaseValueCol>
-      <BaseValueTitle>{title}</BaseValueTitle>
-      <div className="h3 my-1">{value}</div>
-      <div>{summaryText}</div>
-    </BaseValueCol>
-  );
-};
+interface IPullRequest {
+  author: string;
+  comments: IPullRequestComment[];
+  commits: any[];
+  // add the rest
+}
 
-const ValueColWithChart = ({ title, value, summaryText, chartData }) => {
-  const BASE_COLOR = `#ffb154`;
-  const ALPHA_COLOR = `${BASE_COLOR}60`;
-  return (
-    <BaseValueCol>
-      <BaseValueTitle>{title}</BaseValueTitle>
-      <div className="d-flex justify-content-between">
-        <div>
-          <div className="h3 my-1">{value}</div>
-          <div className="text-nowrap">{summaryText}</div>
-        </div>
-        <BarChart
-          data={chartData}
-          color={ALPHA_COLOR}
-          selectedColor={BASE_COLOR}
-        />
-      </div>
-    </BaseValueCol>
-  );
-};
+interface IPullRequestData {
+  repo: string;
+  pulls: IPullRequest[];
+}
 
-const ValueColWrapper = ({ title, previous, next, chartData }) => {
-  const { isInfinity, value, direction } = getChange(previous, next);
-  let summaryText, miniSummary;
-
-  if (isInfinity) {
-    summaryText = "Big jump over last week";
-    miniSummary = "↑ ∞";
-  } else {
-    if (direction === "up") {
-      summaryText = `↑ ${value}% over last week`;
-      miniSummary = `↑ ${value}%`;
-    } else if (direction === "down") {
-      summaryText = `↓ ${value}% from last week`;
-      miniSummary = `↓ ${value}%`;
-    }
-  }
-
-  if (!!chartData) {
-    return (
-      <ValueColWithChart
-        title={title}
-        value={next}
-        summaryText={miniSummary}
-        chartData={chartData}
-      />
-    );
-  } else {
-    return <ValueCol title={title} value={next} summaryText={summaryText} />;
-  }
-};
-
-const TextColWrapper = ({ title, previous, next }) => {
-  let summaryText;
-
-  if (!!next && !!previous) {
-    if (previous === next) {
-      summaryText = "Same as last week";
-    } else {
-      summaryText = `Last week it was ${previous}`;
-    }
-  }
-
-  return <ValueCol title={title} value={next} summaryText={summaryText} />;
-};
-
-const getActiveMember = (period, repos) => {
+const getActiveMember = (period: IPeriod, repos) => {
   // TODO: only commits is a flawed metric?
   const { next, previous } = period;
   const nextTs = +new Date(next) / 1000;
   const previousTs = +new Date(previous) / 1000;
-  let authorWise = {};
+  const authorWise = {};
 
   repos.forEach(({ stats }) => {
     const { is_pending, authors } = stats;
-
     if (!is_pending) {
       authors.forEach(({ login, commits }) => {
-        let previous,
-          next = 0;
+        let previous = 0;
+        let next = 0;
+
         const previousFiltered = commits.filter(
           ({ week, value }) => week === previousTs
         );
         const nextFiltered = commits.filter(
           ({ week, value }) => week === nextTs
         );
-
         if (previousFiltered) {
           previous = previousFiltered[0].value;
         }
-
         if (nextFiltered) {
           next = nextFiltered[0].value;
         }
-
         if (next > 0 || previous > 0) {
           if (login in authorWise) {
             const {
@@ -124,8 +59,8 @@ const getActiveMember = (period, repos) => {
               next: existingNext
             } = authorWise[login];
             authorWise[login] = {
-              previous: existingPrevious + previous,
-              next: existingNext + next
+              next: existingNext + next,
+              previous: existingPrevious + previous
             };
           } else {
             authorWise[login] = { next, previous };
@@ -147,35 +82,30 @@ const getActiveMember = (period, repos) => {
   }
 };
 
-const getActiveRepo = (period, repos) => {
+const getActiveRepo = (period: IPeriod, repos) => {
   // TODO: only commits is a flawed metric?
   const { next, previous } = period;
   const nextTs = +new Date(next) / 1000;
   const previousTs = +new Date(previous) / 1000;
-
   const parsed = repos.map(({ name, stats }) => {
     const { is_pending, authors } = stats;
     let previous = 0,
       next = 0;
-
     if (!is_pending) {
       previous = authors.reduce((acc, current) => {
         const { commits } = current;
         const filtered = commits.filter(
           ({ week, value }) => week === previousTs
         );
-
         if (filtered) {
           return acc + filtered[0].value;
         } else {
           return acc;
         }
       }, 0);
-
       next = authors.reduce((acc, current) => {
         const { commits } = current;
         const filtered = commits.filter(({ week, value }) => week === nextTs);
-
         if (filtered) {
           return acc + filtered[0].value;
         } else {
@@ -183,14 +113,12 @@ const getActiveRepo = (period, repos) => {
         }
       }, 0);
     }
-
     return {
       name,
       previous,
       next
     };
   });
-
   if (parsed.length > 0) {
     const previousRepo = parsed
       .slice()
@@ -200,13 +128,13 @@ const getActiveRepo = (period, repos) => {
   }
 };
 
-const getPRComments = (period, prData) => {
-  const isInPrevious = date => {
+const getPRComments = (period: IPeriod, prData: IPullRequestData[]) => {
+  const isInPrevious = (date: Date) => {
     const { previous } = period;
     return isInWeek(date, previous);
   };
 
-  const isInNext = date => {
+  const isInNext = (date: Date) => {
     const { next } = period;
     return isInWeek(date, next);
   };
@@ -214,28 +142,36 @@ const getPRComments = (period, prData) => {
   const repoWise = prData.map(({ repo, pulls }) => {
     let previous = 0,
       next = 0;
-
     pulls.forEach(({ comments }) => {
       const dates = comments.map(({ author, date }) => {
         return new Date(date);
       });
       const previousValue = dates.filter(date => isInPrevious(date)).length;
       const nextValue = dates.filter(date => isInNext(date)).length;
-
       previous += previousValue;
       next += nextValue;
     });
-
     return { next, previous };
   });
-
   return {
     next: repoWise.reduce((acc, current) => acc + current.next, 0),
     previous: repoWise.reduce((acc, current) => acc + current.previous, 0)
   };
 };
 
-export const SummaryRow = ({ period, repos, prData, isLoading }) => {
+interface ISummaryProps {
+  period: IPeriod;
+  repos: any;
+  prData: IPullRequestData[];
+  isLoading: boolean;
+}
+
+export const SummaryRow: React.SFC<ISummaryProps> = ({
+  period,
+  repos,
+  prData,
+  isLoading
+}) => {
   const commits = getCommits(period, repos);
   const { all: chartData } = commits;
   const prsOpened = getPRsOpened(period, repos);

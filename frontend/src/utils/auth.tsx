@@ -1,27 +1,29 @@
-import jwtDecode from "jwt-decode";
 import Auth0Lock from "auth0-lock";
-import store from "../store";
+import jwtDecode from "jwt-decode";
 import * as actions from "../actions";
+import store from "../store";
+
+type Service = "github" | "bitbucket" | undefined;
 
 const AUTH0_DOMAIN = "karigari.auth0.com";
 const AUTH0_AUDIENCE = "http://gitstats-dev/";
 const AUTH0_CLIENT_ID = "gWOtsbTPZIPqdbXogY9WaMjhEa7ixVyE";
 
 export class AuthWidget {
-  lock = new Auth0Lock(AUTH0_CLIENT_ID, AUTH0_DOMAIN, {
+  private lock = new Auth0Lock(AUTH0_CLIENT_ID, AUTH0_DOMAIN, {
     auth: {
       params: {
-        scope: "openid profile email",
-        audience: AUTH0_AUDIENCE
+        audience: AUTH0_AUDIENCE,
+        scope: "openid profile email"
       },
-      responseType: "token id_token",
       redirect: false,
+      responseType: "token id_token",
       sso: false
     },
+    autoclose: true,
     theme: {
       primaryColor: "#3a99d8"
-    },
-    autoclose: true
+    }
   });
 
   constructor() {
@@ -30,67 +32,58 @@ export class AuthWidget {
         if (error) {
           return;
         }
-
         this.setSession(authResult);
         store.dispatch(actions.authenticated());
       });
     });
   }
 
-  login = () => {
+  public login = () => {
     this.lock.show();
   };
 
-  setSession = authResult => {
-    let expiresAt = JSON.stringify(
+  private setSession = authResult => {
+    const expiresAt = JSON.stringify(
       authResult.expiresIn * 1000 + new Date().getTime()
     );
-    Storage.set("access_token", authResult.accessToken);
-    Storage.set("id_token", authResult.idToken);
-    Storage.set("expires_at", expiresAt);
+    window.localStorage.setItem("access_token", authResult.accessToken);
+    window.localStorage.setItem("id_token", authResult.idToken);
+    window.localStorage.setItem("expires_at", expiresAt);
   };
 }
 
 export const isAuthenticated = () => {
   // Check whether the current time is past the token's expiry time
-  let expiresAt = JSON.parse(Storage.get("expires_at"));
+  const expiresAt = JSON.parse(window.localStorage.getItem("expires_at"));
   return new Date().getTime() < expiresAt;
 };
 
 export const getUserProfile = () => {
-  const idToken = Storage.get("id_token");
+  const idToken = window.localStorage.getItem("id_token");
   return idToken ? jwtDecode(idToken) : {};
 };
 
 export const getAccessToken = () => {
-  return Storage.get("access_token");
+  return window.localStorage.getItem("access_token");
 };
 
-export const getGitService = () => {
+export const getGitService = (): Service => {
   const { sub } = getUserProfile();
 
   if (!!sub) {
-    if (sub.indexOf("github") >= 0) return "github";
-    if (sub.indexOf("bitbucket") >= 0) return "bitbucket";
+    if (sub.indexOf("github") >= 0) {
+      return "github";
+    }
+    if (sub.indexOf("bitbucket") >= 0) {
+      return "bitbucket";
+    }
   }
+
+  return undefined;
 };
 
 export const logout = () => {
-  Storage.remove("access_token");
-  Storage.remove("id_token");
-  Storage.remove("expires_at");
+  window.localStorage.removeItem("access_token");
+  window.localStorage.removeItem("id_token");
+  window.localStorage.removeItem("expires_at");
 };
-
-class Storage {
-  static get(key) {
-    return window.localStorage.getItem(key);
-  }
-
-  static remove(key) {
-    return window.localStorage.removeItem(key);
-  }
-
-  static set(key, value) {
-    return window.localStorage.setItem(key, value);
-  }
-}

@@ -40,6 +40,7 @@
     "@types/react-faux-dom": "^4.1.1",
     "@types/react-redux": "^6.0.9",
     "@types/react-router-dom": "^4.3.1",
+    "@types/reactstrap": "^6.4.0",
     "typescript": "^3.1.1"
   }
 }

@@ -1,11 +1,11 @@
-import React from "react";
+import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
-import { SummaryRow } from "./summary";
+import { getChartBounds } from "../../utils/date";
+import { CommitChartContainer } from "../Charts/commits";
+import { PRChartContainer } from "../Charts/pulls";
 import { Members } from "./members";
 import { Repos } from "./repos";
-import { getChartBounds } from "../../utils/date";
-import { PRChartContainer } from "../Charts/pulls";
-import { CommitChartContainer } from "../Charts/commits";
+import { SummaryRow } from "./summary";
 
 export const Container = props => {
   const {

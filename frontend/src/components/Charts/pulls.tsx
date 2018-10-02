@@ -1,14 +1,28 @@
-import React from "react";
-import { TimelineChart } from "./base/timeline";
+import * as React from "react";
+import { ChartDropdown, TitleDiv } from "../Charts/utils";
 import { Pulls } from "../Report/pulls";
-import { TitleDiv, ChartDropdown } from "../Charts/utils";
+import { TimelineChart } from "./base/timeline";
 
-export class PRChartContainer extends React.Component {
+type PRChartContainerState = {
+  selectedRepo: string;
+};
+
+type PRChartContainerProps = {
+  startDate: Date;
+  endDate: Date;
+  data: any;
+  reportJson: any;
+  isLoading: boolean;
+};
+
+export class PRChartContainer extends React.Component<
+  PRChartContainerProps,
+  PRChartContainerState
+> {
   state = { selectedRepo: "" };
 
   getDefaultSelected = () => {
     const { data } = this.props;
-
     if (data) {
       let selectedRepo = "";
       const filtered = data
@@ -18,11 +32,9 @@ export class PRChartContainer extends React.Component {
         }))
         .filter(item => item.value > 0)
         .sort((a, b) => b.value - a.value);
-
       if (filtered.length) {
         selectedRepo = filtered[0].text;
       }
-
       return selectedRepo;
     }
   };
@@ -45,7 +57,6 @@ export class PRChartContainer extends React.Component {
     const { repos: reportRepos } = reportJson;
     const { selectedRepo: stateSelected } = this.state;
     const selectedRepo = stateSelected || this.getDefaultSelected();
-
     const repos = data.map(({ repo, pulls }) => ({
       text: repo,
       value: this.filteredPulls(pulls).length

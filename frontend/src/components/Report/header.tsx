@@ -1,7 +1,7 @@
-import React from "react";
+import * as React from "react";
 import { Container } from "reactstrap";
+import { getLabels, getWeek } from "../../utils/date";
 import { TeamName } from "../Common";
-import { getWeek, getLabels } from "../../utils/date";
 
 const ExpandedDateLabel = ({ input }) => {
   const { day, date } = getLabels(input);
@@ -24,8 +24,20 @@ const RangeLabel = ({ start, end }) => {
   );
 };
 
-export class Header extends React.Component {
-  render() {
+interface ITeam {
+  name: string;
+  avatar: string;
+  login: string;
+  service: string;
+}
+
+interface IHeaderProps {
+  weekStart: string;
+  team: ITeam;
+}
+
+export class Header extends React.Component<IHeaderProps, {}> {
+  public render() {
     const { team, weekStart } = this.props;
     return (
       <Container>
