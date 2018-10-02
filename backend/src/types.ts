@@ -15,8 +15,6 @@ export abstract class ServiceClient {
 }
 
 export type Report = {
-  period: Period;
-  owner: Owner;
   members: Member[];
   repos: RepoForReport[];
 };
@@ -62,8 +60,6 @@ export type RepoWithStats = Repo & { stats: RepoStats };
 
 export type RepoForReport = Repo & { stats: RepoStats; prs: RepoPR[] };
 
-// TODO(arjun): we can potentially add the reviewer
-// and also the time taken to review
 export type RepoPR = {
   author: string;
   prs_opened: {

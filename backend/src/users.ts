@@ -8,7 +8,7 @@ import {
 import BitbucketService from "./services/bitbucket";
 import GithubService from "./services/github";
 import * as moment from "moment";
-import { ServiceClient } from "./services/types";
+import { ServiceClient } from "./types";
 
 enum Service {
   github = "github",

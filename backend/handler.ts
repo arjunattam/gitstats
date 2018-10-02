@@ -50,7 +50,7 @@ const buildResponse = (event, message: any) => {
 };
 
 const getCacheKey = (path: string, userId: string, weekStart: string) => {
-  const suffix = "deploy-3";
+  const suffix = "5";
   return `${userId}-${path}-${weekStart}-${suffix}`;
 };
 

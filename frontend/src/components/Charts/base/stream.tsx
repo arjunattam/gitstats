@@ -24,130 +24,12 @@ export class Streamgraph extends React.Component<
   IStreamgraphProps,
   IStreamgraphState
 > {
-  state = {
-    hoverX: null,
-    hoverType: null
+  public state = {
+    hoverType: null,
+    hoverX: null
   };
 
-  getRoundedDate = date => {
-    const parsed = new Date(date);
-    parsed.setUTCSeconds(0);
-    parsed.setUTCMilliseconds(0);
-    parsed.setUTCMinutes(0);
-    parsed.setUTCHours(
-      parsed.getUTCHours() - (parsed.getUTCHours() % INTERVAL_SIZE)
-    );
-    const lower = new Date(parsed);
-    const upper = plusHours(lower, 4);
-    const d = new Date(date);
-    const sorted = [lower, upper].sort((a, b) => {
-      const distanceA = Math.abs(d.getTime() - a.getTime());
-      const distanceB = Math.abs(d.getTime() - b.getTime());
-      return distanceA - distanceB;
-    });
-    return sorted[0];
-  };
-
-  parseHelper(data, startDate, endDate) {
-    let result = [];
-
-    data.forEach(layer => {
-      let layerType;
-      if (layer.length) {
-        layerType = layer[0].type;
-      }
-
-      const layerData = layer.reduce((acc, current) => {
-        const rounded = this.getRoundedDate(current.x);
-        const copy = rounded.toString();
-        acc[copy] = copy in acc ? [...acc[copy], current] : [current];
-        return acc;
-      }, {});
-
-      let layerResult = [];
-
-      // Get y-start from previous
-      // for stacking behavior
-      let previous = [];
-      if (result.length > 0) {
-        previous = result[result.length - 1];
-      }
-
-      const copyStart = new Date(startDate);
-      const copyEnd = new Date(endDate);
-
-      for (let i = copyStart; i <= copyEnd; i = plusHours(i, INTERVAL_SIZE)) {
-        const j = new Date(i);
-        let start = 0;
-
-        if (previous) {
-          const filtered = previous.filter(p => p.x.getTime() === j.getTime());
-          if (filtered.length > 0) {
-            start = filtered[0].y.end;
-          }
-        }
-
-        const jString = j.toString();
-        const contents = jString in layerData ? layerData[jString] : [];
-
-        layerResult.push({
-          x: new Date(j),
-          y: { start, end: start + contents.length },
-          contents,
-          type: layerType
-        });
-      }
-
-      result.push(layerResult);
-    });
-    return result;
-  }
-
-  parsedData() {
-    const { data, startDate, endDate } = this.props;
-    return this.parseHelper(data, startDate, endDate);
-  }
-
-  parsedPrevData() {
-    const { prevData, startDate } = this.props;
-    const copy = new Date(startDate);
-    const prevStart = new Date(copy.setDate(copy.getDate() - 7));
-    const prevEnd = new Date(startDate);
-    const result = this.parseHelper(prevData, prevStart, prevEnd);
-    // Add 7 days to result so that we can use the x-axis
-    return result.map(resultLayer => {
-      return resultLayer.map(data => {
-        return { ...data, x: new Date(data.x.setDate(data.x.getDate() + 7)) };
-      });
-    });
-  }
-
-  getMaxY(data) {
-    let flattened = [];
-    data.forEach(layer => flattened.push(...layer));
-    return flattened.reduce((acc, curr) => {
-      return Math.max(acc, curr.y.end);
-    }, MIN_Y);
-  }
-
-  getHoverContent = data => {
-    const { hoverX, hoverType } = this.state;
-    const selectedType = data.filter(layerData => {
-      return layerData.length && layerData[0].type === hoverType;
-    });
-    if (selectedType.length) {
-      const hoverLayer = selectedType[0];
-      const filtered = hoverLayer.filter(
-        item => item.x.getTime() === hoverX.getTime()
-      );
-      if (filtered.length) {
-        return filtered[0].contents;
-      }
-    }
-    return [];
-  };
-
-  render() {
+  public render() {
     const div = new ReactFauxDOM.Element("div");
     const { startDate, endDate } = this.props;
     const data = this.parsedData();
@@ -155,24 +37,24 @@ export class Streamgraph extends React.Component<
     const maxY = this.getMaxY([...data, ...prevData]);
     const hoverContents = this.getHoverContent(data);
 
-    var width = 600;
-    var height = 150 + LEGEND_PADDING;
-    var margin = 25;
-    var actualHeight = height - margin - LEGEND_PADDING;
-    var actualWidth = width - 2 * margin;
+    const width = 600;
+    const height = 150 + LEGEND_PADDING;
+    const margin = 25;
+    const actualHeight = height - margin - LEGEND_PADDING;
+    const actualWidth = width - 2 * margin;
 
-    let svg = d3
+    const svg = d3
       .select(div)
       .classed("svg-container", true)
       .append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`)
       .classed("svg-content-responsive", true);
-    var x = d3
+    const x = d3
       .scaleTime()
       .domain([startDate, endDate])
       .range([margin, margin + actualWidth]);
-    var y = d3
+    const y = d3
       .scaleLinear()
       .domain([0, maxY + 2])
       .range([actualHeight, 0]);
@@ -180,23 +62,17 @@ export class Streamgraph extends React.Component<
     addLegend(svg, width, COLORS);
 
     // Chart content
-    var content = svg
+    const content = svg
       .append("g")
       .classed("g-content", true)
       .attr("transform", `translate(0,${LEGEND_PADDING})`);
 
-    var area = d3
+    const area = d3
       .area()
       .curve(d3.curveMonotoneX)
-      .x(function(d: any) {
-        return x(d.x);
-      })
-      .y0(function(d: any) {
-        return y(d.y.start);
-      })
-      .y1(function(d: any) {
-        return y(d.y.end);
-      });
+      .x((d: any) => x(d.x))
+      .y0((d: any) => y(d.y.start))
+      .y1((d: any) => y(d.y.end));
 
     content
       .append("g")
@@ -256,7 +132,9 @@ export class Streamgraph extends React.Component<
           const diff = text.length - trimmed.length;
           trimmed.push(`and ${diff} more...`);
         }
-        var messageText = content.append("text").attr("class", "message-text");
+        const messageText = content
+          .append("text")
+          .attr("class", "message-text");
         messageText
           .selectAll("tspan")
           .data(trimmed)
@@ -269,15 +147,11 @@ export class Streamgraph extends React.Component<
     }
 
     // Plot previous data - with no fill
-    var line = d3
+    const line = d3
       .line()
       .curve(d3.curveMonotoneX)
-      .x(function(d: any) {
-        return x(d.x);
-      })
-      .y(function(d: any) {
-        return y(d.y.end);
-      });
+      .x((d: any) => x(d.x))
+      .y((d: any) => y(d.y.end));
     content
       .append("g")
       .selectAll("path")
@@ -292,11 +166,129 @@ export class Streamgraph extends React.Component<
       .attr("fill", "none");
     addXAxis(content, startDate, endDate, x, actualHeight);
 
-    var yAxis = d3.axisLeft(y).ticks(2);
+    const yAxis = d3.axisLeft(y).ticks(2);
     content
       .append("g")
       .attr("transform", `translate(${margin},0)`)
       .call(yAxis);
     return div.toReact();
   }
+
+  private getRoundedDate = date => {
+    const parsed = new Date(date);
+    parsed.setUTCSeconds(0);
+    parsed.setUTCMilliseconds(0);
+    parsed.setUTCMinutes(0);
+    parsed.setUTCHours(
+      parsed.getUTCHours() - (parsed.getUTCHours() % INTERVAL_SIZE)
+    );
+    const lower = new Date(parsed);
+    const upper = plusHours(lower, 4);
+    const d = new Date(date);
+    const sorted = [lower, upper].sort((a, b) => {
+      const distanceA = Math.abs(d.getTime() - a.getTime());
+      const distanceB = Math.abs(d.getTime() - b.getTime());
+      return distanceA - distanceB;
+    });
+    return sorted[0];
+  };
+
+  private parseHelper(data, startDate, endDate) {
+    const result = [];
+
+    data.forEach(layer => {
+      let layerType;
+      if (layer.length) {
+        layerType = layer[0].type;
+      }
+
+      const layerData = layer.reduce((acc, current) => {
+        const rounded = this.getRoundedDate(current.x);
+        const copy = rounded.toString();
+        acc[copy] = copy in acc ? [...acc[copy], current] : [current];
+        return acc;
+      }, {});
+
+      const layerResult = [];
+
+      // Get y-start from previous
+      // for stacking behavior
+      let previous = [];
+      if (result.length > 0) {
+        previous = result[result.length - 1];
+      }
+
+      const copyStart = new Date(startDate);
+      const copyEnd = new Date(endDate);
+
+      for (let i = copyStart; i <= copyEnd; i = plusHours(i, INTERVAL_SIZE)) {
+        const j = new Date(i);
+        let start = 0;
+
+        if (previous) {
+          const filtered = previous.filter(p => p.x.getTime() === j.getTime());
+          if (filtered.length > 0) {
+            start = filtered[0].y.end;
+          }
+        }
+
+        const jString = j.toString();
+        const contents = jString in layerData ? layerData[jString] : [];
+
+        layerResult.push({
+          contents,
+          type: layerType,
+          x: new Date(j),
+          y: { start, end: start + contents.length }
+        });
+      }
+
+      result.push(layerResult);
+    });
+    return result;
+  }
+
+  private parsedData() {
+    const { data, startDate, endDate } = this.props;
+    return this.parseHelper(data, startDate, endDate);
+  }
+
+  private parsedPrevData() {
+    const { prevData, startDate } = this.props;
+    const copy = new Date(startDate);
+    const prevStart = new Date(copy.setDate(copy.getDate() - 7));
+    const prevEnd = new Date(startDate);
+    const result = this.parseHelper(prevData, prevStart, prevEnd);
+    // Add 7 days to result so that we can use the x-axis
+    return result.map(resultLayer => {
+      return resultLayer.map(data => {
+        return { ...data, x: new Date(data.x.setDate(data.x.getDate() + 7)) };
+      });
+    });
+  }
+
+  private getMaxY(data) {
+    const flattened = [];
+    data.forEach(layer => flattened.push(...layer));
+    return flattened.reduce((acc, curr) => {
+      return Math.max(acc, curr.y.end);
+    }, MIN_Y);
+  }
+
+  private getHoverContent = data => {
+    const { hoverX, hoverType } = this.state;
+    const selectedType = data.filter(layerData => {
+      return layerData.length && layerData[0].type === hoverType;
+    });
+    if (selectedType.length) {
+      const hoverLayer = selectedType[0];
+      const filtered = hoverLayer.filter(
+        item => item.x.getTime() === hoverX.getTime()
+      );
+      if (filtered.length) {
+        return filtered[0].contents;
+      }
+    }
+    return [];
+  };
 }

@@ -1,18 +1,31 @@
-import React from "react";
+import * as React from "react";
 import { connect } from "react-redux";
 import {
-  getReport,
-  getRepoStats,
+  getCommits,
   getPRActivity,
-  getCommits
+  getReport,
+  getRepoStats
 } from "../../utils/api";
-import { getWeekStart } from "../../utils/date";
+import { getPeriod, getWeekStart } from "../../utils/date";
 import { Container } from "./container";
-import { Header } from "./header";
 import { EmailSender } from "./email";
+import { Header } from "./header";
 
-export class Report extends React.Component {
-  state = {
+interface IReportProps {
+  teamLogin: string;
+  team?: ITeam;
+}
+
+interface IReportState {
+  weekStart: string;
+  prActivityData: IPullRequestData[];
+  commitsData: any;
+  reportJson: any;
+  isLoading: boolean;
+}
+
+export class Report extends React.Component<IReportProps, IReportState> {
+  public state = {
     weekStart: "",
     isLoading: true,
     reportJson: {
@@ -24,31 +37,58 @@ export class Report extends React.Component {
     commitsData: []
   };
 
-  update() {
-    const { owner: team } = this.props;
+  public componentDidUpdate(prevProps: IReportProps, prevState) {
+    const { teamLogin: newOwner } = this.props;
+    const { teamLogin: prevOwner } = prevProps;
+
+    if (newOwner !== prevOwner) {
+      this.setState({ reportJson: {}, isLoading: true });
+      this.update();
+    }
+  }
+
+  public componentDidMount() {
+    this.setState({ weekStart: getWeekStart() }, () => this.update());
+  }
+
+  public render() {
+    const { team, teamLogin } = this.props;
+    const { weekStart } = this.state;
+    const period = getPeriod(weekStart);
+
+    return (
+      <div className="py-4">
+        <Header team={team} weekStart={weekStart} />
+        <Container {...this.state} period={period} />
+        <EmailSender teamLogin={teamLogin} weekStart={weekStart} />
+      </div>
+    );
+  }
+
+  private update() {
+    const { teamLogin } = this.props;
     const { weekStart } = this.state;
 
-    getReport(team.login, weekStart).then(response => {
+    getReport(teamLogin, weekStart).then(response => {
       const { repos } = response.message;
       const pendingRepos = repos.filter(repo => repo.stats.is_pending);
       pendingRepos.forEach(repo => {
         setTimeout(() => this.updateRepo(repo.name), 1000);
       });
-
       return this.setState({
-        reportJson: response.message,
-        isLoading: false
+        isLoading: false,
+        reportJson: response.message
       });
     });
 
-    getPRActivity(team.login, weekStart).then(response => {
+    getPRActivity(teamLogin, weekStart).then(response => {
       const { message } = response;
       this.setState({
         prActivityData: message
       });
     });
 
-    getCommits(team.login, weekStart).then(response => {
+    getCommits(teamLogin, weekStart).then(response => {
       const { message } = response;
       this.setState({
         commitsData: message
@@ -56,11 +96,11 @@ export class Report extends React.Component {
     });
   }
 
-  updateRepo(repo) {
-    const { owner: team } = this.props;
+  private updateRepo(repo) {
+    const { teamLogin } = this.props;
     const { weekStart } = this.state;
 
-    getRepoStats(team.login, repo, weekStart)
+    getRepoStats(teamLogin, repo, weekStart)
       .then(response => {
         const { stats } = response.message;
         const { is_pending } = stats;
@@ -74,6 +114,7 @@ export class Report extends React.Component {
               return r;
             }
           });
+
           this.setState({
             reportJson: {
               ...this.state.reportJson,
@@ -89,49 +130,19 @@ export class Report extends React.Component {
         setTimeout(() => this.updateRepo(repo), 1000);
       });
   }
-
-  componentDidUpdate(prevProps, prevState) {
-    const { owner: newOwner } = this.props;
-    const { owner: prevOwner } = prevProps;
-
-    if (newOwner.login !== prevOwner.login) {
-      this.setState({ reportJson: {}, isLoading: true });
-      this.update();
-    }
-  }
-
-  componentDidMount() {
-    this.setState({ weekStart: getWeekStart() }, () => this.update());
-  }
-
-  render() {
-    const { owner: team } = this.props;
-    const { weekStart } = this.state;
-    return (
-      <div className="py-4">
-        <Header team={team} weekStart={weekStart} />
-        <Container {...this.state} />
-        <EmailSender team={team} weekStart={weekStart} />
-      </div>
-    );
-  }
 }
 
 const ReportPageContainer = ({ match, data }) => {
   const { teams: storeTeams } = data;
   const { name: selectedLogin } = match.params;
-  const filteredTeams = storeTeams.filter(team => team.login === selectedLogin);
-  let owner = {
-    login: selectedLogin
-  };
+  const filteredTeams = storeTeams.filter(t => t.login === selectedLogin);
+  let team: ITeam;
 
   if (filteredTeams.length > 0) {
-    // We have this team in store
-    const selectedTeam = filteredTeams[0];
-    owner = { ...owner, ...selectedTeam };
+    team = filteredTeams[0];
   }
 
-  return <Report owner={owner} />;
+  return <Report team={team} teamLogin={selectedLogin} />;
 };
 
 function mapStateToProps(state) {

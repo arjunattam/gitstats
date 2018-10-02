@@ -1,5 +1,5 @@
 import * as moment from "moment";
-import * as types from "./types";
+import * as types from "../types";
 const rp = require("request-promise-native");
 const url = require("url");
 import { getComparativeDurations, getComparativeCounts } from "./utils";
@@ -117,12 +117,10 @@ export default class BitbucketService extends types.ServiceClient {
     return values.join(`&${key}=`);
   }
 
-  report = () => {
-    return Promise.all([this.repos(), this.members(), this.ownerInfo()])
+  report = (): Promise<types.Report> => {
+    return Promise.all([this.repos(), this.members()])
       .then(responses => {
         return {
-          period: { previous: this.periodPrev, next: this.periodNext },
-          owner: responses[2],
           members: responses[1],
           repos: responses[0]
         };

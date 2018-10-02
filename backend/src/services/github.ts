@@ -1,6 +1,6 @@
 import { GithubAPICaller } from "./api";
 import { getComparativeCounts, getComparativeDurations } from "./utils";
-import * as types from "./types";
+import * as types from "../types";
 import * as moment from "moment";
 
 export default class GithubService extends types.ServiceClient {
@@ -22,14 +22,11 @@ export default class GithubService extends types.ServiceClient {
   }
 
   report = (): Promise<types.Report> => {
-    return Promise.all([this.repos(), this.members(), this.ownerInfo()])
+    return Promise.all([this.repos(), this.members()])
       .then(responses => {
         const repos = responses[0];
         const members = responses[1];
-        const owner = responses[2];
         return {
-          period: { previous: this.periodPrev, next: this.periodNext },
-          owner,
           members,
           repos
         };

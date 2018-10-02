@@ -24,7 +24,7 @@ const Home = () => (
     <div>
       <Container>
         <div className="py-3">
-          <Report owner={SENTRY_TEAM} />
+          <Report team={SENTRY_TEAM} teamLogin={SENTRY_TEAM.login} />
         </div>
       </Container>
     </div>

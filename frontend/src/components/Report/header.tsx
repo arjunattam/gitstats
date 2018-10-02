@@ -24,13 +24,6 @@ const RangeLabel = ({ start, end }) => {
   );
 };
 
-interface ITeam {
-  name: string;
-  avatar: string;
-  login: string;
-  service: string;
-}
-
 interface IHeaderProps {
   weekStart: string;
   team: ITeam;

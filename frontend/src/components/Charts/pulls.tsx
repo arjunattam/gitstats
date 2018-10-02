@@ -3,56 +3,25 @@ import { ChartDropdown, TitleDiv } from "../Charts/utils";
 import { Pulls } from "../Report/pulls";
 import { TimelineChart } from "./base/timeline";
 
-type PRChartContainerState = {
+interface IPRChartContainerState {
   selectedRepo: string;
-};
+}
 
-type PRChartContainerProps = {
+interface IPRChartContainerProps {
   startDate: Date;
   endDate: Date;
   data: any;
   reportJson: any;
   isLoading: boolean;
-};
+}
 
 export class PRChartContainer extends React.Component<
-  PRChartContainerProps,
-  PRChartContainerState
+  IPRChartContainerProps,
+  IPRChartContainerState
 > {
-  state = { selectedRepo: "" };
+  public state = { selectedRepo: "" };
 
-  getDefaultSelected = () => {
-    const { data } = this.props;
-    if (data) {
-      let selectedRepo = "";
-      const filtered = data
-        .map(({ repo, pulls }) => ({
-          text: repo,
-          value: this.filteredPulls(pulls).length
-        }))
-        .filter(item => item.value > 0)
-        .sort((a, b) => b.value - a.value);
-      if (filtered.length) {
-        selectedRepo = filtered[0].text;
-      }
-      return selectedRepo;
-    }
-  };
-
-  changeRepo = repo => {
-    this.setState({ selectedRepo: repo });
-  };
-
-  filteredPulls = pulls => {
-    const { endDate, startDate } = this.props;
-    return pulls.filter(
-      pr =>
-        new Date(pr.created_at) < endDate &&
-        (pr.closed_at === null || new Date(pr.closed_at) > startDate)
-    );
-  };
-
-  render() {
+  public render() {
     const { data, reportJson, isLoading } = this.props;
     const { repos: reportRepos } = reportJson;
     const { selectedRepo: stateSelected } = this.state;
@@ -95,4 +64,35 @@ export class PRChartContainer extends React.Component<
       </div>
     );
   }
+
+  private getDefaultSelected = () => {
+    const { data } = this.props;
+    if (data) {
+      let selectedRepo = "";
+      const filtered = data
+        .map(({ repo, pulls }) => ({
+          text: repo,
+          value: this.filteredPulls(pulls).length
+        }))
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value);
+      if (filtered.length) {
+        selectedRepo = filtered[0].text;
+      }
+      return selectedRepo;
+    }
+  };
+
+  private changeRepo = repo => {
+    this.setState({ selectedRepo: repo });
+  };
+
+  private filteredPulls = pulls => {
+    const { endDate, startDate } = this.props;
+    return pulls.filter(
+      pr =>
+        new Date(pr.created_at) < endDate &&
+        (pr.closed_at === null || new Date(pr.closed_at) > startDate)
+    );
+  };
 }

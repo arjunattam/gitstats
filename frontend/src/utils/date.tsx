@@ -6,6 +6,7 @@ import {
   isWithinRange,
   parse,
   startOfWeek,
+  subDays,
   subWeeks
 } from "date-fns";
 
@@ -50,4 +51,11 @@ export const isInWeek = (date, weekStart) => {
 export const getChartWeek = weekUnix => {
   const parsed = parse(+weekUnix * 1000);
   return format(parsed, "MMM D");
+};
+
+export const getPeriod = (weekStart): IPeriod => {
+  // TODO: this should return in UTC, not in local time zone
+  const nextParsed = parse(`${weekStart}T00:00:00Z`);
+  const prevParsed = subDays(nextParsed, 7);
+  return { next: format(nextParsed), previous: format(prevParsed) };
 };
