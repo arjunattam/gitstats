@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import Header from "./Header";
 import Home from "./Home";
 import PrivateRoute from "./PrivateRoute";
@@ -11,7 +11,9 @@ import store from "../store";
 import { Route } from "react-router-dom";
 import "./App.css";
 
-class App extends React.Component {
+class App extends React.Component<{}, {}> {
+  state = {};
+
   componentDidMount() {
     store.dispatch(actions.initializeAuth());
   }
