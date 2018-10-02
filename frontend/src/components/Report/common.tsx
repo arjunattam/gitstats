@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Container as BootstrapContainer } from "reactstrap";
 import { Col } from "reactstrap";
 import { BarChart } from "../Charts/base/bar";
 import { getChange } from "./utils";
@@ -46,7 +47,7 @@ interface IValueColProps {
   title: string;
   previous: string | number;
   next: string | number;
-  chartData?: any;
+  chartData?: IWeekValues[];
 }
 
 export const ValueColWrapper: React.SFC<IValueColProps> = ({
@@ -96,4 +97,12 @@ export const TextColWrapper = ({ title, previous, next }) => {
     }
   }
   return <ValueCol title={title} value={next} summaryText={summaryText} />;
+};
+
+export const LighterContainer = ({ children }) => {
+  return (
+    <div className="my-4 py-4 border-top border-bottom bg-light">
+      <BootstrapContainer>{children}</BootstrapContainer>
+    </div>
+  );
 };

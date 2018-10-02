@@ -39,7 +39,7 @@ export class Streamgraph extends React.Component<
 
     const width = 600;
     const height = 150 + LEGEND_PADDING;
-    const margin = 25;
+    const margin = 20;
     const actualHeight = height - margin - LEGEND_PADDING;
     const actualWidth = width - 2 * margin;
 

@@ -108,3 +108,63 @@ export class ChartDropdown extends React.Component<
       : text;
   };
 }
+
+// tslint:disable-next-line:max-classes-per-file
+export class DropdownWithoutValues extends React.Component<
+  IChartDropdownProps,
+  IChartDropdownState
+> {
+  public state = {
+    isOpen: false
+  };
+
+  public render() {
+    const { items, onSelect, allText, onSelectAll } = this.props;
+    const { isOpen } = this.state;
+
+    return (
+      <Dropdown
+        className="d-inline-block mx-2"
+        size="sm"
+        isOpen={isOpen}
+        toggle={this.toggle}
+      >
+        <DropdownToggle caret={true}>{this.getSelectedText()}</DropdownToggle>
+        <DropdownMenu>
+          {allText ? (
+            <div>
+              <DropdownItem onClick={onSelectAll}>{allText}</DropdownItem>
+              <DropdownItem divider={true} />
+            </div>
+          ) : null}
+
+          {items.map(item => {
+            const { text } = item;
+            return (
+              <DropdownItem key={text} onClick={() => onSelect(text)}>
+                {this.getLabel(text)}
+              </DropdownItem>
+            );
+          })}
+        </DropdownMenu>
+      </Dropdown>
+    );
+  }
+
+  private toggle = () => {
+    this.setState(prevState => ({
+      isOpen: !prevState.isOpen
+    }));
+  };
+
+  private getSelectedText = () => {
+    const { selected } = this.props;
+    return this.getLabel(selected);
+  };
+
+  private getLabel = text => {
+    return text in HUMAN_READABLE_MODIFIERS
+      ? HUMAN_READABLE_MODIFIERS[text]
+      : text;
+  };
+}

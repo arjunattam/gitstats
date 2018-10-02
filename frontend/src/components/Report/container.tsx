@@ -2,6 +2,7 @@ import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { getChartBounds } from "../../utils/date";
 import { PRChartContainer } from "../Charts/pulls";
+import { LighterContainer } from "./common";
 import { Members } from "./members";
 import { Repos } from "./repos";
 import { SummaryContainer } from "./summary";
@@ -24,13 +25,14 @@ export const Container: React.SFC<IContainerProps> = ({
   weekStart
 }) => {
   const chartBounds = getChartBounds(weekStart);
-  const { repos } = reportJson;
+  const { repos, members } = reportJson;
   // TODO: period is not in UTC
   return (
     <div>
       <SummaryContainer
         period={period}
         repos={repos}
+        members={members}
         isLoading={isLoading}
         prActivityData={prActivityData}
         commitsData={commitsData}
@@ -44,9 +46,12 @@ export const Container: React.SFC<IContainerProps> = ({
           isLoading={isLoading}
           data={prActivityData}
         />
+      </BootstrapContainer>
+
+      <LighterContainer>
         <Members {...reportJson} period={period} isLoading={isLoading} />
         <Repos {...reportJson} period={period} isLoading={isLoading} />
-      </BootstrapContainer>
+      </LighterContainer>
     </div>
   );
 };

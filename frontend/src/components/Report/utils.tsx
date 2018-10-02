@@ -107,7 +107,7 @@ const getStatsData = (period, repos, key, authorFilter?) => {
   return {
     previous: repoValues.reduce((s, v) => s + v.previous, 0),
     next: repoValues.reduce((s, v) => s + v.next, 0),
-    all
+    chartData: all
   };
 };
 
