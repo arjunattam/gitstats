@@ -44,6 +44,7 @@ export type Owner = {
 
 export type Repo = {
   name: string;
+  url: string;
   description: string;
   is_private: boolean;
   is_fork: boolean;

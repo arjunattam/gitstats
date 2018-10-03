@@ -6,8 +6,8 @@ import {
   getRepoStats
 } from "../../utils/api";
 import { getPeriod, getWeekStart } from "../../utils/date";
-import { Container } from "./container";
-import { EmailSender } from "./email";
+import { ReportContainer } from "./container";
+import { EmailContainer } from "./email";
 import { Header } from "./header";
 
 interface IReportProps {
@@ -58,10 +58,10 @@ export class Report extends React.Component<IReportProps, IReportState> {
     const period = getPeriod(weekStart);
 
     return (
-      <div className="py-4">
+      <div>
         <Header team={team} weekStart={weekStart} />
-        <Container {...this.state} period={period} />
-        <EmailSender teamLogin={teamLogin} weekStart={weekStart} />
+        <ReportContainer {...this.state} period={period} />
+        <EmailContainer teamLogin={teamLogin} weekStart={weekStart} />
       </div>
     );
   }

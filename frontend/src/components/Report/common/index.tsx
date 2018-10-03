@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { Col } from "reactstrap";
-import { BarChart } from "../Charts/base/bar";
-import { getChange } from "./utils";
+import { BarChart } from "../../Charts/base/bar";
+import { getChange } from "../utils";
 
 const BaseValueCol = ({ children }) => {
   return <Col className="border py-3">{children}</Col>;
@@ -48,15 +48,18 @@ interface IValueColProps {
   previous: string | number;
   next: string | number;
   chartData?: IWeekValues[];
+  transformer?: (input: number | string) => string;
 }
 
 export const ValueColWrapper: React.SFC<IValueColProps> = ({
   title,
   previous,
   next,
-  chartData
+  chartData,
+  transformer
 }) => {
   const { isInfinity, value, direction } = getChange(previous, next);
+  const transformed = !!transformer ? transformer(next) : next;
   let summaryText;
   let miniSummary;
 
@@ -77,13 +80,15 @@ export const ValueColWrapper: React.SFC<IValueColProps> = ({
     return (
       <ValueColWithChart
         title={title}
-        value={next}
+        value={transformed}
         summaryText={miniSummary}
         chartData={chartData}
       />
     );
   } else {
-    return <ValueCol title={title} value={next} summaryText={summaryText} />;
+    return (
+      <ValueCol title={title} value={transformed} summaryText={summaryText} />
+    );
   }
 };
 

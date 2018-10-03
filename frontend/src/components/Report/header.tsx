@@ -16,7 +16,7 @@ const ExpandedDateLabel = ({ input }) => {
 
 const RangeLabel = ({ start, end }) => {
   return (
-    <div className="h4 my-0">
+    <div className="h4 my-2">
       <ExpandedDateLabel input={start} />
       <span className="small font-italic text-muted mx-2">to</span>
       <ExpandedDateLabel input={end} />
@@ -34,7 +34,7 @@ export class Header extends React.Component<IHeaderProps, {}> {
     const { team, weekStart } = this.props;
     return (
       <Container>
-        <div className="d-flex justify-content-between align-items-center my-4">
+        <div className="d-flex justify-content-between align-items-center flex-wrap my-4">
           <TeamName {...team} />
           <RangeLabel {...getWeek(weekStart)} />
         </div>

@@ -8,6 +8,8 @@ import { customHistory as history } from "../Router";
 import { MemberName } from "../Common";
 import { TeamsDropDown } from "./teams";
 
+const GITHUB_LINK = "https://github.com/karigari/gitstats";
+
 class LogoutLinks extends React.Component {
   render() {
     const { onLogout, user, teams } = this.props;
@@ -26,8 +28,11 @@ class LogoutLinks extends React.Component {
 const LoginLinks = ({ onLogin }) => {
   return (
     <div>
-      <Button className="mx-3" onClick={onLogin}>
+      <Button className="mx-2" onClick={onLogin}>
         Login
+      </Button>
+      <Button className="mx-2" onClick={onLogin}>
+        Signup
       </Button>
     </div>
   );
@@ -82,15 +87,20 @@ function mapStateToProps(state) {
 
 const AuthLinksRedux = connect(mapStateToProps)(AuthLinks);
 
-const Header = () => (
+const NavigationBar = () => (
   <Container>
     <Navbar>
-      <Link to={"/"} className="navbar-brand">
-        gitstats.report
-      </Link>
+      <div>
+        <Link to={"/"} className="navbar-brand">
+          gitstats.report
+        </Link>
+        <a href={GITHUB_LINK} target="_blank" className="text-white-50">
+          Code on GitHub
+        </a>
+      </div>
       <AuthLinksRedux />
     </Navbar>
   </Container>
 );
 
-export default Header;
+export default NavigationBar;

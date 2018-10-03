@@ -103,6 +103,7 @@ export default class GithubService extends types.ServiceClient {
       .filter(repo => moment(repo.updated_at) > this.periodPrev)
       .map(repo => ({
         name: repo.name,
+        url: repo.html_url,
         description: repo.description,
         is_private: repo.private,
         is_fork: repo.fork,
@@ -112,17 +113,51 @@ export default class GithubService extends types.ServiceClient {
   }
 
   async members(): Promise<types.Member[]> {
-    // Doc: https://developer.github.com/v3/orgs/members/#members-list
-    // This does not return full names -- we need to use graphql for that probably?
-    const params = {
-      path: `orgs/${this.owner}/members`
-    };
-    const result = await this.helper.getAllPages([], params);
-    return result.map(member => ({
-      login: member.login,
-      name: member.login,
-      avatar: member.avatar_url
-    }));
+    // Uses GraphQL because the REST endpoint does not return full names
+    // REST API: https://developer.github.com/v3/orgs/members/#members-list
+    const organisation = await this.organisation();
+    const { node_id } = organisation;
+    const MEMBER_LIMIT = 50;
+    const query = `{
+      nodes(ids: ["${node_id}"]) {
+        ... on Organization {
+          members(first: ${MEMBER_LIMIT}) {
+            nodes {
+              id
+              login
+              name
+              avatarUrl
+            }
+          }
+        }
+      }
+    }`;
+    const response = await this.helper.graphqlPost({ query });
+    const { data, errors } = response.body;
+
+    if (!errors) {
+      const { nodes: result } = data;
+      const { members } = result[0];
+      const { nodes: memberNodes } = members;
+      return memberNodes.map(node => ({
+        login: node.login,
+        name: node.name,
+        avatar: node.avatarUrl
+      }));
+    } else {
+      // For organisations that have "restricted access" enabled
+      // third-party apps cannot run the GraphQL request.
+      // Hence, fall back to the old REST endpoint.
+      const params = {
+        path: `orgs/${this.owner}/members`
+      };
+      const result = await this.helper.getAllPages([], params);
+      return result.map(member => ({
+        login: member.login,
+        name: member.login,
+        avatar: member.avatar_url
+      }));
+    }
   }
 
   ownerInfo = async (): Promise<types.Owner> => {

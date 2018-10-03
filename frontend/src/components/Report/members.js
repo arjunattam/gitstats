@@ -32,7 +32,7 @@ export const Members = ({ period, repos, members, isLoading }) => {
   return (
     <Table
       rowHeadings={["Member", "Commits", "PRs merged"]}
-      rowLimit={5}
+      rowLimit={3}
       isLoading={isLoading}
       rowData={rowData}
     />

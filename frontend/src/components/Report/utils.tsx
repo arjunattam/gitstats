@@ -22,8 +22,8 @@ export const getChange = (previous, next) => {
   }
 
   return {
-    isInfinity,
     direction,
+    isInfinity,
     value
   };
 };
@@ -77,12 +77,12 @@ const getStatsData = (period, repos, key, authorFilter?) => {
     }
 
     return {
-      previous: values.reduce((s, v) => {
-        const f = !!v ? v.filter(value => value.week === previousTs) : [];
-        return f.length ? s + f[0].value : s;
-      }, 0),
       next: values.reduce((s, v) => {
         const f = !!v ? v.filter(value => value.week === nextTs) : [];
+        return f.length ? s + f[0].value : s;
+      }, 0),
+      previous: values.reduce((s, v) => {
+        const f = !!v ? v.filter(value => value.week === previousTs) : [];
         return f.length ? s + f[0].value : s;
       }, 0),
       values
@@ -105,9 +105,9 @@ const getStatsData = (period, repos, key, authorFilter?) => {
   );
 
   return {
-    previous: repoValues.reduce((s, v) => s + v.previous, 0),
+    chartData: all,
     next: repoValues.reduce((s, v) => s + v.next, 0),
-    chartData: all
+    previous: repoValues.reduce((s, v) => s + v.previous, 0)
   };
 };
 
@@ -119,8 +119,8 @@ export const getLinesChanged = (period, repos, authorFilter?) => {
   const added = getStatsData(period, repos, "lines_added", authorFilter);
   const deleted = getStatsData(period, repos, "lines_deleted", authorFilter);
   return {
-    previous: added.previous + deleted.previous,
-    next: added.next + deleted.next
+    next: added.next + deleted.next,
+    previous: added.previous + deleted.previous
   };
 };
 
@@ -136,14 +136,14 @@ const getPRsData = (period, repos, key, authorFilter?) => {
     }
 
     return {
-      previous: prs.reduce((s, v) => s + v.previous, 0),
-      next: prs.reduce((s, v) => s + v.next, 0)
+      next: prs.reduce((s, v) => s + v.next, 0),
+      previous: prs.reduce((s, v) => s + v.previous, 0)
     };
   });
 
   return {
-    previous: repoPRs.reduce((s, v) => s + v.previous, 0),
-    next: repoPRs.reduce((s, v) => s + v.next, 0)
+    next: repoPRs.reduce((s, v) => s + v.next, 0),
+    previous: repoPRs.reduce((s, v) => s + v.previous, 0)
   };
 };
 
@@ -167,6 +167,7 @@ function median(values) {
 }
 
 export const getPRsTime = (period, repos, authorFilter?) => {
+  // TODO: why is period not used?
   const repoPRs = repos.map(repo => {
     const data = repo.prs;
     let prs = [];
@@ -177,12 +178,12 @@ export const getPRsTime = (period, repos, authorFilter?) => {
       prs = filtered.map(author => author.time_to_merge);
     }
     return {
-      previous: prs.reduce((s, v) => [...s, ...v.previous], []),
-      next: prs.reduce((s, v) => [...s, ...v.next], [])
+      next: prs.reduce((s, v) => [...s, ...v.next], []),
+      previous: prs.reduce((s, v) => [...s, ...v.previous], [])
     };
   });
   return {
-    previous: median(repoPRs.reduce((s, v) => [...s, ...v.previous], [])),
-    next: median(repoPRs.reduce((s, v) => [...s, ...v.next], []))
+    next: median(repoPRs.reduce((s, v) => [...s, ...v.next], [])),
+    previous: median(repoPRs.reduce((s, v) => [...s, ...v.previous], []))
   };
 };
