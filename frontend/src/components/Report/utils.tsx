@@ -167,6 +167,7 @@ function median(values) {
 }
 
 export const getPRsTime = (period, repos, authorFilter?) => {
+  // TODO: why is period not used?
   const repoPRs = repos.map(repo => {
     const data = repo.prs;
     let prs = [];

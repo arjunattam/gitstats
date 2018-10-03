@@ -16,7 +16,7 @@ const ExpandedDateLabel = ({ input }) => {
 
 const RangeLabel = ({ start, end }) => {
   return (
-    <div className="h4 my-0">
+    <div className="h4 my-2">
       <ExpandedDateLabel input={start} />
       <span className="small font-italic text-muted mx-2">to</span>
       <ExpandedDateLabel input={end} />

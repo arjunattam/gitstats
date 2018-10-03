@@ -1,68 +1,30 @@
 import * as React from "react";
-import { ChartDropdown, TitleDiv } from "../Charts/utils";
-import { Pulls } from "../Report/pulls/pulls";
 import { TimelineChart } from "./base/timeline";
 
-interface IPRChartContainerState {
-  selectedRepo: string;
-}
-
 interface IPRChartContainerProps {
+  selectedRepo: string;
   startDate: Date;
   endDate: Date;
   data: any;
-  reportJson: any;
-  isLoading: boolean;
 }
 
+// TODO: in the case of ALL_REPOS, this chart should
+// prompt to select a repo
 export class PRChartContainer extends React.Component<
   IPRChartContainerProps,
-  IPRChartContainerState
+  {}
 > {
-  public state = { selectedRepo: "" };
-
   public render() {
-    const { data, reportJson, isLoading } = this.props;
-    const { repos: reportRepos } = reportJson;
-    const { selectedRepo: stateSelected } = this.state;
-    const selectedRepo = stateSelected || this.getDefaultSelected();
-    const repos = data.map(({ repo, pulls }) => ({
-      text: repo,
-      value: this.filteredPulls(pulls).length
-    }));
-    const selectedData = data.filter(item => item.repo === selectedRepo);
+    const { data, selectedRepo } = this.props;
+    const selected = selectedRepo || this.getDefaultSelected();
+    const selectedData = data.filter(item => item.repo === selected);
     let pullsData = [];
 
     if (selectedData.length > 0) {
       pullsData = this.filteredPulls(selectedData[0].pulls);
     }
 
-    return (
-      <div>
-        <TitleDiv>
-          <div>
-            <strong>Pull Requests</strong> this week
-          </div>
-          <div>
-            <ChartDropdown
-              selected={selectedRepo}
-              items={repos}
-              onSelect={this.changeRepo}
-            />
-          </div>
-        </TitleDiv>
-        <Pulls
-          {...reportJson}
-          isLoading={isLoading}
-          repos={
-            reportRepos
-              ? reportRepos.filter(repo => repo.name === selectedRepo)
-              : []
-          }
-        />
-        <TimelineChart {...this.props} data={pullsData} />
-      </div>
-    );
+    return <TimelineChart {...this.props} data={pullsData} />;
   }
 
   private getDefaultSelected = () => {
@@ -81,10 +43,6 @@ export class PRChartContainer extends React.Component<
       }
       return selectedRepo;
     }
-  };
-
-  private changeRepo = repo => {
-    this.setState({ selectedRepo: repo });
   };
 
   private filteredPulls = pulls => {

@@ -28,8 +28,11 @@ class LogoutLinks extends React.Component {
 const LoginLinks = ({ onLogin }) => {
   return (
     <div>
-      <Button className="mx-3" onClick={onLogin}>
+      <Button className="mx-2" onClick={onLogin}>
         Login
+      </Button>
+      <Button className="mx-2" onClick={onLogin}>
+        Signup
       </Button>
     </div>
   );
@@ -84,7 +87,7 @@ function mapStateToProps(state) {
 
 const AuthLinksRedux = connect(mapStateToProps)(AuthLinks);
 
-const Header = () => (
+const NavigationBar = () => (
   <Container>
     <Navbar>
       <div>
@@ -100,4 +103,4 @@ const Header = () => (
   </Container>
 );
 
-export default Header;
+export default NavigationBar;

@@ -5,7 +5,7 @@ import store from "../store";
 import "./App.css";
 import Footer from "./Footer";
 import Home from "./Home";
-import Header from "./Navigation";
+import Navigation from "./Navigation";
 import Onboarding from "./Onboarding";
 import PrivateRoute from "./PrivateRoute";
 import { ReportPage } from "./Report";
@@ -22,7 +22,7 @@ class App extends React.Component<{}, {}> {
         <Router>
           <div>
             <div className="dark-section">
-              <Header />
+              <Navigation />
             </div>
             <div className="light-section">
               <Route exact={true} path="/" component={Home} />

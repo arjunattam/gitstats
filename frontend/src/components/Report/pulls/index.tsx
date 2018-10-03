@@ -2,7 +2,7 @@ import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { PRChartContainer } from "../../Charts/pulls";
 import { ALL_MEMBERS, ALL_REPOS, Filters } from "../common/filters";
-import { getPRsMerged, getPRsOpened } from "../utils";
+import { getPRsMerged, getPRsOpened, getPRsTime } from "../utils";
 import { PullsRow } from "./row";
 
 interface IContainerProps {
@@ -37,8 +37,6 @@ export class PullsContainer extends React.Component<
       repos,
       prActivityData
     } = this.props;
-    const reportJson = { members, repos };
-
     const { selectedMember, selectedRepo } = this.state;
     const repoItems = [];
     const memberItems = [];
@@ -52,6 +50,7 @@ export class PullsContainer extends React.Component<
     const prsMerged = getPRsMerged(period, filteredRepos, authorFilter);
     // const prComments = getPRComments(period, prActivityData);
     const prComments = getPRsMerged(period, filteredRepos, authorFilter);
+    const medianMergeTimes = getPRsTime(period, filteredRepos, authorFilter);
 
     return (
       <BootstrapContainer>
@@ -71,13 +70,13 @@ export class PullsContainer extends React.Component<
           prsOpened={prsOpened}
           prsMerged={prsMerged}
           prComments={prComments}
+          medianMergeTimes={medianMergeTimes}
           isLoading={isLoading}
         />
 
         <PRChartContainer
           {...chartBounds}
-          reportJson={reportJson}
-          isLoading={isLoading}
+          selectedRepo={selectedRepo}
           data={prActivityData}
         />
       </BootstrapContainer>

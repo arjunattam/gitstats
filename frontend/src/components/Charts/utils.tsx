@@ -11,12 +11,6 @@ const HUMAN_READABLE_MODIFIERS = {
   pr_comment: "PR comments"
 };
 
-export const TitleDiv = ({ children }) => (
-  <div className="d-flex justify-content-between align-items-baseline mt-3">
-    {children}
-  </div>
-);
-
 interface IChartDropdownItem {
   value: number;
   text: string;

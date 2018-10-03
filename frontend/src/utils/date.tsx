@@ -1,6 +1,8 @@
 import {
   addDays,
   addHours,
+  addSeconds,
+  distanceInWords,
   endOfWeek,
   format,
   isWithinRange,
@@ -58,4 +60,10 @@ export const getPeriod = (weekStart): IPeriod => {
   const nextParsed = parse(`${weekStart}T00:00:00Z`);
   const prevParsed = subDays(nextParsed, 7);
   return { next: format(nextParsed), previous: format(prevParsed) };
+};
+
+export const getDurationLabel = (seconds: number): string => {
+  const date = new Date();
+  const withSeconds = addSeconds(date, seconds || 0);
+  return distanceInWords(withSeconds, date);
 };

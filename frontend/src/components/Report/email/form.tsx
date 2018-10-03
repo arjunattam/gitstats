@@ -28,12 +28,12 @@ export class EmailForm extends React.Component<
   }
 
   public render() {
-    const { isLoading, emailInput } = this.state;
+    const { isLoading } = this.state;
     const buttonText = isLoading ? "Sending..." : "Send sample email";
     return (
       <Form inline={true} onSubmit={this.send} className="my-3">
         <Input
-          value={emailInput}
+          value={this.state.emailInput}
           onChange={this.updateInput}
           placeholder="Your email"
           type="email"
