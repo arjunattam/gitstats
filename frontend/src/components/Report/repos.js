@@ -51,7 +51,7 @@ export const Repos = ({ period, repos, isLoading }) => {
   return (
     <Table
       rowHeadings={["Repository", "Commits", "PRs merged"]}
-      rowLimit={5}
+      rowLimit={3}
       isLoading={isLoading}
       rowData={rowData}
     />

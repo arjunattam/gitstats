@@ -1,6 +1,6 @@
 import * as React from "react";
 import { ChartDropdown, TitleDiv } from "../Charts/utils";
-import { Pulls } from "../Report/pulls";
+import { Pulls } from "../Report/pulls/pulls";
 import { TimelineChart } from "./base/timeline";
 
 interface IPRChartContainerState {

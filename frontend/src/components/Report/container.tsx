@@ -1,9 +1,8 @@
 import * as React from "react";
-import { Container as BootstrapContainer } from "reactstrap";
 import { getChartBounds } from "../../utils/date";
-import { PRChartContainer } from "../Charts/pulls";
 import { LighterContainer } from "./common";
 import { Members } from "./members";
+import { PullsContainer } from "./pulls";
 import { Repos } from "./repos";
 import { SummaryContainer } from "./summary";
 
@@ -16,7 +15,7 @@ interface IContainerProps {
   commitsData: ICommits[];
 }
 
-export const Container: React.SFC<IContainerProps> = ({
+export const ReportContainer: React.SFC<IContainerProps> = ({
   period,
   reportJson,
   isLoading,
@@ -39,14 +38,14 @@ export const Container: React.SFC<IContainerProps> = ({
         chartBounds={chartBounds}
       />
 
-      <BootstrapContainer>
-        <PRChartContainer
-          {...chartBounds}
-          reportJson={reportJson}
-          isLoading={isLoading}
-          data={prActivityData}
-        />
-      </BootstrapContainer>
+      <PullsContainer
+        period={period}
+        repos={repos}
+        members={members}
+        isLoading={isLoading}
+        prActivityData={prActivityData}
+        chartBounds={chartBounds}
+      />
 
       <LighterContainer>
         <Members {...reportJson} period={period} isLoading={isLoading} />

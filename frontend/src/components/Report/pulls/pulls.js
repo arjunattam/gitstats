@@ -1,6 +1,6 @@
 import React from "react";
-import { Value, getPRsTime, getPRsOpened, getPRsMerged } from "./utils";
-import Table from "./table";
+import { Value, getPRsTime, getPRsOpened, getPRsMerged } from "../utils";
+import Table from "../table";
 
 function millisecondsToStr(milliseconds) {
   function numberEnding(number) {

@@ -60,7 +60,7 @@ export const isAuthenticated = () => {
 
 export const getUserProfile = () => {
   const idToken = window.localStorage.getItem("id_token");
-  return idToken ? jwtDecode(idToken) : {};
+  return isAuthenticated() && idToken ? jwtDecode(idToken) : {};
 };
 
 export const getAccessToken = () => {

@@ -12,12 +12,10 @@ const SENTRY_TEAM = {
 const Home = () => (
   <div>
     <div className="dark-section darker">
-      <Container>
-        <div className="px-3 py-5">
-          <h3>Lead your engineering team with facts, not feelings</h3>
-          <div className="py-1">
-            Weekly git stats for your GitHub and Bitbucket teams
-          </div>
+      <Container className="py-5">
+        <h3>Lead your engineering team with facts, not feelings</h3>
+        <div className="py-1">
+          Weekly git stats for your GitHub and Bitbucket teams
         </div>
       </Container>
     </div>

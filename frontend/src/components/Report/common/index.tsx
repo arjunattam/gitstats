@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { Col } from "reactstrap";
-import { BarChart } from "../Charts/base/bar";
-import { getChange } from "./utils";
+import { BarChart } from "../../Charts/base/bar";
+import { getChange } from "../utils";
 
 const BaseValueCol = ({ children }) => {
   return <Col className="border py-3">{children}</Col>;

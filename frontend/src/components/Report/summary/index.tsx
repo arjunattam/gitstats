@@ -2,9 +2,9 @@ import * as React from "react";
 import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
 import { LighterContainer } from "../common";
+import { ALL_MEMBERS, ALL_REPOS, Filters } from "../common/filters";
 import { getCommits, getPRsMerged, getPRsOpened } from "../utils";
-import { ALL_MEMBERS, ALL_REPOS, Filters } from "./filters";
-import { SummaryRow } from "./summary";
+import { SummaryRow } from "./row";
 
 interface ISummaryContainerProps {
   repos: IRepository[];
@@ -65,6 +65,7 @@ export class SummaryContainer extends React.Component<
     return (
       <LighterContainer>
         <Filters
+          title={"Activity"}
           repos={repoItems}
           selectedRepo={selectedRepo}
           changeRepo={this.changeRepo}

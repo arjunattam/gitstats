@@ -82,10 +82,11 @@ export default class Table extends React.Component {
   renderExpandButton = () => {
     const { rowData, rowLimit } = this.props;
     const length = rowData.length;
-    const isExpandable = length > rowLimit;
+    const more = length - rowLimit;
+    const isExpandable = more > 0;
     const text = this.state.isExpanded
       ? "Show less"
-      : `Show all (${length} items)`;
+      : `Show all (${more} more)`;
 
     return isExpandable ? (
       <ExpandButton text={text} onClick={this.toggleExpand} />

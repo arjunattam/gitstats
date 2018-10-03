@@ -8,6 +8,8 @@ import { customHistory as history } from "../Router";
 import { MemberName } from "../Common";
 import { TeamsDropDown } from "./teams";
 
+const GITHUB_LINK = "https://github.com/karigari/gitstats";
+
 class LogoutLinks extends React.Component {
   render() {
     const { onLogout, user, teams } = this.props;
@@ -85,9 +87,14 @@ const AuthLinksRedux = connect(mapStateToProps)(AuthLinks);
 const Header = () => (
   <Container>
     <Navbar>
-      <Link to={"/"} className="navbar-brand">
-        gitstats.report
-      </Link>
+      <div>
+        <Link to={"/"} className="navbar-brand">
+          gitstats.report
+        </Link>
+        <a href={GITHUB_LINK} target="_blank" className="text-muted">
+          on GitHub
+        </a>
+      </div>
       <AuthLinksRedux />
     </Navbar>
   </Container>
