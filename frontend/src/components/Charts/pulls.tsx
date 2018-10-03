@@ -5,20 +5,18 @@ interface IPRChartContainerProps {
   selectedRepo: string;
   startDate: Date;
   endDate: Date;
-  data: any;
+  data: IPullRequestData[];
 }
 
-// TODO: in the case of ALL_REPOS, this chart should
-// prompt to select a repo
+// TODO: when selectedRepo is null, it should prompt to filter
 export class PRChartContainer extends React.Component<
   IPRChartContainerProps,
   {}
 > {
   public render() {
     const { data, selectedRepo } = this.props;
-    const selected = selectedRepo || this.getDefaultSelected();
-    const selectedData = data.filter(item => item.repo === selected);
-    let pullsData = [];
+    const selectedData = data.filter(item => item.repo === selectedRepo);
+    let pullsData: IPullRequest[] = [];
 
     if (selectedData.length > 0) {
       pullsData = this.filteredPulls(selectedData[0].pulls);
@@ -26,24 +24,6 @@ export class PRChartContainer extends React.Component<
 
     return <TimelineChart {...this.props} data={pullsData} />;
   }
-
-  private getDefaultSelected = () => {
-    const { data } = this.props;
-    if (data) {
-      let selectedRepo = "";
-      const filtered = data
-        .map(({ repo, pulls }) => ({
-          text: repo,
-          value: this.filteredPulls(pulls).length
-        }))
-        .filter(item => item.value > 0)
-        .sort((a, b) => b.value - a.value);
-      if (filtered.length) {
-        selectedRepo = filtered[0].text;
-      }
-      return selectedRepo;
-    }
-  };
 
   private filteredPulls = pulls => {
     const { endDate, startDate } = this.props;

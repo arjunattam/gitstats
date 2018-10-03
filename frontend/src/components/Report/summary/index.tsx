@@ -2,7 +2,7 @@ import * as React from "react";
 import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
 import { LighterContainer } from "../common";
-import { ALL_MEMBERS, ALL_REPOS, Filters } from "../common/filters";
+import { Filters } from "../common/filters";
 import { getCommits, getPRsMerged, getPRsOpened } from "../utils";
 import { SummaryRow } from "./row";
 
@@ -17,8 +17,8 @@ interface ISummaryContainerProps {
 }
 
 interface ISummaryContainerState {
-  selectedRepo: string;
-  selectedMember: string;
+  selectedRepo: { value: string; label: string };
+  selectedMember: { value: string; label: string };
 }
 
 export class SummaryContainer extends React.Component<
@@ -26,8 +26,8 @@ export class SummaryContainer extends React.Component<
   ISummaryContainerState
 > {
   public state = {
-    selectedMember: ALL_MEMBERS,
-    selectedRepo: ALL_REPOS
+    selectedMember: null,
+    selectedRepo: null
   };
 
   public render() {
@@ -42,19 +42,18 @@ export class SummaryContainer extends React.Component<
     } = this.props;
     const { selectedRepo, selectedMember } = this.state;
     const repoItems = repos.map(repo => ({
-      text: repo.name,
-      value: undefined
+      label: repo.name,
+      value: repo.name
     }));
     const memberItems = members.map(member => ({
-      text: member.login,
+      label: member.login,
       value: undefined
     }));
 
     const filteredRepos = repos.filter(
-      repo => (selectedRepo === ALL_REPOS ? true : repo.name === selectedRepo)
+      repo => (!selectedRepo ? true : repo.name === selectedRepo.value)
     );
-    const authorFilter =
-      selectedMember === ALL_MEMBERS ? undefined : selectedMember;
+    const authorFilter = !selectedMember ? undefined : selectedMember;
     const commits = getCommits(period, filteredRepos, authorFilter);
     const prsOpened = getPRsOpened(period, filteredRepos, authorFilter);
     const prsMerged = getPRsMerged(period, filteredRepos, authorFilter);
@@ -67,13 +66,9 @@ export class SummaryContainer extends React.Component<
         <Filters
           title={"Activity"}
           repos={repoItems}
-          selectedRepo={selectedRepo}
           changeRepo={this.changeRepo}
-          showAllRepos={this.showAllRepos}
           members={memberItems}
-          selectedMember={selectedMember}
           changeMember={this.changeMember}
-          showAllMembers={this.showAllMembers}
         />
         <SummaryRow
           commits={commits}
@@ -89,7 +84,7 @@ export class SummaryContainer extends React.Component<
           commitsData={commitsData}
           prData={prActivityData}
           selectedMember={selectedMember}
-          selectedRepo={selectedRepo}
+          selectedRepo={selectedRepo ? selectedRepo.value : null}
         />
       </LighterContainer>
     );
@@ -99,16 +94,8 @@ export class SummaryContainer extends React.Component<
     this.setState({ selectedRepo: repo });
   };
 
-  private showAllRepos = () => {
-    this.setState({ selectedRepo: ALL_REPOS });
-  };
-
   private changeMember = member => {
     this.setState({ selectedMember: member });
-  };
-
-  private showAllMembers = () => {
-    this.setState({ selectedMember: ALL_MEMBERS });
   };
 }
 

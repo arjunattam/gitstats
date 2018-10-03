@@ -1,19 +1,20 @@
 import * as React from "react";
-import { DropdownWithoutValues } from "../../Charts/utils";
+import Select from "react-select";
 
-export const ALL_REPOS = "All repos";
-export const ALL_MEMBERS = "All members";
+const InlineSelect = ({ width, ...props }) => {
+  return (
+    <div className="d-inline-block mx-1" style={{ width }}>
+      <Select {...props} />
+    </div>
+  );
+};
 
 export const Filters = ({
   title,
-  selectedRepo,
-  selectedMember,
   repos,
   members,
   changeRepo,
-  showAllRepos,
-  changeMember,
-  showAllMembers
+  changeMember
 }) => {
   return (
     <div className="d-flex justify-content-between align-items-center flex-wrap my-2">
@@ -22,19 +23,19 @@ export const Filters = ({
       </div>
       <div>
         <span className="small text-muted text-uppercase">Filters</span>
-        <DropdownWithoutValues
-          selected={selectedRepo}
-          items={repos}
-          allText={ALL_REPOS}
-          onSelect={changeRepo}
-          onSelectAll={showAllRepos}
+        <InlineSelect
+          width={200}
+          placeholder={"Repos..."}
+          isClearable={true}
+          onChange={changeRepo}
+          options={repos}
         />
-        <DropdownWithoutValues
-          selected={selectedMember}
-          items={members}
-          allText={ALL_MEMBERS}
-          onSelect={changeMember}
-          onSelectAll={showAllMembers}
+        <InlineSelect
+          width={200}
+          placeholder={"Members..."}
+          isClearable={true}
+          onChange={changeMember}
+          options={members}
         />
       </div>
     </div>

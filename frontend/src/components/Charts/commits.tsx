@@ -1,9 +1,6 @@
 import * as React from "react";
 import { Streamgraph } from "./base/stream";
 
-const ALL_REPOS = "All repos";
-const ALL_MEMBERS = "All members";
-
 interface ICommitChartContainerProps {
   startDate: Date;
   endDate: Date;
@@ -109,14 +106,12 @@ export class CommitChartContainer extends React.Component<
     return data
       .filter(
         item =>
-          excludeKey === "repo" ||
-          selectedRepo === ALL_REPOS ||
-          item.repo === selectedRepo
+          excludeKey === "repo" || !selectedRepo || item.repo === selectedRepo
       )
       .filter(
         item =>
           excludeKey === "author" ||
-          selectedMember === ALL_MEMBERS ||
+          !selectedMember ||
           item.author === selectedMember
       );
   };

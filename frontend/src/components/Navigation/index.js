@@ -94,8 +94,8 @@ const NavigationBar = () => (
         <Link to={"/"} className="navbar-brand">
           gitstats.report
         </Link>
-        <a href={GITHUB_LINK} target="_blank" className="text-muted">
-          on GitHub
+        <a href={GITHUB_LINK} target="_blank" className="text-white-50">
+          Code on GitHub
         </a>
       </div>
       <AuthLinksRedux />

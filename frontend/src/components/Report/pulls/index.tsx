@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { PRChartContainer } from "../../Charts/pulls";
-import { ALL_MEMBERS, ALL_REPOS, Filters } from "../common/filters";
+import { Filters } from "../common/filters";
 import { getPRsMerged, getPRsOpened, getPRsTime } from "../utils";
 import { PullsRow } from "./row";
 
@@ -24,8 +24,8 @@ export class PullsContainer extends React.Component<
   IContainerState
 > {
   public state = {
-    selectedMember: ALL_MEMBERS,
-    selectedRepo: ALL_REPOS
+    selectedMember: null,
+    selectedRepo: null
   };
 
   public render() {
@@ -42,10 +42,9 @@ export class PullsContainer extends React.Component<
     const memberItems = [];
 
     const filteredRepos = repos.filter(
-      repo => (selectedRepo === ALL_REPOS ? true : repo.name === selectedRepo)
+      repo => (!selectedRepo ? true : repo.name === selectedRepo)
     );
-    const authorFilter =
-      selectedMember === ALL_MEMBERS ? undefined : selectedMember;
+    const authorFilter = !selectedMember ? undefined : selectedMember;
     const prsOpened = getPRsOpened(period, filteredRepos, authorFilter);
     const prsMerged = getPRsMerged(period, filteredRepos, authorFilter);
     // const prComments = getPRComments(period, prActivityData);
@@ -57,13 +56,9 @@ export class PullsContainer extends React.Component<
         <Filters
           title={"Pull Requests"}
           repos={repoItems}
-          selectedRepo={selectedRepo}
           changeRepo={this.changeRepo}
-          showAllRepos={this.showAllRepos}
           members={memberItems}
-          selectedMember={selectedMember}
           changeMember={this.changeMember}
-          showAllMembers={this.showAllMembers}
         />
 
         <PullsRow
@@ -76,7 +71,7 @@ export class PullsContainer extends React.Component<
 
         <PRChartContainer
           {...chartBounds}
-          selectedRepo={selectedRepo}
+          selectedRepo={"sentry-python"}
           data={prActivityData}
         />
       </BootstrapContainer>
@@ -87,15 +82,7 @@ export class PullsContainer extends React.Component<
     this.setState({ selectedRepo: repo });
   };
 
-  private showAllRepos = () => {
-    this.setState({ selectedRepo: ALL_REPOS });
-  };
-
   private changeMember = member => {
     this.setState({ selectedMember: member });
-  };
-
-  private showAllMembers = () => {
-    this.setState({ selectedMember: ALL_MEMBERS });
   };
 }

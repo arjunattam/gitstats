@@ -7,7 +7,7 @@ import { addLegend, addXAxis, COLORS, LEGEND_PADDING } from "./utils";
 interface ITimelineChartProps {
   startDate: Date;
   endDate: Date;
-  data: any;
+  data: IPullRequest[];
 }
 
 export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
