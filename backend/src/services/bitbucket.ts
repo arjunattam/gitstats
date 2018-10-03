@@ -182,6 +182,7 @@ export default class BitbucketService extends types.ServiceClient {
     ).then(values => {
       return values.map(repo => ({
         name: repo.slug,
+        url: repo.links.html.href,
         description: repo.description,
         is_private: repo.is_private,
         is_fork: false,

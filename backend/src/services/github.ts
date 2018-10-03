@@ -103,6 +103,7 @@ export default class GithubService extends types.ServiceClient {
       .filter(repo => moment(repo.updated_at) > this.periodPrev)
       .map(repo => ({
         name: repo.name,
+        url: repo.html_url,
         description: repo.description,
         is_private: repo.private,
         is_fork: repo.fork,
