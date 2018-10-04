@@ -34,9 +34,10 @@ const ValueColWithChart = ({ title, value, summaryText, chartData }) => {
           <div className="text-nowrap">{summaryText}</div>
         </div>
         <BarChart
+          xAxisTitle={"LAST 5 WEEKS"}
           data={chartData}
           color={ALPHA_COLOR}
-          selectedColor={BASE_COLOR}
+          textColor={"#bbb"}
         />
       </div>
     </BaseValueCol>

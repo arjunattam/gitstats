@@ -50,11 +50,6 @@ export const isInWeek = (date, weekStart) => {
   return isWithinRange(date, start, end);
 };
 
-export const getChartWeek = weekUnix => {
-  const parsed = parse(+weekUnix * 1000);
-  return format(parsed, "MMM D");
-};
-
 export const getPeriod = (weekStart): IPeriod => {
   // TODO: this should return in UTC, not in local time zone
   const nextParsed = parse(`${weekStart}T00:00:00Z`);
