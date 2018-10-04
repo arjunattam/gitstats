@@ -190,50 +190,54 @@ export default class GithubService extends types.ServiceClient {
     });
   }
 
-  statistics = (repo: string): Promise<types.RepoStats> => {
-    return this.helper
-      .get({
-        path: `repos/${this.owner}/${repo}/stats/contributors`,
-        headers: {},
-        qs: {}
-      })
-      .then(response => {
-        const { statusCode } = response;
-        const { body } = response;
+  statistics = async (repo: string): Promise<types.RepoStats> => {
+    const response = await this.helper.get({
+      path: `repos/${this.owner}/${repo}/stats/contributors`,
+      headers: {},
+      qs: {}
+    });
+    const { statusCode } = response;
+    const { body } = response;
 
-        if (statusCode === 202) {
-          return { is_pending: true };
-        } else if (statusCode === 204) {
-          return { is_pending: false, authors: [] };
-        } else if (statusCode === 200) {
-          const allWeeks = [0, 1, 2, 3, 4].map(value =>
-            moment(this.periodNext)
-              .subtract(value, "weeks")
-              .unix()
-          );
-          const getAttr = (weeksData, ts, attrKey) => {
-            const filtered = weeksData.filter(data => data.w === ts);
-            const value = filtered.length > 0 ? filtered[0][attrKey] : 0;
-            return {
-              week: ts,
-              value
-            };
+    if (statusCode === 202) {
+      return { is_pending: true };
+    } else if (statusCode === 204) {
+      return { is_pending: false, authors: [] };
+    } else if (statusCode === 200) {
+      const allWeeks = [0, 1, 2, 3, 4].map(value =>
+        moment(this.periodNext)
+          .subtract(value, "weeks")
+          .unix()
+      );
+
+      const getAttr = (weeksData, ts, attrKey) => {
+        const filtered = weeksData.filter(data => data.w === ts);
+        const value = filtered.length > 0 ? filtered[0][attrKey] : 0;
+        return {
+          week: ts,
+          value
+        };
+      };
+
+      const sumOfValues = input => {
+        const values = input.map(({ week, value }) => value);
+        return values.reduce((acc, current) => acc + current, 0);
+      };
+
+      const authors = body
+        .map(result => {
+          const { author, weeks } = result;
+          return {
+            login: author.login,
+            commits: allWeeks.map(ts => getAttr(weeks, ts, "c")),
+            lines_added: allWeeks.map(ts => getAttr(weeks, ts, "a")),
+            lines_deleted: allWeeks.map(ts => getAttr(weeks, ts, "d"))
           };
+        })
+        .filter(author => sumOfValues(author.commits) > 0);
 
-          const authors = body
-            .map(result => {
-              const { author, weeks } = result;
-              return {
-                login: author.login,
-                commits: allWeeks.map(ts => getAttr(weeks, ts, "c")),
-                lines_added: allWeeks.map(ts => getAttr(weeks, ts, "a")),
-                lines_deleted: allWeeks.map(ts => getAttr(weeks, ts, "d"))
-              };
-            })
-            .filter(author => !!author.commits);
-          return { is_pending: false, authors };
-        }
-      });
+      return { is_pending: false, authors };
+    }
   };
 
   pullsList(repo: string) {

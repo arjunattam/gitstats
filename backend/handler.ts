@@ -50,7 +50,7 @@ const buildResponse = (event, message: any) => {
 };
 
 const getCacheKey = (path: string, userId: string, weekStart: string) => {
-  const suffix = "5";
+  const suffix = "6";
   return `${userId}-${path}-${weekStart}-${suffix}`;
 };
 
@@ -76,7 +76,22 @@ const getCachedClientResponse = async (
 
   const client = await manager.getServiceClient(weekStart);
   const response = await client[methodName](...params);
-  await redis.set(cacheKey, JSON.stringify(response), DEFAULT_CACHE_EXPIRY);
+  let writeToCache = true;
+
+  if (methodName === "statistics") {
+    const { is_pending } = response;
+
+    // If this is the stats API, and response is pending, we can't
+    // write to cache.
+    if (is_pending) {
+      writeToCache = false;
+    }
+  }
+
+  if (writeToCache) {
+    await redis.set(cacheKey, JSON.stringify(response), DEFAULT_CACHE_EXPIRY);
+  }
+
   return response;
 };
 
