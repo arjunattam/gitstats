@@ -95,6 +95,7 @@ export const ValueColWrapper: React.SFC<IValueColProps> = ({
 
 export const TextColWrapper = ({ title, previous, next }) => {
   let summaryText;
+
   if (!!next && !!previous) {
     if (previous === next) {
       summaryText = "Same as last week";
@@ -102,6 +103,7 @@ export const TextColWrapper = ({ title, previous, next }) => {
       summaryText = `Last week it was ${previous}`;
     }
   }
+
   return <ValueCol title={title} value={next} summaryText={summaryText} />;
 };
 

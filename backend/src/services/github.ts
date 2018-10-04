@@ -365,7 +365,9 @@ export default class GithubService extends types.ServiceClient {
                   // eg, in this PR: https://github.com/getsentry/responses/pull/210
                   // TODO: should this return message also?
                   const comments = prNode.comments.nodes.map(commentNode => ({
-                    author: commentNode.author.login,
+                    author: commentNode.author
+                      ? commentNode.author.login
+                      : null,
                     date: commentNode.createdAt
                   }));
                   return {

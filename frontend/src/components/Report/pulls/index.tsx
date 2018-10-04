@@ -159,7 +159,7 @@ const getPRsCommentTime = (period: IPeriod, pulls: IPullRequestData[]) => {
 
   const result = weekStart =>
     median(commentTimes(pullsWithFirstCommentInWeek(flattened, weekStart))) ||
-    0;
+    undefined;
 
   return {
     next: result(nextDate),

@@ -2,13 +2,13 @@ import React from "react";
 import { Value, getCommits, getPRsMerged } from "./utils";
 import Table from "./table";
 
-const RepoName = ({ name, description }) => {
+const RepoName = ({ name, url, description }) => {
   return (
     <div>
-      {name}
-      <div>
-        <small>{description}</small>
-      </div>
+      <a href={url} target="_blank">
+        {name}
+      </a>{" "}
+      <small className="text-muted">{description}</small>
     </div>
   );
 };
