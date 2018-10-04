@@ -66,9 +66,10 @@ export class BarChart extends React.Component<IChartProps, {}> {
       .data(data)
       .enter()
       .append("text")
+      .attr("text-anchor", "middle")
       .attr("fill", textColor)
       .attr("class", "label")
-      .attr("x", d => x(d.week))
+      .attr("x", d => x(d.week) + x.bandwidth() / 2)
       .attr("y", d => y(d.value) - 2)
       .text(d => d.value || "0");
 

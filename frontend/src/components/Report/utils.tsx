@@ -1,3 +1,4 @@
+import { median } from "d3";
 import * as React from "react";
 
 export const getChange = (previous, next) => {
@@ -155,18 +156,7 @@ export const getPRsOpened = (period, repos, authorFilter?) => {
   return getPRsData(period, repos, "prs_opened", authorFilter);
 };
 
-function median(values) {
-  values.sort((a, b) => a - b);
-  const half = Math.floor(values.length / 2);
-
-  if (values.length % 2) {
-    return values[half];
-  } else {
-    return (values[half - 1] + values[half]) / 2.0;
-  }
-}
-
-export const getPRsTime = (period, repos, authorFilter?) => {
+export const getPRsMergeTime = (period, repos, authorFilter?) => {
   // TODO: why is period not used?
   const repoPRs = repos.map(repo => {
     const data = repo.prs;

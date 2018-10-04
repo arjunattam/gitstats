@@ -12,29 +12,33 @@ interface IValueDataPoint {
 interface IPullsRowProps {
   prsOpened: IValueDataPoint;
   prsMerged: IValueDataPoint;
-  prComments: IValueDataPoint;
+  prsReviewed: IValueDataPoint;
+  activeReviewer: IValueDataPoint;
   medianMergeTimes: IValueDataPoint;
+  medianCommentTimes: IValueDataPoint;
   isLoading: boolean;
 }
 
 export const PullsRow: React.SFC<IPullsRowProps> = ({
   prsOpened,
   prsMerged,
-  prComments,
+  prsReviewed,
+  activeReviewer,
   medianMergeTimes,
+  medianCommentTimes,
   isLoading
 }) => {
   return (
     <div className="my-2">
       <Row>
         <ValueColWrapper {...prsOpened} title={"PRs opened"} />
-        <ValueColWrapper {...prComments} title={"PRs reviewed"} />
+        <ValueColWrapper {...prsReviewed} title={"PRs reviewed"} />
         <ValueColWrapper {...prsMerged} title={"PRs merged"} />
       </Row>
       <Row>
-        <TextColWrapper {...prComments} title={"Most active reviewer"} />
+        <TextColWrapper {...activeReviewer} title={"Most active reviewer"} />
         <ValueColWrapper
-          {...prComments}
+          {...medianCommentTimes}
           title={"Median time to first comment"}
           transformer={getDurationLabel}
         />

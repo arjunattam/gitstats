@@ -2,6 +2,7 @@ import {
   addDays,
   addHours,
   addSeconds,
+  differenceInSeconds,
   distanceInWords,
   endOfWeek,
   format,
@@ -61,4 +62,10 @@ export const getDurationLabel = (seconds: number): string => {
   const date = new Date();
   const withSeconds = addSeconds(date, seconds || 0);
   return distanceInWords(withSeconds, date);
+};
+
+export const diffInSeconds = (start: string, end: string): number => {
+  const parsedStart = parse(start);
+  const parsedEnd = parse(end);
+  return differenceInSeconds(parsedEnd, parsedStart);
 };

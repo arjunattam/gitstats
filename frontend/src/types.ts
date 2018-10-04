@@ -38,8 +38,15 @@ interface IPullRequestComment {
 interface IPullRequest {
   author: string;
   comments: IPullRequestComment[];
-  commits: any[];
-  // add the rest
+  commits: IAuthorCommit[];
+  title: string;
+  number: number;
+  created_at: string;
+  merged_at: string;
+  closed_at: string;
+  updated_at: string;
+  state: string;
+  url: string;
 }
 
 interface IPullRequestData {

@@ -2,24 +2,22 @@ import * as React from "react";
 import { TimelineChart } from "./base/timeline";
 
 interface IPRChartContainerProps {
-  selectedRepo: string;
   startDate: Date;
   endDate: Date;
   data: IPullRequestData[];
 }
 
-// TODO: when selectedRepo is null, it should prompt to filter
+// TODO: this needs a repo to be selected, so prompt if there is none
 export class PRChartContainer extends React.Component<
   IPRChartContainerProps,
   {}
 > {
   public render() {
-    const { data, selectedRepo } = this.props;
-    const selectedData = data.filter(item => item.repo === selectedRepo);
+    const { data } = this.props;
     let pullsData: IPullRequest[] = [];
 
-    if (selectedData.length > 0) {
-      pullsData = this.filteredPulls(selectedData[0].pulls);
+    if (data.length > 0) {
+      pullsData = this.filteredPulls(data[0].pulls);
     }
 
     return <TimelineChart {...this.props} data={pullsData} />;

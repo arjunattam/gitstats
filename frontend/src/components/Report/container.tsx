@@ -26,6 +26,9 @@ export const ReportContainer: React.SFC<IContainerProps> = ({
   const chartBounds = getChartBounds(weekStart);
   const { repos, members } = reportJson;
   // TODO: period is not in UTC
+
+  // TODO: filter comments inside pr activity that belong to bots
+  // like code-cov
   return (
     <div>
       <SummaryContainer

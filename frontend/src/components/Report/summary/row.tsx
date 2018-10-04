@@ -10,7 +10,6 @@ interface IValueDataPoint {
 
 interface ISummaryProps {
   commits: IValueDataPoint;
-  prsOpened: IValueDataPoint;
   prsMerged: IValueDataPoint;
   prComments: IValueDataPoint;
   activeRepos: IValueDataPoint;
@@ -20,7 +19,6 @@ interface ISummaryProps {
 
 export const SummaryRow: React.SFC<ISummaryProps> = ({
   commits,
-  prsOpened,
   prsMerged,
   prComments,
   activeRepos,
@@ -31,7 +29,6 @@ export const SummaryRow: React.SFC<ISummaryProps> = ({
     <div className="my-2">
       <Row>
         <ValueColWrapper {...commits} title={"Commits"} />
-        <ValueColWrapper {...prsOpened} title={"PRs opened"} />
         <ValueColWrapper {...prsMerged} title={"PRs merged"} />
         <ValueColWrapper {...prComments} title={"PR Comments"} />
       </Row>

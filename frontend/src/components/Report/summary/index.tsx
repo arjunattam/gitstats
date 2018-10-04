@@ -3,10 +3,10 @@ import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
 import { LighterContainer } from "../common";
 import { Filters } from "../common/filters";
-import { getCommits, getPRsMerged, getPRsOpened } from "../utils";
+import { getCommits, getPRsMerged } from "../utils";
 import { SummaryRow } from "./row";
 
-interface ISummaryContainerProps {
+interface IContainerProps {
   repos: IRepository[];
   members: IMember[];
   period: IPeriod;
@@ -16,14 +16,14 @@ interface ISummaryContainerProps {
   chartBounds: { startDate: Date; endDate: Date };
 }
 
-interface ISummaryContainerState {
+interface IContainerState {
   selectedRepo: { value: string; label: string };
   selectedMember: { value: string; label: string };
 }
 
 export class SummaryContainer extends React.Component<
-  ISummaryContainerProps,
-  ISummaryContainerState
+  IContainerProps,
+  IContainerState
 > {
   public state = {
     selectedMember: null,
@@ -47,19 +47,21 @@ export class SummaryContainer extends React.Component<
     }));
     const memberItems = members.map(member => ({
       label: member.login,
-      value: undefined
+      value: member.login
     }));
 
     const filteredRepos = repos.filter(
-      repo => (!selectedRepo ? true : repo.name === selectedRepo.value)
+      repo => !selectedRepo || repo.name === selectedRepo.value
     );
-    const authorFilter = !selectedMember ? undefined : selectedMember;
+    const filteredPulls = prActivityData.filter(data => {
+      return !selectedRepo || data.repo === selectedRepo.value;
+    });
+    const authorFilter = !selectedMember ? undefined : selectedMember.value;
     const commits = getCommits(period, filteredRepos, authorFilter);
-    const prsOpened = getPRsOpened(period, filteredRepos, authorFilter);
     const prsMerged = getPRsMerged(period, filteredRepos, authorFilter);
-    const prComments = getPRComments(period, prActivityData);
-    const activeRepos = getActiveRepo(period, filteredRepos);
-    const activeMembers = getActiveMember(period, filteredRepos);
+    const prComments = getPRComments(period, filteredPulls, authorFilter);
+    const activeRepos = getActiveRepo(period, filteredRepos, authorFilter);
+    const activeMembers = getActiveMember(period, filteredRepos, authorFilter);
 
     return (
       <LighterContainer>
@@ -72,7 +74,6 @@ export class SummaryContainer extends React.Component<
         />
         <SummaryRow
           commits={commits}
-          prsOpened={prsOpened}
           prsMerged={prsMerged}
           prComments={prComments}
           activeRepos={activeRepos}
@@ -83,7 +84,7 @@ export class SummaryContainer extends React.Component<
           {...chartBounds}
           commitsData={commitsData}
           prData={prActivityData}
-          selectedMember={selectedMember}
+          selectedMember={selectedMember ? selectedMember.value : null}
           selectedRepo={selectedRepo ? selectedRepo.value : null}
         />
       </LighterContainer>
@@ -99,47 +100,55 @@ export class SummaryContainer extends React.Component<
   };
 }
 
-const getActiveMember = (period: IPeriod, repos: IRepository[]) => {
+const getActiveMember = (
+  period: IPeriod,
+  repos: IRepository[],
+  authorLogin?: string
+) => {
   // TODO: only commits is a flawed metric?
-  // TODO: add author filter
   const nextTs = +new Date(period.next) / 1000;
   const previousTs = +new Date(period.previous) / 1000;
   const authorWise = {};
 
   repos.forEach(({ stats }) => {
     const { is_pending, authors } = stats;
+
     if (!is_pending) {
-      authors.forEach(({ login, commits }) => {
-        let previous = 0;
-        let next = 0;
+      authors
+        .filter(author => {
+          return !authorLogin || author.login === authorLogin;
+        })
+        .forEach(({ login, commits }) => {
+          let previous = 0;
+          let next = 0;
 
-        const previousFiltered = commits.filter(
-          ({ week }) => week === previousTs
-        );
-        const nextFiltered = commits.filter(({ week }) => week === nextTs);
+          const previousFiltered = commits.filter(
+            ({ week }) => week === previousTs
+          );
+          const nextFiltered = commits.filter(({ week }) => week === nextTs);
 
-        if (previousFiltered) {
-          previous = previousFiltered[0].value;
-        }
-        if (nextFiltered) {
-          next = nextFiltered[0].value;
-        }
-
-        if (next > 0 || previous > 0) {
-          if (login in authorWise) {
-            const {
-              previous: existingPrevious,
-              next: existingNext
-            } = authorWise[login];
-            authorWise[login] = {
-              next: existingNext + next,
-              previous: existingPrevious + previous
-            };
-          } else {
-            authorWise[login] = { next, previous };
+          if (previousFiltered) {
+            previous = previousFiltered[0].value;
           }
-        }
-      });
+          if (nextFiltered) {
+            next = nextFiltered[0].value;
+          }
+
+          if (next > 0 || previous > 0) {
+            if (login in authorWise) {
+              const {
+                previous: existingPrevious,
+                next: existingNext
+              } = authorWise[login];
+              authorWise[login] = {
+                next: existingNext + next,
+                previous: existingPrevious + previous
+              };
+            } else {
+              authorWise[login] = { next, previous };
+            }
+          }
+        });
     }
   });
 
@@ -153,9 +162,12 @@ const getActiveMember = (period: IPeriod, repos: IRepository[]) => {
   };
 };
 
-const getActiveRepo = (period: IPeriod, repos: IRepository[]) => {
+const getActiveRepo = (
+  period: IPeriod,
+  repos: IRepository[],
+  authorLogin?: string
+) => {
   // TODO: only commits is a flawed metric?
-  // TODO: add author filter
   const nextTs = +new Date(period.next) / 1000;
   const previousTs = +new Date(period.previous) / 1000;
 
@@ -165,13 +177,17 @@ const getActiveRepo = (period: IPeriod, repos: IRepository[]) => {
     let next = 0;
 
     if (!is_pending) {
-      previous = authors.reduce((acc, current) => {
+      const filteredAuthors = authors.filter(author => {
+        return !authorLogin || author.login === authorLogin;
+      });
+
+      previous = filteredAuthors.reduce((acc, current) => {
         const { commits } = current;
         const filtered = commits.filter(({ week }) => week === previousTs);
         return filtered ? acc + filtered[0].value : acc;
       }, 0);
 
-      next = authors.reduce((acc, current) => {
+      next = filteredAuthors.reduce((acc, current) => {
         const { commits } = current;
         const filtered = commits.filter(({ week }) => week === nextTs);
         return filtered ? acc + filtered[0].value : acc;
@@ -187,16 +203,23 @@ const getActiveRepo = (period: IPeriod, repos: IRepository[]) => {
 
   const previousRepo = parsed
     .slice()
+    .filter(d => d.previous)
     .sort((a, b) => b.previous - a.previous)[0];
-  const nextRepo = parsed.slice().sort((a, b) => b.next - a.next)[0];
+  const nextRepo = parsed
+    .slice()
+    .filter(d => d.next)
+    .sort((a, b) => b.next - a.next)[0];
   return {
     next: nextRepo ? nextRepo.name : undefined,
     previous: previousRepo ? previousRepo.name : undefined
   };
 };
 
-const getPRComments = (period: IPeriod, prData: IPullRequestData[]) => {
-  // TODO: add author filter
+const getPRComments = (
+  period: IPeriod,
+  prData: IPullRequestData[],
+  authorLogin?: string
+) => {
   const isInPrevious = (date: Date) => isInWeek(date, period.previous);
   const isInNext = (date: Date) => isInWeek(date, period.next);
 
@@ -205,7 +228,10 @@ const getPRComments = (period: IPeriod, prData: IPullRequestData[]) => {
     let next = 0;
 
     pulls.forEach(({ comments }) => {
-      const dates = comments.map(({ date }) => new Date(date));
+      const filteredComments = comments.filter(
+        comment => !authorLogin || authorLogin === comment.author
+      );
+      const dates = filteredComments.map(({ date }) => new Date(date));
       const previousValue = dates.filter(date => isInPrevious(date)).length;
       const nextValue = dates.filter(date => isInNext(date)).length;
       previous += previousValue;
