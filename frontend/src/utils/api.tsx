@@ -1,4 +1,5 @@
 import axios from "axios";
+import { TeamInfoAPIResult } from "gitstats-shared";
 import { getAccessToken } from "./auth";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
@@ -6,7 +7,11 @@ const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 
 export const getTeams = () => get(`${BASE_URL}/teams`);
 
-export const getTeamInfo = name => get(`${BASE_URL}/team/${name}`);
+export const getTeamInfo = async name => {
+  const response = await get(`${BASE_URL}/team/${name}`);
+  const result: TeamInfoAPIResult = response.message;
+  return result;
+};
 
 export const getCommits = (owner, weekStart) =>
   get(`${BASE_URL}/commits/${owner}?week_start=${weekStart}`);

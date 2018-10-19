@@ -1,6 +1,6 @@
 import * as moment from "moment";
-const rp = require("request-promise-native");
-const jwt = require("jsonwebtoken");
+import * as rp from "request-promise-native";
+import * as jwt from "jsonwebtoken";
 
 export type ServiceTeam = {
   id: number | string;
@@ -65,7 +65,7 @@ export class GithubManager extends ServiceManager {
         .unix(),
       iss: +process.env.GITHUB_APP_ID
     };
-    const token = jwt.sign(payload, process.env.GITHUB_APP_PRIVATE_KEY, {
+    const authToken = jwt.sign(payload, process.env.GITHUB_APP_PRIVATE_KEY, {
       algorithm: "RS256"
     });
 
@@ -75,10 +75,12 @@ export class GithubManager extends ServiceManager {
     const response = await this.request({
       uri: `installations/${id}/access_tokens`,
       qs: {},
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${authToken}` },
       method: "POST"
     });
-    return response.token;
+    const { token, expires_at } = response;
+    // expires_at is ISO date time string, 1 hour expiry
+    return token;
   }
 
   private async getTeamForToken(): Promise<ServiceTeam> {
@@ -141,7 +143,9 @@ export class BitbucketManager extends ServiceManager {
         json: true,
         headers: { Authorization: `Basic ${encodedAuth}` }
       });
-      this.newAccessToken = response.access_token;
+      const { access_token, expires_in } = response;
+      // expires in 2 hours
+      this.newAccessToken = access_token;
       return response.access_token;
     }
   }

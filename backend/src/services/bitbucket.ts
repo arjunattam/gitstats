@@ -1,7 +1,7 @@
 import * as moment from "moment";
 import * as types from "../types";
-const rp = require("request-promise-native");
-const url = require("url");
+import * as rp from "request-promise-native";
+import * as url from "url";
 import { getComparativeDurations, getComparativeCounts } from "./utils";
 
 export default class BitbucketService extends types.ServiceClient {
@@ -106,107 +106,96 @@ export default class BitbucketService extends types.ServiceClient {
     });
   }
 
-  getCommonQs() {
+  getCommonQueryParams() {
     const lastDate = this.periodPrev.toISOString().substr(0, 10);
     return { sort: "-updated_on", q: `updated_on>=${lastDate}` };
   }
 
-  buildRepeatedQs(key, values) {
+  buildRepeatedQueryParams(key, values) {
     // eg, state=OPEN&state=MERGED&state=DECLINED&state=SUPERSEDED
     // This method will return "OPEN&state=MERGED&state=DECLINED&state=SUPERSEDED"
     return values.join(`&${key}=`);
   }
 
-  report = (): Promise<types.Report> => {
-    return Promise.all([this.repos(), this.members()])
-      .then(responses => {
-        return {
-          members: responses[1],
-          repos: responses[0]
-        };
-      })
-      .then(response => {
-        const { repos } = response;
-        const prs = repos.map(repo => this.pulls(repo.name));
-        return Promise.all(prs).then(pullsValues => {
-          let repoResult = [];
-          let index;
+  report = async (): Promise<types.Report> => {
+    const responses = await Promise.all([this.repos(), this.members()]);
+    let response = {
+      members: responses[1],
+      repos: responses[0]
+    };
 
-          for (index = 0; index < repos.length; index++) {
-            repoResult.push({ ...repos[index], prs: pullsValues[index] });
-          }
+    const { repos } = response;
+    const prs = repos.map(repo => this.pulls(repo.name));
+    const pullsValues = await Promise.all(prs);
+    let repoResult = [];
+    let index;
 
-          return {
-            ...response,
-            repos: repoResult
-          };
-        });
-      });
+    for (index = 0; index < repos.length; index++) {
+      repoResult.push({ ...repos[index], prs: pullsValues[index] });
+    }
+
+    return {
+      ...response,
+      repos: repoResult
+    };
   };
 
-  emailReport = () => {
-    return Promise.all([this.repos(), this.ownerInfo()])
-      .then(responses => {
-        return {
-          period: { previous: this.periodPrev, next: this.periodNext },
-          owner: responses[1],
-          repos: responses[0]
-        };
-      })
-      .then(response => {
-        const { repos } = response;
-        const stats = repos.map(repo => this.statistics(repo.name));
-        return Promise.all(stats).then(statsValues => {
-          let repoResult = [];
-          let index;
+  emailReport = async () => {
+    const responses = await Promise.all([this.repos(), this.ownerInfo()]);
+    let response = {
+      period: { previous: this.periodPrev, next: this.periodNext },
+      owner: responses[1],
+      repos: responses[0]
+    };
 
-          for (index = 0; index < repos.length; index++) {
-            repoResult.push({ ...repos[index], stats: statsValues[index] });
-          }
+    const { repos } = response;
+    const stats = repos.map(repo => this.statistics(repo.name));
+    const statsValues = await Promise.all(stats);
+    let repoResult = [];
+    let index;
 
-          return {
-            ...response,
-            repos: repoResult
-          };
-        });
-      });
+    for (index = 0; index < repos.length; index++) {
+      repoResult.push({ ...repos[index], stats: statsValues[index] });
+    }
+    return {
+      ...response,
+      repos: repoResult
+    };
   };
 
-  repos(): Promise<types.Repo[]> {
-    return this.getAll(
+  async repos(): Promise<types.Repo[]> {
+    const values = await this.getAll(
       {
         path: `repositories/${this.owner}`,
-        qs: { ...this.getCommonQs() }
+        qs: { ...this.getCommonQueryParams() }
       },
       []
-    ).then(values => {
-      return values.map(repo => ({
-        name: repo.slug,
-        url: repo.links.html.href,
-        description: repo.description,
-        is_private: repo.is_private,
-        is_fork: false,
-        stargazers_count: 0,
-        updated_at: repo.updated_on,
-        stats: { is_pending: true }
-      }));
-    });
+    );
+    return values.map(repo => ({
+      name: repo.slug,
+      url: repo.links.html.href,
+      description: repo.description,
+      is_private: repo.is_private,
+      is_fork: false,
+      stargazers_count: 0,
+      updated_at: repo.updated_on,
+      stats: { is_pending: true }
+    }));
   }
 
-  members(): Promise<types.Member[]> {
-    return this.getAll(
+  async members(): Promise<types.Member[]> {
+    const values = await this.getAll(
       {
         path: `teams/${this.owner}/members`,
         qs: {}
       },
       []
-    ).then(values => {
-      return values.map(member => ({
-        login: member.username,
-        name: member.display_name,
-        avatar: member.links.avatar.href
-      }));
-    });
+    );
+    return values.map(member => ({
+      login: member.username,
+      name: member.display_name,
+      avatar: member.links.avatar.href
+    }));
   }
 
   ownerInfo = async (): Promise<types.Owner> => {
@@ -226,9 +215,9 @@ export default class BitbucketService extends types.ServiceClient {
       {
         path: `repositories/${this.owner}/${repo}/pullrequests`,
         qs: {
-          ...this.getCommonQs(),
+          ...this.getCommonQueryParams(),
           fields: `-values.description,-values.destination,-values.summary,-values.source,-values.closed_by`,
-          state: this.buildRepeatedQs("state", [
+          state: this.buildRepeatedQueryParams("state", [
             "MERGED",
             "SUPERSEDED",
             "OPEN",
@@ -273,110 +262,102 @@ export default class BitbucketService extends types.ServiceClient {
     });
   }
 
-  repoPRActivity(repo: string) {
+  async repoPRActivity(repo: string) {
     const periodStart = this.periodPrev;
-    return this.pullsApi(repo)
-      .then(pulls => {
-        return pulls
-          .filter(pr => moment(pr.updated_on) > periodStart)
-          .map(pr => ({
-            author: pr.author.username,
-            title: pr.title,
-            number: pr.id,
-            created_at: pr.created_on,
-            merged_at: pr.state === "MERGED" ? pr.updated_on : null,
-            closed_at: pr.state === "MERGED" ? pr.updated_on : null,
-            updated_at: pr.updated_on,
-            state: pr.state,
-            url: pr.links.html.href
-          }));
-      })
-      .then(pulls => {
-        const params = {
-          path: `repositories/${this.owner}/${repo}/pullrequests/activity`,
-          qs: {}
-        };
-        return this.getAllTillDate(
-          params,
-          [],
-          "update.date,comment.created_on",
-          this.periodPrev
-        ).then(result => {
-          // result has comments, commits (update), approvals
-          return pulls.map(pr => ({
-            ...pr,
-            commits: result
-              .filter(value => {
-                const { update, pull_request } = value;
-                return !!update && pull_request.id === pr.number;
-              })
-              .map(value => ({
-                date: value.update.date,
-                author: value.update.author
-                  ? value.update.author.username
-                  : null
-              })),
-            comments: result
-              .filter(value => {
-                const { comment, pull_request } = value;
-                return !!comment && pull_request.id === pr.number;
-              })
-              .map(value => ({
-                date: value.comment.created_on,
-                author: value.comment.user.username
-              }))
-          }));
-        });
-      });
+    const pulls = await this.pullsApi(repo);
+    const filteredPulls = pulls
+      .filter(pr => moment(pr.updated_on) > periodStart)
+      .map(pr => ({
+        author: pr.author.username,
+        title: pr.title,
+        number: pr.id,
+        created_at: pr.created_on,
+        merged_at: pr.state === "MERGED" ? pr.updated_on : null,
+        closed_at: pr.state === "MERGED" ? pr.updated_on : null,
+        updated_at: pr.updated_on,
+        state: pr.state,
+        url: pr.links.html.href
+      }));
+    const params = {
+      path: `repositories/${this.owner}/${repo}/pullrequests/activity`,
+      qs: {}
+    };
+    const result = await this.getAllTillDate(
+      params,
+      [],
+      "update.date,comment.created_on",
+      this.periodPrev
+    );
+
+    // result has comments, commits (update), approvals
+    return filteredPulls.map(pr => ({
+      ...pr,
+      commits: result
+        .filter(value => {
+          const { update, pull_request } = value;
+          return !!update && pull_request.id === pr.number;
+        })
+        .map(value => ({
+          date: value.update.date,
+          author: value.update.author ? value.update.author.username : null
+        })),
+      comments: result
+        .filter(value => {
+          const { comment, pull_request } = value;
+          return !!comment && pull_request.id === pr.number;
+        })
+        .map(value => ({
+          date: value.comment.created_on,
+          author: value.comment.user.username
+        }))
+    }));
   }
 
-  prActivity = () => {
-    return this.repos().then(repos => {
-      const promises = repos.map(repo => this.repoPRActivity(repo.name));
-      return Promise.all(promises).then(responses => {
-        return repos.map((repo, idx) => ({
-          repo: repo.name,
-          pulls: responses[idx]
-        }));
-      });
-    });
+  prActivity = async () => {
+    const repos = await this.repos();
+    const promises = repos.map(repo => this.repoPRActivity(repo.name));
+    const responses = await Promise.all(promises);
+    return repos.map((repo, idx) => ({
+      repo: repo.name,
+      pulls: responses[idx]
+    }));
   };
 
-  statistics = (repo: string) => {
+  statistics = async (repo: string) => {
     const minDateValue = moment(this.periodNext).subtract(4, "weeks");
 
-    return this.commits(repo, minDateValue).then(response => {
-      const authors = Object.keys(response);
-      const result: types.AuthorStats[] = authors.map(author => {
-        const commits = response[author];
+    const response = await this.commits(repo, minDateValue);
+    const authors = Object.keys(response);
 
-        const commitsResult = [0, 1, 2, 3, 4].map(value => {
-          const start = moment(this.periodNext).subtract(value, "weeks");
-          const end = moment(start).add(1, "weeks");
-          return {
-            week: start.unix(),
-            value: commits.filter(
-              c => moment(c.date) > start && moment(c.date) < end
-            ).length
-          };
-        });
+    const result: types.AuthorStats[] = authors.map(author => {
+      const commits = response[author];
+      const commitsResult = [0, 1, 2, 3, 4].map(value => {
+        const start = moment(this.periodNext).subtract(value, "weeks");
+        const end = moment(start).add(1, "weeks");
 
         return {
-          login: author,
-          commits: commitsResult,
-          lines_added: [],
-          lines_deleted: []
+          week: start.unix(),
+          value: commits.filter(
+            c => moment(c.date) > start && moment(c.date) < end
+          ).length
         };
       });
 
-      return { is_pending: false, authors: result };
+      return {
+        login: author,
+        commits: commitsResult,
+        lines_added: [],
+        lines_deleted: []
+      };
     });
+
+    return { is_pending: false, authors: result };
   };
 
-  commits(repo: string, minDateValue: moment.Moment) {
+  async commits(repo: string, minDateValue: moment.Moment) {
     // Returns all commits in the repo, all branches
     // https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits
-    return this.getAllTillDate(
+    const values = await this.getAllTillDate(
       {
         path: `repositories/${this.owner}/${repo}/commits`,
         qs: {
@@ -387,85 +368,54 @@ export default class BitbucketService extends types.ServiceClient {
       [],
       "date",
       minDateValue
-    ).then(values => {
-      let authorWiseCommits = {};
-      values.forEach(commit => {
-        const { date } = commit;
-        const isInDuration = this.isInDuration(date, minDateValue);
-        const { user, raw } = commit.author;
-        // This user might not have a linked bitbucket account
-        // eg, raw is `Tarun Gupta <tarungupta@Taruns-MacBook-Pro.local>`
-        // We will try to match it with a member -- TODO
-        if (user && isInDuration) {
-          const { username } = user;
-          if (username in authorWiseCommits) {
-            authorWiseCommits[username] = [].concat(
-              commit,
-              ...authorWiseCommits[username]
-            );
-          } else {
-            authorWiseCommits[username] = [commit];
-          }
-        }
-      });
+    );
 
-      return authorWiseCommits;
+    let authorWiseCommits = {};
+    values.forEach(commit => {
+      const { date } = commit;
+      const isInDuration = this.isInDuration(date, minDateValue);
+      const { user, raw } = commit.author;
+      // This user might not have a linked bitbucket account
+      // eg, raw is `Tarun Gupta <tarungupta@Taruns-MacBook-Pro.local>`
+      if (user && isInDuration) {
+        const { username } = user;
+        if (username in authorWiseCommits) {
+          authorWiseCommits[username] = [].concat(
+            commit,
+            ...authorWiseCommits[username]
+          );
+        } else {
+          authorWiseCommits[username] = [commit];
+        }
+      }
     });
+
+    return authorWiseCommits;
   }
 
-  allCommits = (): Promise<types.Commits[]> => {
-    return this.repos().then(repos => {
-      const promises = repos.map(repo =>
-        this.commits(repo.name, this.periodPrev)
-      );
-      return Promise.all(promises).then(responses => {
-        return responses.map((response, idx) => {
-          const authors = Object.keys(response);
-          let result = [];
-          authors.forEach(author => {
-            const commits = response[author].map(commit => ({
-              date: commit.date,
-              sha: commit.hash,
-              message: commit.message
-            }));
-            result.push({ author, commits });
-          });
-          return {
-            repo: repos[idx].name,
-            commits: result
-          };
-        });
+  allCommits = async (): Promise<types.Commits[]> => {
+    const repos = await this.repos();
+    const promises = repos.map(repo =>
+      this.commits(repo.name, this.periodPrev)
+    );
+    const responses = await Promise.all(promises);
+
+    return responses.map((response, idx) => {
+      const authors = Object.keys(response);
+      let result = [];
+      authors.forEach(author => {
+        const commits = response[author].map(commit => ({
+          date: commit.date,
+          sha: commit.hash,
+          message: commit.message
+        }));
+        result.push({ author, commits });
       });
+
+      return {
+        repo: repos[idx].name,
+        commits: result
+      };
     });
   };
-
-  diffstat(repo: string, commits: any[]) {
-    // Each commit has hash and date
-    const promises = commits.map(commit =>
-      this.getAll(
-        {
-          path: `repositories/${this.owner}/${repo}/diffstat/${commit.hash}`,
-          qs: { fields: `-values.old,-values.new,-values.type` }
-        },
-        []
-      ).then(values => {
-        const initial = { added: 0, deleted: 0 };
-        return values.reduce(
-          (acc, current) => ({
-            added: acc.added + current.lines_added,
-            deleted: acc.deleted + current.lines_removed
-          }),
-          initial
-        );
-      })
-    );
-    return Promise.all(promises).then(values => {
-      let result = [];
-      let index;
-      for (index = 0; index < commits.length; index++) {
-        result.push({ ...commits[index], ...values[index] });
-      }
-      return result;
-    });
-  }
 }

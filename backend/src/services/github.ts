@@ -2,6 +2,13 @@ import { GithubAPICaller } from "./api";
 import { getComparativeCounts, getComparativeDurations } from "./utils";
 import * as types from "../types";
 import * as moment from "moment";
+import { TeamInfoAPIResult } from "gitstats-shared";
+
+const STATUS_CODES = {
+  success: 200,
+  pending: 202,
+  noContent: 204
+};
 
 export default class GithubService extends types.ServiceClient {
   helper: GithubAPICaller;
@@ -20,6 +27,19 @@ export default class GithubService extends types.ServiceClient {
     this.periodNext = moment(this.weekStart);
     this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
   }
+
+  teamInfo = async (): Promise<TeamInfoAPIResult> => {
+    const responses = await Promise.all([
+      this.ownerInfo(),
+      this.repos(),
+      this.members()
+    ]);
+    return {
+      team: responses[0],
+      repos: responses[1],
+      members: responses[2]
+    };
+  };
 
   report = (): Promise<types.Report> => {
     return Promise.all([this.repos(), this.members()])
@@ -199,11 +219,11 @@ export default class GithubService extends types.ServiceClient {
     const { statusCode } = response;
     const { body } = response;
 
-    if (statusCode === 202) {
+    if (statusCode === STATUS_CODES.pending) {
       return { is_pending: true };
-    } else if (statusCode === 204) {
+    } else if (statusCode === STATUS_CODES.noContent) {
       return { is_pending: false, authors: [] };
-    } else if (statusCode === 200) {
+    } else if (statusCode === STATUS_CODES.success) {
       const allWeeks = [0, 1, 2, 3, 4].map(value =>
         moment(this.periodNext)
           .subtract(value, "weeks")
@@ -287,11 +307,11 @@ export default class GithubService extends types.ServiceClient {
     return response.body;
   }
 
-  prActivity = () => {
-    return this.organisation()
-      .then(({ node_id }) => {
-        // TODO - this sets a limit of 10 for repos and limit of 20 for PRs
-        return `{
+  prActivity = async () => {
+    const organisation = await this.organisation();
+    const { node_id } = organisation;
+    // TODO: this sets a limit of 10 for repos and limit of 20 for PRs
+    const query = `{
       nodes(ids: ["${node_id}"]) {
         ... on Organization {
           repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
@@ -340,65 +360,61 @@ export default class GithubService extends types.ServiceClient {
         }
       }
     }`;
-      })
-      .then(query => {
-        return this.helper.graphqlPost({ query }).then(response => {
-          const responseNode = response.body.data.nodes[0];
-          return responseNode.repositories.nodes
-            .filter(
-              node =>
-                moment(node.updatedAt) > this.periodPrev &&
-                node.pullRequests.nodes.length > 0
-            )
-            .map(node => {
-              const pulls = node.pullRequests.nodes
-                .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
-                .map(prNode => {
-                  const commits = prNode.commits.nodes
-                    // TODO - we are filtering for only recognised committers
-                    .filter(
-                      commitNode =>
-                        !!commitNode && !!commitNode.commit.author.user
-                    )
-                    .map(commitNode => ({
-                      author: commitNode.commit.author.user.login,
-                      date: commitNode.commit.authoredDate,
-                      message: commitNode.commit.message
-                    }));
-                  // TODO: the comments does not include approval/rejection comments
-                  // eg, in this PR: https://github.com/getsentry/responses/pull/210
-                  // TODO: should this return message also?
-                  const comments = prNode.comments.nodes.map(commentNode => ({
-                    author: commentNode.author
-                      ? commentNode.author.login
-                      : null,
-                    date: commentNode.createdAt
-                  }));
-                  return {
-                    author: prNode.author.login,
-                    title: prNode.title,
-                    number: prNode.number,
-                    created_at: prNode.createdAt,
-                    merged_at: prNode.mergedAt,
-                    closed_at: prNode.closedAt,
-                    updated_at: prNode.updatedAt,
-                    state: prNode.state,
-                    url: prNode.url,
-                    comments,
-                    commits
-                  };
-                });
-              return {
-                repo: node.name,
-                pulls
-              };
-            });
-        });
+
+    const response = await this.helper.graphqlPost({ query });
+    const responseNode = response.body.data.nodes[0];
+    return responseNode.repositories.nodes
+      .filter(
+        node =>
+          moment(node.updatedAt) > this.periodPrev &&
+          node.pullRequests.nodes.length > 0
+      )
+      .map(node => {
+        const pulls = node.pullRequests.nodes
+          .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
+          .map(prNode => {
+            const commits = prNode.commits.nodes
+              // TODO: we are filtering for only recognised committers
+              .filter(
+                commitNode => !!commitNode && !!commitNode.commit.author.user
+              )
+              .map(commitNode => ({
+                author: commitNode.commit.author.user.login,
+                date: commitNode.commit.authoredDate,
+                message: commitNode.commit.message
+              }));
+
+            // TODO: the comments does not include approval/rejection comments
+            // eg, in this PR: https://github.com/getsentry/responses/pull/210
+            // TODO: should this return message also?
+            const comments = prNode.comments.nodes.map(commentNode => ({
+              author: commentNode.author ? commentNode.author.login : null,
+              date: commentNode.createdAt
+            }));
+            return {
+              author: prNode.author.login,
+              title: prNode.title,
+              number: prNode.number,
+              created_at: prNode.createdAt,
+              merged_at: prNode.mergedAt,
+              closed_at: prNode.closedAt,
+              updated_at: prNode.updatedAt,
+              state: prNode.state,
+              url: prNode.url,
+              comments,
+              commits
+            };
+          });
+
+        return {
+          repo: node.name,
+          pulls
+        };
       });
   };
 
-  commits(repo: string): Promise<types.RepoCommits[]> {
-    // Only default branch (master)
+  async commits(repo: string): Promise<types.RepoCommits[]> {
+    // Only default branch (master). Add ?sha=develop to get commits from other branches
     const params = {
       path: `repos/${this.owner}/${repo}/commits`,
       qs: {
@@ -406,45 +422,44 @@ export default class GithubService extends types.ServiceClient {
         per_page: 100
       }
     };
-    return this.helper.getAllPages([], params).then(values => {
-      const commits = values
-        .filter(response => !!response.author)
-        .map(response => ({
-          // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
-          login: response.author.login,
-          date: response.commit.author.date,
-          message: response.commit.message,
-          sha: response.sha
-        }));
-      let authorWiseCommits = {};
-      commits.forEach(commit => {
-        const { login } = commit;
-        if (login in authorWiseCommits) {
-          authorWiseCommits[login] = [commit, ...authorWiseCommits[login]];
-        } else {
-          authorWiseCommits[login] = [commit];
-        }
-      });
-      const authors = Object.keys(authorWiseCommits);
-      return authors.map(author => ({
-        author,
-        commits: authorWiseCommits[author]
+
+    const values = await this.helper.getAllPages([], params);
+    const commits = values
+      .filter(response => !!response.author)
+      .map(response => ({
+        // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
+        login: response.author.login,
+        date: response.commit.author.date,
+        message: response.commit.message,
+        sha: response.sha
       }));
+    let authorWiseCommits = {};
+    commits.forEach(commit => {
+      const { login } = commit;
+      if (login in authorWiseCommits) {
+        authorWiseCommits[login] = [commit, ...authorWiseCommits[login]];
+      } else {
+        authorWiseCommits[login] = [commit];
+      }
     });
+    const authors = Object.keys(authorWiseCommits);
+
+    return authors.map(author => ({
+      author,
+      commits: authorWiseCommits[author]
+    }));
   }
 
-  allCommits = (): Promise<types.Commits[]> => {
-    return this.repos().then(repos => {
-      // Filtering to public repos only because the Github Apps
-      // integration does not ask for commits permissions.
-      const filtered = repos.filter(repo => !repo.is_private);
-      const promises = filtered.map(repo => this.commits(repo.name));
-      return Promise.all(promises).then((responses: types.RepoCommits[][]) => {
-        return responses.map((response, idx) => ({
-          repo: filtered[idx].name,
-          commits: response
-        }));
-      });
-    });
+  allCommits = async (): Promise<types.Commits[]> => {
+    const repos = await this.repos();
+    // Filtering to public repos only because the Github Apps
+    // integration does not ask for commits permissions.
+    const filtered = repos.filter(repo => !repo.is_private);
+    const promises = filtered.map(repo => this.commits(repo.name));
+    const responses: types.RepoCommits[][] = await Promise.all(promises);
+    return responses.map((response, idx) => ({
+      repo: filtered[idx].name,
+      commits: response
+    }));
   };
 }

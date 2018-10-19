@@ -1,5 +1,5 @@
-const assert = require("assert");
-const url = require("url");
+import * as assert from "assert";
+import * as url from "url";
 
 describe("bitbucket pagination", function() {
   it("should parse url query params", function() {

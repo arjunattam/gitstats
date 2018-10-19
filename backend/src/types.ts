@@ -1,4 +1,5 @@
 import { Moment } from "moment";
+import { TeamInfoAPIResult } from "gitstats-shared";
 
 export abstract class ServiceClient {
   constructor(
@@ -6,6 +7,7 @@ export abstract class ServiceClient {
     public owner: string,
     public weekStart: Moment
   ) {}
+  abstract teamInfo: () => Promise<TeamInfoAPIResult>;
   abstract ownerInfo: () => Promise<Owner>;
   abstract report: () => Promise<Report>;
   abstract emailReport: () => Promise<EmailReport>;

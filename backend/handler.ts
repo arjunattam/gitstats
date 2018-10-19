@@ -7,7 +7,7 @@ import {
 } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
 import authorizer from "./src/authorizer";
-import UserManager from "./src/users";
+import UserManager from "./src/userManager";
 import { sendEmail } from "./src/email";
 import * as redis from "./src/redis";
 
@@ -33,7 +33,7 @@ const getManager = (event: APIGatewayEvent, owner?: string) => {
     accessToken = process.env.DEFAULT_ACCESS_TOKEN;
   }
 
-  const decoded = jwt.decode(accessToken);
+  const decoded: any = jwt.decode(accessToken);
   const { sub: userId } = decoded;
   return new UserManager(userId, owner);
 };
@@ -136,10 +136,13 @@ export const pulls: Handler = async (event: APIGatewayEvent) => {
 };
 
 export const teamInfo: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
+  const { pathParameters, queryStringParameters } = event;
+  const { last_updated: lastUpdated } = queryStringParameters;
+  const { owner } = pathParameters;
   const manager = getManager(event, owner);
+
   const client = await manager.getServiceClient(undefined);
-  const response = await client.ownerInfo();
+  const response = await client.teamInfo();
   return buildResponse(event, response);
 };
 

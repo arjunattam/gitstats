@@ -8,6 +8,7 @@
     "bootstrap": "^4.1.1",
     "d3": "^5.5.0",
     "date-fns": "^1.29.0",
+    "gitstats-shared": "../shared",
     "history": "^4.7.2",
     "jwt-decode": "^2.2.0",
     "react": "^16.5.2",

@@ -1,10 +1,10 @@
-const rp = require("request-promise-native");
+import * as rp from "request-promise-native";
 import {
   ServiceManager,
   ServiceTeam,
   GithubManager,
   BitbucketManager
-} from "./manager";
+} from "./managers";
 import BitbucketService from "./services/bitbucket";
 import GithubService from "./services/github";
 import * as moment from "moment";
@@ -26,8 +26,9 @@ type EmailContext = {
 class Auth0Client {
   managementToken: string | undefined;
 
-  setupToken(): Promise<void> {
-    // This sets up the management token for Auth0, allowing us to fetch data from Auth0
+  async setupToken(): Promise<void> {
+    // This sets up the management token for Auth0,
+    // allowing us to fetch data from Auth0
     const {
       AUTH0_MANAGER_TOKEN_URL: uri,
       AUTH0_MANAGER_AUDIENCE: audience,
@@ -35,7 +36,7 @@ class Auth0Client {
       AUTH0_MANAGER_CLIENT_SECRET: clientSecret
     } = process.env;
 
-    return rp({
+    const response = await rp({
       uri,
       method: "POST",
       body: {
@@ -45,9 +46,10 @@ class Auth0Client {
         grant_type: "client_credentials"
       },
       json: true
-    }).then(response => {
-      this.managementToken = response.access_token;
     });
+    const { access_token, expires_in } = response;
+    // expires in 24 hours
+    this.managementToken = access_token;
   }
 
   async getUser(userId: string) {
