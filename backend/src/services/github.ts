@@ -2,7 +2,8 @@ import { GithubAPICaller } from "./api";
 import { getComparativeCounts, getComparativeDurations } from "./utils";
 import * as types from "../types";
 import * as moment from "moment";
-import { TeamInfoAPIResult } from "gitstats-shared";
+import { Team, Repo, Member } from "gitstats-shared";
+import { ServiceClient } from "./base";
 
 const STATUS_CODES = {
   success: 200,
@@ -10,7 +11,7 @@ const STATUS_CODES = {
   noContent: 204
 };
 
-export default class GithubService extends types.ServiceClient {
+export default class GithubService extends ServiceClient {
   helper: GithubAPICaller;
   periodPrev: moment.Moment;
   periodNext: moment.Moment;
@@ -28,19 +29,7 @@ export default class GithubService extends types.ServiceClient {
     this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
   }
 
-  teamInfo = async (): Promise<TeamInfoAPIResult> => {
-    const responses = await Promise.all([
-      this.ownerInfo(),
-      this.repos(),
-      this.members()
-    ]);
-    return {
-      team: responses[0],
-      repos: responses[1],
-      members: responses[2]
-    };
-  };
-
+  // TODO: delete this
   report = (): Promise<types.Report> => {
     return Promise.all([this.repos(), this.members()])
       .then(responses => {
@@ -102,7 +91,7 @@ export default class GithubService extends types.ServiceClient {
     return { owner, period, repos: repoResult };
   };
 
-  async repos(): Promise<types.Repo[]> {
+  repos = async (): Promise<Repo[]> => {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
     // We can also use https://api.github.com/installation/repositories
     // but that limits us to the organisations in the installation
@@ -130,9 +119,9 @@ export default class GithubService extends types.ServiceClient {
         stargazers_count: repo.stargazers_count,
         updated_at: repo.updated_at
       }));
-  }
+  };
 
-  async members(): Promise<types.Member[]> {
+  members = async (): Promise<Member[]> => {
     // Uses GraphQL because the REST endpoint does not return full names
     // REST API: https://developer.github.com/v3/orgs/members/#members-list
     const organisation = await this.organisation();
@@ -178,25 +167,25 @@ export default class GithubService extends types.ServiceClient {
         avatar: member.avatar_url
       }));
     }
-  }
+  };
 
-  ownerInfo = async (): Promise<types.Owner> => {
+  ownerInfo = async (): Promise<Team> => {
     const response = await this.helper.get({
       path: `users/${this.owner}`,
       headers: {},
       qs: {}
     });
     const { login, name, avatar_url } = response.body;
-    return { login, name, avatar: avatar_url };
+    return { login, name, avatar: avatar_url, service: "github" };
   };
 
-  statsWrapper(repo: string): Promise<types.RepoStats> {
+  private statsWrapper(repo: string): Promise<types.RepoStats> {
     return new Promise(resolve => {
       this.statsHelper(resolve, repo);
     });
   }
 
-  statsHelper(resolve, repo) {
+  private statsHelper(resolve, repo) {
     this.statistics(repo).then(response => {
       const { is_pending } = response;
 
@@ -210,14 +199,14 @@ export default class GithubService extends types.ServiceClient {
     });
   }
 
+  // TODO: delete this
   statistics = async (repo: string): Promise<types.RepoStats> => {
     const response = await this.helper.get({
       path: `repos/${this.owner}/${repo}/stats/contributors`,
       headers: {},
       qs: {}
     });
-    const { statusCode } = response;
-    const { body } = response;
+    const { statusCode, body } = response;
 
     if (statusCode === STATUS_CODES.pending) {
       return { is_pending: true };
@@ -273,6 +262,7 @@ export default class GithubService extends types.ServiceClient {
     return this.helper.getAllForDesc([], params, "updated_at");
   }
 
+  // TODO: delete this
   pulls(repo: string): Promise<types.RepoPR[]> {
     return this.pullsList(repo).then(pulls => {
       let authorWisePRs = {};
@@ -433,6 +423,7 @@ export default class GithubService extends types.ServiceClient {
         message: response.commit.message,
         sha: response.sha
       }));
+
     let authorWiseCommits = {};
     commits.forEach(commit => {
       const { login } = commit;
@@ -461,5 +452,13 @@ export default class GithubService extends types.ServiceClient {
       repo: filtered[idx].name,
       commits: response
     }));
+  };
+
+  pullsV2 = (repo: string) => {
+    return Promise.resolve({ repo, pulls: [] });
+  };
+
+  commitsV2 = (repo: string) => {
+    return Promise.resolve({ repo, is_pending: true, stats: [], commits: [] });
   };
 }

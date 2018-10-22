@@ -1,5 +1,6 @@
 import * as React from "react";
 import { connect } from "react-redux";
+import { ITeam } from "../../types";
 import { Report } from "./report";
 
 const ReportPageContainer = ({ match, data }) => {

@@ -1,6 +1,13 @@
 import { median } from "d3";
+import { Member, Repo } from "gitstats-shared";
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
+import {
+  IPeriod,
+  IPullRequest,
+  IPullRequestComment,
+  IPullRequestData
+} from "../../../types";
 import { diffInSeconds, isInWeek } from "../../../utils/date";
 import { PRChartContainer } from "../../Charts/pulls";
 import { Filters } from "../common/filters";
@@ -8,8 +15,8 @@ import { getPRsMerged, getPRsMergeTime, getPRsOpened } from "../utils";
 import { PullsRow } from "./row";
 
 interface IContainerProps {
-  repos: IRepository[];
-  members: IMember[];
+  repos: Repo[];
+  members: Member[];
   period: IPeriod;
   isLoading: boolean;
   prActivityData: IPullRequestData[];

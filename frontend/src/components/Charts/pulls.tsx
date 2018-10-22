@@ -1,4 +1,5 @@
 import * as React from "react";
+import { IPullRequest, IPullRequestData } from "../../types";
 import { TimelineChart } from "./base/timeline";
 
 interface IPRChartContainerProps {

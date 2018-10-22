@@ -1,9 +1,12 @@
+import { Team } from "gitstats-shared";
 import * as React from "react";
+import { ICommits, IPullRequestData, IReportJson } from "../../types";
 import {
   getCommits,
   getPRActivity,
   getReport,
-  getRepoStats
+  getRepoStats,
+  getTeamInfo
 } from "../../utils/api";
 import { getPeriod, getWeekStart } from "../../utils/date";
 import { ReportContainer } from "./container";
@@ -12,7 +15,7 @@ import { Header } from "./header";
 
 interface IReportProps {
   teamLogin: string;
-  team?: ITeam;
+  team?: Team;
 }
 
 interface IReportState {
@@ -69,6 +72,10 @@ export class Report extends React.Component<IReportProps, IReportState> {
   private update() {
     const { teamLogin } = this.props;
     const { weekStart } = this.state;
+
+    getTeamInfo(teamLogin, weekStart).then(response => {
+      const { name, avatar, repos, members } = response;
+    });
 
     getReport(teamLogin, weekStart).then(response => {
       const { repos } = response.message;

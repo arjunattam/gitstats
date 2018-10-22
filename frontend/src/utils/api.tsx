@@ -7,8 +7,10 @@ const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 
 export const getTeams = () => get(`${BASE_URL}/teams`);
 
-export const getTeamInfo = async name => {
-  const response = await get(`${BASE_URL}/team/${name}`);
+export const getTeamInfo = async (name, weekStart) => {
+  const response = await get(
+    `${BASE_URL}/team/${name}?week_start=${weekStart}`
+  );
   const result: TeamInfoAPIResult = response.message;
   return result;
 };

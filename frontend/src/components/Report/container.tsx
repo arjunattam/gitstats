@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ICommits, IPeriod, IPullRequestData, IReportJson } from "../../types";
 import { getChartBounds } from "../../utils/date";
 import { LighterContainer } from "./common";
 import { Members } from "./members";

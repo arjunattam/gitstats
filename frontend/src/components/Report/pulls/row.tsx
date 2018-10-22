@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Row } from "reactstrap";
+import { IWeekValues } from "../../../types";
 import { getDurationLabel } from "../../../utils/date";
 import { TextColWrapper, ValueColWrapper } from "../common";
 

@@ -3,8 +3,18 @@ import * as types from "../types";
 import * as rp from "request-promise-native";
 import * as url from "url";
 import { getComparativeDurations, getComparativeCounts } from "./utils";
+import {
+  Team,
+  Repo,
+  Member,
+  PullsAPIResult,
+  CommitsAPIResult,
+  RepoStats,
+  Commit
+} from "gitstats-shared";
+import { ServiceClient } from "./base";
 
-export default class BitbucketService extends types.ServiceClient {
+export default class BitbucketService extends ServiceClient {
   baseUrl: string;
   periodPrev: moment.Moment;
   periodNext: moment.Moment;
@@ -23,7 +33,7 @@ export default class BitbucketService extends types.ServiceClient {
     this.periodNext = moment(this.weekStart);
   }
 
-  isInDuration(date: string, minDateValue) {
+  private isInDuration(date: string, minDateValue: moment.Moment) {
     return (
       moment(date) > minDateValue &&
       moment(date) <
@@ -33,7 +43,7 @@ export default class BitbucketService extends types.ServiceClient {
     );
   }
 
-  get({ path, qs }) {
+  private get({ path, qs }) {
     return rp({
       baseUrl: this.baseUrl,
       uri: path,
@@ -45,7 +55,7 @@ export default class BitbucketService extends types.ServiceClient {
     });
   }
 
-  getAll({ path, qs }, aggregateValues) {
+  private getAll({ path, qs }, aggregateValues) {
     return this.get({ path, qs }).then(response => {
       const { values, next } = response;
       const newAggregate = [...aggregateValues, ...values];
@@ -61,9 +71,10 @@ export default class BitbucketService extends types.ServiceClient {
 
   // This method accesses arbitrarily nested property of an object
   // Source https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
-  access = (p, o) => p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o);
+  private access = (p, o) =>
+    p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o);
 
-  getAllTillDate({ path, qs }, aggregateValues, key, minDateValue) {
+  private getAllTillDate({ path, qs }, aggregateValues, key, minDateValue) {
     // Assumes the response is sorted in desc by key (which is true for commits)
     // key can be a nested field (using .) or a combination of fields (using ,)
     // eg, key as update.date,comment.created_on checks for two nested fields
@@ -106,17 +117,18 @@ export default class BitbucketService extends types.ServiceClient {
     });
   }
 
-  getCommonQueryParams() {
+  private getCommonQueryParams() {
     const lastDate = this.periodPrev.toISOString().substr(0, 10);
     return { sort: "-updated_on", q: `updated_on>=${lastDate}` };
   }
 
-  buildRepeatedQueryParams(key, values) {
+  private buildRepeatedQueryParams(key, values) {
     // eg, state=OPEN&state=MERGED&state=DECLINED&state=SUPERSEDED
     // This method will return "OPEN&state=MERGED&state=DECLINED&state=SUPERSEDED"
     return values.join(`&${key}=`);
   }
 
+  // TODO: delete this
   report = async (): Promise<types.Report> => {
     const responses = await Promise.all([this.repos(), this.members()]);
     let response = {
@@ -163,7 +175,7 @@ export default class BitbucketService extends types.ServiceClient {
     };
   };
 
-  async repos(): Promise<types.Repo[]> {
+  repos = async (): Promise<Repo[]> => {
     const values = await this.getAll(
       {
         path: `repositories/${this.owner}`,
@@ -181,9 +193,9 @@ export default class BitbucketService extends types.ServiceClient {
       updated_at: repo.updated_on,
       stats: { is_pending: true }
     }));
-  }
+  };
 
-  async members(): Promise<types.Member[]> {
+  members = async (): Promise<Member[]> => {
     const values = await this.getAll(
       {
         path: `teams/${this.owner}/members`,
@@ -196,9 +208,9 @@ export default class BitbucketService extends types.ServiceClient {
       name: member.display_name,
       avatar: member.links.avatar.href
     }));
-  }
+  };
 
-  ownerInfo = async (): Promise<types.Owner> => {
+  ownerInfo = async (): Promise<Team> => {
     const team = await this.get({
       path: `teams/${this.owner}`,
       qs: {}
@@ -206,11 +218,12 @@ export default class BitbucketService extends types.ServiceClient {
     return {
       login: team.username,
       name: team.display_name,
-      avatar: team.links.avatar.href
+      avatar: team.links.avatar.href,
+      service: "bitbucket"
     };
   };
 
-  pullsApi(repo: string) {
+  private pullsApi(repo: string) {
     return this.getAll(
       {
         path: `repositories/${this.owner}/${repo}/pullrequests`,
@@ -229,6 +242,21 @@ export default class BitbucketService extends types.ServiceClient {
     );
   }
 
+  private async prActivityApi(repo: string) {
+    const params = {
+      path: `repositories/${this.owner}/${repo}/pullrequests/activity`,
+      qs: {}
+    };
+    const response = await this.getAllTillDate(
+      params,
+      [],
+      "update.date,comment.created_on",
+      this.periodPrev
+    );
+    return response;
+  }
+
+  // TODO: delete this
   pulls(repo: string): Promise<types.RepoPR[]> {
     return this.pullsApi(repo).then(values => {
       let authorWisePRs = {};
@@ -262,11 +290,16 @@ export default class BitbucketService extends types.ServiceClient {
     });
   }
 
-  async repoPRActivity(repo: string) {
-    const periodStart = this.periodPrev;
-    const pulls = await this.pullsApi(repo);
+  pullsV2 = async (repo: string): Promise<PullsAPIResult> => {
+    const responses = await Promise.all([
+      this.pullsApi(repo),
+      this.prActivityApi(repo)
+    ]);
+    const pulls = responses[0];
+    const prActivity = responses[1];
+
     const filteredPulls = pulls
-      .filter(pr => moment(pr.updated_on) > periodStart)
+      .filter(pr => moment(pr.updated_on) > this.periodPrev)
       .map(pr => ({
         author: pr.author.username,
         title: pr.title,
@@ -278,21 +311,10 @@ export default class BitbucketService extends types.ServiceClient {
         state: pr.state,
         url: pr.links.html.href
       }));
-    const params = {
-      path: `repositories/${this.owner}/${repo}/pullrequests/activity`,
-      qs: {}
-    };
-    const result = await this.getAllTillDate(
-      params,
-      [],
-      "update.date,comment.created_on",
-      this.periodPrev
-    );
 
-    // result has comments, commits (update), approvals
-    return filteredPulls.map(pr => ({
+    const result = filteredPulls.map(pr => ({
       ...pr,
-      commits: result
+      commits: prActivity
         .filter(value => {
           const { update, pull_request } = value;
           return !!update && pull_request.id === pr.number;
@@ -301,7 +323,7 @@ export default class BitbucketService extends types.ServiceClient {
           date: value.update.date,
           author: value.update.author ? value.update.author.username : null
         })),
-      comments: result
+      comments: prActivity
         .filter(value => {
           const { comment, pull_request } = value;
           return !!comment && pull_request.id === pr.number;
@@ -311,41 +333,51 @@ export default class BitbucketService extends types.ServiceClient {
           author: value.comment.user.username
         }))
     }));
-  }
 
-  prActivity = async () => {
-    const repos = await this.repos();
-    const promises = repos.map(repo => this.repoPRActivity(repo.name));
-    const responses = await Promise.all(promises);
-    return repos.map((repo, idx) => ({
-      repo: repo.name,
-      pulls: responses[idx]
-    }));
+    return {
+      repo,
+      pulls: result
+    };
   };
 
-  statistics = async (repo: string) => {
-    const minDateValue = moment(this.periodNext).subtract(4, "weeks");
+  // TODO: delete this
+  prActivity = async () => {
+    const repos = await this.repos();
+    const promises = repos.map(repo => this.pullsV2(repo.name));
+    const responses = await Promise.all(promises);
+    return responses;
+  };
 
-    const response = await this.commits(repo, minDateValue);
+  private getWeekValues = (numWeeks, commits) => {
+    const indexNumbers = Array.from(Array(numWeeks).keys());
+    return indexNumbers.map(index => {
+      const start = moment(this.periodNext).subtract(index, "weeks");
+      const end = moment(start).add(1, "weeks");
+
+      return {
+        week: start.unix(),
+        value: commits.filter(
+          c => moment(c.date) > start && moment(c.date) < end
+        ).length
+      };
+    });
+  };
+
+  // TODO: delete this
+  statistics = async (repo: string) => {
+    const NUM_WEEKS = 5;
+    const minDateValue = moment(this.periodNext).subtract(
+      NUM_WEEKS - 1,
+      "weeks"
+    );
+    const response = await this.repoCommits(repo, minDateValue);
     const authors = Object.keys(response);
 
     const result: types.AuthorStats[] = authors.map(author => {
       const commits = response[author];
-      const commitsResult = [0, 1, 2, 3, 4].map(value => {
-        const start = moment(this.periodNext).subtract(value, "weeks");
-        const end = moment(start).add(1, "weeks");
-
-        return {
-          week: start.unix(),
-          value: commits.filter(
-            c => moment(c.date) > start && moment(c.date) < end
-          ).length
-        };
-      });
-
       return {
         login: author,
-        commits: commitsResult,
+        commits: this.getWeekValues(NUM_WEEKS, commits),
         lines_added: [],
         lines_deleted: []
       };
@@ -354,7 +386,7 @@ export default class BitbucketService extends types.ServiceClient {
     return { is_pending: false, authors: result };
   };
 
-  async commits(repo: string, minDateValue: moment.Moment) {
+  async repoCommits(repo: string, minDateValue: moment.Moment) {
     // Returns all commits in the repo, all branches
     // https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits
     const values = await this.getAllTillDate(
@@ -379,6 +411,7 @@ export default class BitbucketService extends types.ServiceClient {
       // eg, raw is `Tarun Gupta <tarungupta@Taruns-MacBook-Pro.local>`
       if (user && isInDuration) {
         const { username } = user;
+
         if (username in authorWiseCommits) {
           authorWiseCommits[username] = [].concat(
             commit,
@@ -393,10 +426,11 @@ export default class BitbucketService extends types.ServiceClient {
     return authorWiseCommits;
   }
 
+  // TODO: delete this
   allCommits = async (): Promise<types.Commits[]> => {
     const repos = await this.repos();
     const promises = repos.map(repo =>
-      this.commits(repo.name, this.periodPrev)
+      this.repoCommits(repo.name, this.periodPrev)
     );
     const responses = await Promise.all(promises);
 
@@ -417,5 +451,42 @@ export default class BitbucketService extends types.ServiceClient {
         commits: result
       };
     });
+  };
+
+  commitsV2 = async (repo: string): Promise<CommitsAPIResult> => {
+    const NUM_WEEKS = 5;
+    const minDateValue = moment(this.periodNext).subtract(
+      NUM_WEEKS - 1,
+      "weeks"
+    );
+    const response = await this.repoCommits(repo, minDateValue);
+    const authors = Object.keys(response);
+    const stats: RepoStats[] = authors.map(author => {
+      const commits = response[author];
+      return {
+        author,
+        commits: this.getWeekValues(NUM_WEEKS, commits)
+      };
+    });
+
+    let commits: Commit[] = [];
+    const minDate = this.periodPrev;
+    authors.forEach(author => {
+      const authorCommits: Commit[] = response[author].map(commit => ({
+        author,
+        date: commit.date,
+        sha: commit.hash,
+        message: commit.message
+      }));
+      authorCommits.filter(({ date }) => this.isInDuration(date, minDate));
+      commits = [...commits, ...authorCommits];
+    });
+
+    return {
+      repo,
+      is_pending: false,
+      stats,
+      commits
+    };
   };
 }

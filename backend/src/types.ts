@@ -1,20 +1,5 @@
 import { Moment } from "moment";
-import { TeamInfoAPIResult } from "gitstats-shared";
-
-export abstract class ServiceClient {
-  constructor(
-    public token: string,
-    public owner: string,
-    public weekStart: Moment
-  ) {}
-  abstract teamInfo: () => Promise<TeamInfoAPIResult>;
-  abstract ownerInfo: () => Promise<Owner>;
-  abstract report: () => Promise<Report>;
-  abstract emailReport: () => Promise<EmailReport>;
-  abstract statistics: (repo: string) => Promise<RepoStats>;
-  abstract allCommits: () => Promise<Commits[]>;
-  abstract prActivity: () => Promise<any>;
-}
+import { Team, Repo, Member } from "gitstats-shared";
 
 export type Report = {
   members: Member[];
@@ -22,7 +7,7 @@ export type Report = {
 };
 
 export type EmailReport = {
-  owner: Owner;
+  owner: Team;
   period: Period;
   repos: any[];
 };
@@ -30,28 +15,6 @@ export type EmailReport = {
 export type Period = {
   previous: Moment;
   next: Moment;
-};
-
-export type Member = {
-  login: string;
-  name: string;
-  avatar: string;
-};
-
-export type Owner = {
-  login: string;
-  name: string;
-  avatar: string;
-};
-
-export type Repo = {
-  name: string;
-  url: string;
-  description: string;
-  is_private: boolean;
-  is_fork: boolean;
-  stargazers_count: number;
-  updated_at: string;
 };
 
 export type RepoStats = {

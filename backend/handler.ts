@@ -12,13 +12,13 @@ import { sendEmail } from "./src/email";
 import * as redis from "./src/redis";
 
 const HEADERS = {
-  "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-  "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
+  // Required for cookies, authorization headers with HTTPS
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Credentials": true
 };
 
 const getToken = (event: APIGatewayEvent) => {
-  const { headers } = event;
-  const { Authorization } = headers;
+  const { Authorization } = event.headers;
 
   if (!!Authorization) {
     return Authorization.split(" ")[1];
@@ -56,7 +56,7 @@ const getCacheKey = (path: string, userId: string, weekStart: string) => {
 
 const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds
 
-const getCachedClientResponse = async (
+const getCachedResponse = async (
   event: APIGatewayEvent,
   manager: UserManager,
   methodName: string,
@@ -98,14 +98,14 @@ const getCachedClientResponse = async (
 export const report: Handler = async (event: APIGatewayEvent) => {
   const { owner } = event.pathParameters;
   const manager = getManager(event, owner);
-  const response = await getCachedClientResponse(event, manager, "report", []);
+  const response = await getCachedResponse(event, manager, "report", []);
   return buildResponse(event, response);
 };
 
 export const stats: Handler = async (event: APIGatewayEvent) => {
   const { owner, repo } = event.pathParameters;
   const manager = getManager(event, owner);
-  const response = await getCachedClientResponse(event, manager, "statistics", [
+  const response = await getCachedResponse(event, manager, "statistics", [
     repo
   ]);
   return buildResponse(event, { repo, stats: response });
@@ -114,34 +114,44 @@ export const stats: Handler = async (event: APIGatewayEvent) => {
 export const commits: Handler = async (event: APIGatewayEvent) => {
   const { owner } = event.pathParameters;
   const manager = getManager(event, owner);
-  const response = await getCachedClientResponse(
-    event,
-    manager,
-    "allCommits",
-    []
-  );
+  const response = await getCachedResponse(event, manager, "allCommits", []);
   return buildResponse(event, response);
 };
 
 export const pulls: Handler = async (event: APIGatewayEvent) => {
   const { owner } = event.pathParameters;
   const manager = getManager(event, owner);
-  const response = await getCachedClientResponse(
-    event,
-    manager,
-    "prActivity",
-    []
-  );
+  const response = await getCachedResponse(event, manager, "prActivity", []);
+  return buildResponse(event, response);
+};
+
+export const commitsV2: Handler = async (event: APIGatewayEvent) => {
+  const { pathParameters, queryStringParameters } = event;
+  const { week_start: weekStart } = queryStringParameters;
+  const { owner, repo } = pathParameters;
+  const manager = getManager(event, owner);
+  const client = await manager.getServiceClient(weekStart);
+  const response = await client.commitsV2(repo);
+  return buildResponse(event, response);
+};
+
+export const pullsV2: Handler = async (event: APIGatewayEvent) => {
+  const { pathParameters, queryStringParameters } = event;
+  const { week_start: weekStart } = queryStringParameters;
+  const { owner, repo } = pathParameters;
+  const manager = getManager(event, owner);
+  const client = await manager.getServiceClient(weekStart);
+  const response = await client.pullsV2(repo);
   return buildResponse(event, response);
 };
 
 export const teamInfo: Handler = async (event: APIGatewayEvent) => {
   const { pathParameters, queryStringParameters } = event;
-  const { last_updated: lastUpdated } = queryStringParameters;
+  const { week_start: weekStart } = queryStringParameters;
   const { owner } = pathParameters;
-  const manager = getManager(event, owner);
 
-  const client = await manager.getServiceClient(undefined);
+  const manager = getManager(event, owner);
+  const client = await manager.getServiceClient(weekStart);
   const response = await client.teamInfo();
   return buildResponse(event, response);
 };

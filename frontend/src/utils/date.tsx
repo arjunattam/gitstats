@@ -12,6 +12,7 @@ import {
   subDays,
   subWeeks
 } from "date-fns";
+import { IPeriod } from "../types";
 
 export const getWeekStart = () => {
   // Returns start of last week (which is a Sunday)

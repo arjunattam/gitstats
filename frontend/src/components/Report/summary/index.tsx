@@ -1,4 +1,11 @@
+import { Member } from "gitstats-shared";
 import * as React from "react";
+import {
+  ICommits,
+  IPeriod,
+  IPullRequestData,
+  RepoForReport
+} from "../../../types";
 import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
 import { LighterContainer } from "../common";
@@ -7,8 +14,8 @@ import { getCommits, getPRsMerged } from "../utils";
 import { SummaryRow } from "./row";
 
 interface IContainerProps {
-  repos: IRepository[];
-  members: IMember[];
+  repos: RepoForReport[];
+  members: Member[];
   period: IPeriod;
   isLoading: boolean;
   prActivityData: IPullRequestData[];
@@ -102,7 +109,7 @@ export class SummaryContainer extends React.Component<
 
 const getActiveMember = (
   period: IPeriod,
-  repos: IRepository[],
+  repos: RepoForReport[],
   authorLogin?: string
 ) => {
   // TODO: only commits is a flawed metric?
@@ -164,7 +171,7 @@ const getActiveMember = (
 
 const getActiveRepo = (
   period: IPeriod,
-  repos: IRepository[],
+  repos: RepoForReport[],
   authorLogin?: string
 ) => {
   // TODO: only commits is a flawed metric?

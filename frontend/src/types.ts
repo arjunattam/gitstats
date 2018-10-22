@@ -1,41 +1,39 @@
-interface IPeriod {
+import { Member, Repo } from "gitstats-shared";
+
+export interface IPeriod {
   previous: string; // start of previous (comparison) week
   next: string; // start of current week
 }
 
-interface IMember {
-  login: string;
-  name: string;
-  avatar: string;
+export type RepoForReport = Repo & { stats: any; prs: any[] };
+
+export interface IReportJson {
+  members: Member[];
+  repos: RepoForReport[];
 }
 
-interface IReportJson {
-  members: IMember[];
-  repos: IRepository[];
-}
-
-interface ICommits {
+export interface ICommits {
   repo: string;
   commits: ICommitData[];
 }
 
-interface ICommitData {
+export interface ICommitData {
   author: string;
   commits: IAuthorCommit[];
 }
 
-interface IAuthorCommit {
+export interface IAuthorCommit {
   date: string;
   message: string;
   sha: string;
 }
 
-interface IPullRequestComment {
+export interface IPullRequestComment {
   date: string;
   author: string;
 }
 
-interface IPullRequest {
+export interface IPullRequest {
   author: string;
   comments: IPullRequestComment[];
   commits: IAuthorCommit[];
@@ -49,38 +47,27 @@ interface IPullRequest {
   url: string;
 }
 
-interface IPullRequestData {
+export interface IPullRequestData {
   repo: string;
   pulls: IPullRequest[];
 }
 
-interface IWeekValues {
+export interface IWeekValues {
   week: number;
   value: number;
 }
 
-interface IAuthorStats {
+export interface IAuthorStats {
   login: string;
   commits: IWeekValues[];
 }
 
-interface IRepoStats {
+export interface IRepoStats {
   is_pending: boolean;
   authors: IAuthorStats[];
 }
 
-interface IRepository {
-  name: string;
-  url: string;
-  description: string;
-  is_private: boolean;
-  is_fork: boolean;
-  stargazers_count: number;
-  updated_at: string;
-  stats: IRepoStats;
-}
-
-interface ITeam {
+export interface ITeam {
   name: string;
   avatar: string;
   login: string;

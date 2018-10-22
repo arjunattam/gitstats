@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ICommits, IPullRequestData } from "../../types";
 import { Streamgraph } from "./base/stream";
 
 interface ICommitChartContainerProps {

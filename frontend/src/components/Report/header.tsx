@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Container } from "reactstrap";
+import { ITeam } from "../../types";
 import { getLabels, getWeek } from "../../utils/date";
 import { TeamName } from "../Common";
 

@@ -42,6 +42,26 @@ functions:
           resp: http
           authorizer: auth
           cors: true
+  pullsV2:
+    handler: handler.pullsV2
+    timeout: 30
+    events:
+      - http:
+          method: get
+          path: pulls/v2/{owner}/{repo}
+          resp: http
+          authorizer: auth
+          cors: true
+  commitsV2:
+    handler: handler.commitsV2
+    timeout: 30
+    events:
+      - http:
+          method: get
+          path: commits/v2/{owner}/{repo}
+          resp: http
+          authorizer: auth
+          cors: true
   report:
     handler: handler.report
     timeout: 30
