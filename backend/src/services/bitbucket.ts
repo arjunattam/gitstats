@@ -1,8 +1,6 @@
 import * as moment from "moment";
-import * as types from "../types";
 import * as rp from "request-promise-native";
 import * as url from "url";
-import { getComparativeDurations, getComparativeCounts } from "./utils";
 import {
   Team,
   Repo,
@@ -15,9 +13,7 @@ import {
 import { ServiceClient } from "./base";
 
 export default class BitbucketService extends ServiceClient {
-  baseUrl: string;
-  periodPrev: moment.Moment;
-  periodNext: moment.Moment;
+  baseUrl: string = "https://api.bitbucket.org/2.0/";
 
   constructor(
     public token: string,
@@ -25,12 +21,6 @@ export default class BitbucketService extends ServiceClient {
     public weekStart: moment.Moment
   ) {
     super(token, owner, weekStart);
-    this.baseUrl = "https://api.bitbucket.org/2.0/";
-
-    // We use Sunday-Saturday as the definition of the week
-    // This is because of how the Github stats API returns weeks
-    this.periodPrev = moment(this.weekStart).subtract(1, "weeks");
-    this.periodNext = moment(this.weekStart);
   }
 
   private isInDuration(date: string, minDateValue: moment.Moment) {
@@ -128,53 +118,6 @@ export default class BitbucketService extends ServiceClient {
     return values.join(`&${key}=`);
   }
 
-  // TODO: delete this
-  report = async (): Promise<types.Report> => {
-    const responses = await Promise.all([this.repos(), this.members()]);
-    let response = {
-      members: responses[1],
-      repos: responses[0]
-    };
-
-    const { repos } = response;
-    const prs = repos.map(repo => this.pulls(repo.name));
-    const pullsValues = await Promise.all(prs);
-    let repoResult = [];
-    let index;
-
-    for (index = 0; index < repos.length; index++) {
-      repoResult.push({ ...repos[index], prs: pullsValues[index] });
-    }
-
-    return {
-      ...response,
-      repos: repoResult
-    };
-  };
-
-  emailReport = async () => {
-    const responses = await Promise.all([this.repos(), this.ownerInfo()]);
-    let response = {
-      period: { previous: this.periodPrev, next: this.periodNext },
-      owner: responses[1],
-      repos: responses[0]
-    };
-
-    const { repos } = response;
-    const stats = repos.map(repo => this.statistics(repo.name));
-    const statsValues = await Promise.all(stats);
-    let repoResult = [];
-    let index;
-
-    for (index = 0; index < repos.length; index++) {
-      repoResult.push({ ...repos[index], stats: statsValues[index] });
-    }
-    return {
-      ...response,
-      repos: repoResult
-    };
-  };
-
   repos = async (): Promise<Repo[]> => {
     const values = await this.getAll(
       {
@@ -256,40 +199,6 @@ export default class BitbucketService extends ServiceClient {
     return response;
   }
 
-  // TODO: delete this
-  pulls(repo: string): Promise<types.RepoPR[]> {
-    return this.pullsApi(repo).then(values => {
-      let authorWisePRs = {};
-      values.forEach(pr => {
-        const { username } = pr.author;
-        if (username in authorWisePRs) {
-          authorWisePRs[username] = [].concat(pr, ...authorWisePRs[username]);
-        } else {
-          authorWisePRs[username] = [pr];
-        }
-      });
-
-      // TODO: not sure if updated is a good proxy for merged_at
-      // we can use the time of the merge commit
-      return Object.keys(authorWisePRs).map(author => {
-        const pulls = authorWisePRs[author];
-        return {
-          author,
-          prs_opened: getComparativeCounts(pulls, "created_on"),
-          prs_merged: getComparativeCounts(
-            pulls.filter(p => p.state === "MERGED"),
-            "updated_on"
-          ),
-          time_to_merge: getComparativeDurations(
-            pulls.filter(p => p.state === "MERGED"),
-            "updated_on",
-            "created_on"
-          )
-        };
-      });
-    });
-  }
-
   pullsV2 = async (repo: string): Promise<PullsAPIResult> => {
     const responses = await Promise.all([
       this.pullsApi(repo),
@@ -340,14 +249,6 @@ export default class BitbucketService extends ServiceClient {
     };
   };
 
-  // TODO: delete this
-  prActivity = async () => {
-    const repos = await this.repos();
-    const promises = repos.map(repo => this.pullsV2(repo.name));
-    const responses = await Promise.all(promises);
-    return responses;
-  };
-
   private getWeekValues = (numWeeks, commits) => {
     const indexNumbers = Array.from(Array(numWeeks).keys());
     return indexNumbers.map(index => {
@@ -361,29 +262,6 @@ export default class BitbucketService extends ServiceClient {
         ).length
       };
     });
-  };
-
-  // TODO: delete this
-  statistics = async (repo: string) => {
-    const NUM_WEEKS = 5;
-    const minDateValue = moment(this.periodNext).subtract(
-      NUM_WEEKS - 1,
-      "weeks"
-    );
-    const response = await this.repoCommits(repo, minDateValue);
-    const authors = Object.keys(response);
-
-    const result: types.AuthorStats[] = authors.map(author => {
-      const commits = response[author];
-      return {
-        login: author,
-        commits: this.getWeekValues(NUM_WEEKS, commits),
-        lines_added: [],
-        lines_deleted: []
-      };
-    });
-
-    return { is_pending: false, authors: result };
   };
 
   async repoCommits(repo: string, minDateValue: moment.Moment) {
@@ -425,33 +303,6 @@ export default class BitbucketService extends ServiceClient {
 
     return authorWiseCommits;
   }
-
-  // TODO: delete this
-  allCommits = async (): Promise<types.Commits[]> => {
-    const repos = await this.repos();
-    const promises = repos.map(repo =>
-      this.repoCommits(repo.name, this.periodPrev)
-    );
-    const responses = await Promise.all(promises);
-
-    return responses.map((response, idx) => {
-      const authors = Object.keys(response);
-      let result = [];
-      authors.forEach(author => {
-        const commits = response[author].map(commit => ({
-          date: commit.date,
-          sha: commit.hash,
-          message: commit.message
-        }));
-        result.push({ author, commits });
-      });
-
-      return {
-        repo: repos[idx].name,
-        commits: result
-      };
-    });
-  };
 
   commitsV2 = async (repo: string): Promise<CommitsAPIResult> => {
     const NUM_WEEKS = 5;

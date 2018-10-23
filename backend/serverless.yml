@@ -62,46 +62,6 @@ functions:
           resp: http
           authorizer: auth
           cors: true
-  report:
-    handler: handler.report
-    timeout: 30
-    events:
-      - http:
-          method: get
-          path: report/{owner}
-          resp: http
-          authorizer: auth
-          cors: true
-  stats:
-    handler: handler.stats
-    timeout: 30
-    events:
-      - http:
-          method: get
-          path: stats/{owner}/{repo}
-          resp: http
-          authorizer: auth
-          cors: true
-  commits:
-    handler: handler.commits
-    timeout: 30
-    events:
-      - http:
-          method: get
-          path: commits/{owner}
-          resp: http
-          authorizer: auth
-          cors: true
-  pulls:
-    handler: handler.pulls
-    timeout: 30
-    events:
-      - http:
-          method: get
-          path: pulls/{owner}
-          resp: http
-          authorizer: auth
-          cors: true
   email:
     handler: handler.email
     timeout: 30

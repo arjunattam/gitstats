@@ -1,8 +1,7 @@
 import { GithubAPICaller } from "./api";
-import { getComparativeCounts, getComparativeDurations } from "./utils";
 import * as types from "../types";
 import * as moment from "moment";
-import { Team, Repo, Member } from "gitstats-shared";
+import { Team, Repo, Member, Commit } from "gitstats-shared";
 import { ServiceClient } from "./base";
 
 const STATUS_CODES = {
@@ -13,8 +12,6 @@ const STATUS_CODES = {
 
 export default class GithubService extends ServiceClient {
   helper: GithubAPICaller;
-  periodPrev: moment.Moment;
-  periodNext: moment.Moment;
 
   constructor(
     public token: string,
@@ -22,74 +19,8 @@ export default class GithubService extends ServiceClient {
     public weekStart: moment.Moment
   ) {
     super(token, owner, weekStart);
-    // We use Sunday-Saturday as the definition of the week
-    // This is because of how the Github stats API returns weeks
-    this.periodPrev = moment(this.weekStart).subtract(1, "weeks");
-    this.periodNext = moment(this.weekStart);
     this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
   }
-
-  // TODO: delete this
-  report = (): Promise<types.Report> => {
-    return Promise.all([this.repos(), this.members()])
-      .then(responses => {
-        const repos = responses[0];
-        const members = responses[1];
-        return {
-          members,
-          repos
-        };
-      })
-      .then(result => {
-        const { repos } = result;
-        const stats = repos.map(repo => this.statistics(repo.name));
-
-        return Promise.all(stats).then(statsValues => {
-          let repoResult = [];
-          let index;
-
-          for (index = 0; index < repos.length; index++) {
-            repoResult.push({ ...repos[index], stats: statsValues[index] });
-          }
-
-          return { ...result, repos: repoResult };
-        });
-      })
-      .then(result => {
-        const { repos } = result;
-        const pulls = repos.map(repo => this.pulls(repo.name));
-
-        return Promise.all(pulls).then(pullsValues => {
-          let repoResult = [];
-          let index;
-
-          for (index = 0; index < repos.length; index++) {
-            repoResult.push({ ...repos[index], prs: pullsValues[index] });
-          }
-
-          return { ...result, repos: repoResult };
-        });
-      });
-  };
-
-  emailReport = async () => {
-    const repos = await this.repos();
-    const owner = await this.ownerInfo();
-    const statsValues = await Promise.all(
-      repos.map(repo => this.statsWrapper(repo.name))
-    );
-
-    let repoResult: types.RepoWithStats[] = [];
-    let index;
-
-    for (index = 0; index < repos.length; index++) {
-      const stats = statsValues[index];
-      repoResult.push({ ...repos[index], stats });
-    }
-
-    const period = { previous: this.periodPrev, next: this.periodNext };
-    return { owner, period, repos: repoResult };
-  };
 
   repos = async (): Promise<Repo[]> => {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
@@ -179,27 +110,6 @@ export default class GithubService extends ServiceClient {
     return { login, name, avatar: avatar_url, service: "github" };
   };
 
-  private statsWrapper(repo: string): Promise<types.RepoStats> {
-    return new Promise(resolve => {
-      this.statsHelper(resolve, repo);
-    });
-  }
-
-  private statsHelper(resolve, repo) {
-    this.statistics(repo).then(response => {
-      const { is_pending } = response;
-
-      if (!is_pending) {
-        resolve(response);
-      } else {
-        setTimeout(() => {
-          this.statsHelper(resolve, repo);
-        }, 500);
-      }
-    });
-  }
-
-  // TODO: delete this
   statistics = async (repo: string): Promise<types.RepoStats> => {
     const response = await this.helper.get({
       path: `repos/${this.owner}/${repo}/stats/contributors`,
@@ -249,46 +159,7 @@ export default class GithubService extends ServiceClient {
     }
   };
 
-  pullsList(repo: string) {
-    const params = {
-      path: `repos/${this.owner}/${repo}/pulls`,
-      qs: {
-        state: "all",
-        sort: "updated",
-        direction: "desc",
-        per_page: 50 // overriding because 100 seems too much for one repo
-      }
-    };
-    return this.helper.getAllForDesc([], params, "updated_at");
-  }
-
-  // TODO: delete this
-  pulls(repo: string): Promise<types.RepoPR[]> {
-    return this.pullsList(repo).then(pulls => {
-      let authorWisePRs = {};
-      pulls.forEach(pull => {
-        const author = pull.user.login;
-        if (author in authorWisePRs) {
-          authorWisePRs[author] = [...authorWisePRs[author], pull];
-        } else {
-          authorWisePRs[author] = [pull];
-        }
-      });
-      const result = Object.keys(authorWisePRs).map(author => ({
-        author,
-        prs_opened: getComparativeCounts(authorWisePRs[author], "created_at"),
-        prs_merged: getComparativeCounts(authorWisePRs[author], "merged_at"),
-        time_to_merge: getComparativeDurations(
-          authorWisePRs[author],
-          "merged_at",
-          "created_at"
-        )
-      }));
-      return result;
-    });
-  }
-
-  async organisation() {
+  private async organisation() {
     const response = await this.helper.get({
       path: `orgs/${this.owner}`,
       headers: {},
@@ -297,113 +168,16 @@ export default class GithubService extends ServiceClient {
     return response.body;
   }
 
-  prActivity = async () => {
-    const organisation = await this.organisation();
-    const { node_id } = organisation;
-    // TODO: this sets a limit of 10 for repos and limit of 20 for PRs
-    const query = `{
-      nodes(ids: ["${node_id}"]) {
-        ... on Organization {
-          repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
-            nodes {
-              name
-              updatedAt
-              pullRequests(first: 20, orderBy: {field: UPDATED_AT, direction: DESC}) {
-                nodes {
-                  author {
-                    login
-                  }
-                  updatedAt
-                  createdAt
-                  mergedAt
-                  closedAt
-                  state
-                  title
-                  number
-                  url
-                  comments(first: 50) {
-                    nodes {
-                      createdAt
-                      author {
-                        login
-                      }
-                    }
-                  }
-                  commits(first: 50) {
-                    nodes {
-                      commit {
-                        message
-                        authoredDate
-                        author {
-                          email
-                          user {
-                            login
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }`;
+  private async repository(repo: string) {
+    const response = await this.helper.get({
+      path: `repos/${this.owner}/${repo}`,
+      headers: {},
+      qs: {}
+    });
+    return response.body;
+  }
 
-    const response = await this.helper.graphqlPost({ query });
-    const responseNode = response.body.data.nodes[0];
-    return responseNode.repositories.nodes
-      .filter(
-        node =>
-          moment(node.updatedAt) > this.periodPrev &&
-          node.pullRequests.nodes.length > 0
-      )
-      .map(node => {
-        const pulls = node.pullRequests.nodes
-          .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
-          .map(prNode => {
-            const commits = prNode.commits.nodes
-              // TODO: we are filtering for only recognised committers
-              .filter(
-                commitNode => !!commitNode && !!commitNode.commit.author.user
-              )
-              .map(commitNode => ({
-                author: commitNode.commit.author.user.login,
-                date: commitNode.commit.authoredDate,
-                message: commitNode.commit.message
-              }));
-
-            // TODO: the comments does not include approval/rejection comments
-            // eg, in this PR: https://github.com/getsentry/responses/pull/210
-            // TODO: should this return message also?
-            const comments = prNode.comments.nodes.map(commentNode => ({
-              author: commentNode.author ? commentNode.author.login : null,
-              date: commentNode.createdAt
-            }));
-            return {
-              author: prNode.author.login,
-              title: prNode.title,
-              number: prNode.number,
-              created_at: prNode.createdAt,
-              merged_at: prNode.mergedAt,
-              closed_at: prNode.closedAt,
-              updated_at: prNode.updatedAt,
-              state: prNode.state,
-              url: prNode.url,
-              comments,
-              commits
-            };
-          });
-
-        return {
-          repo: node.name,
-          pulls
-        };
-      });
-  };
-
-  async commits(repo: string): Promise<types.RepoCommits[]> {
+  private async commits(repo: string): Promise<types.RepoCommits[]> {
     // Only default branch (master). Add ?sha=develop to get commits from other branches
     const params = {
       path: `repos/${this.owner}/${repo}/commits`,
@@ -441,24 +215,128 @@ export default class GithubService extends ServiceClient {
     }));
   }
 
-  allCommits = async (): Promise<types.Commits[]> => {
-    const repos = await this.repos();
-    // Filtering to public repos only because the Github Apps
-    // integration does not ask for commits permissions.
-    const filtered = repos.filter(repo => !repo.is_private);
-    const promises = filtered.map(repo => this.commits(repo.name));
-    const responses: types.RepoCommits[][] = await Promise.all(promises);
-    return responses.map((response, idx) => ({
-      repo: filtered[idx].name,
-      commits: response
+  pullsV2 = async (repo: string) => {
+    const { node_id } = await this.repository(repo);
+    // MDEwOlJlcG9zaXRvcnkxMzgyOTEwMzA=
+    console.log("repo id", node_id);
+    const query = `{
+      nodes(ids: ["${node_id}"]) {
+        id
+        ... on Repository {
+          name
+          updatedAt
+          pullRequests(first: 20, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            nodes {
+              author {
+                login
+              }
+              updatedAt
+                  createdAt
+                  mergedAt
+                  closedAt
+                  state
+                  title
+                  number
+                  url
+              comments(first: 50) {
+                nodes {
+                  createdAt
+                  author {
+                    login
+                  }
+                }
+              }
+              commits(first: 50) {
+                nodes {
+                  commit {
+                    message
+                    authoredDate
+                    author {
+                      email
+                      user {
+                        login
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }`;
+    const response = await this.helper.graphqlPost({ query });
+    const responseNode = response.body.data.nodes[0];
+
+    const pulls = responseNode.pullRequests.nodes
+      .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
+      .map(prNode => {
+        const commits = prNode.commits.nodes
+          // TODO: we are filtering for only recognised committers
+          .filter(commitNode => !!commitNode && !!commitNode.commit.author.user)
+          .map(commitNode => ({
+            author: commitNode.commit.author.user.login,
+            date: commitNode.commit.authoredDate,
+            message: commitNode.commit.message
+          }));
+
+        // TODO: the comments does not include approval/rejection comments
+        // eg, in this PR: https://github.com/getsentry/responses/pull/210
+        // TODO: should this return message also?
+        const comments = prNode.comments.nodes.map(commentNode => ({
+          author: commentNode.author ? commentNode.author.login : null,
+          date: commentNode.createdAt
+        }));
+        return {
+          author: prNode.author.login,
+          title: prNode.title,
+          number: prNode.number,
+          created_at: prNode.createdAt,
+          merged_at: prNode.mergedAt,
+          closed_at: prNode.closedAt,
+          updated_at: prNode.updatedAt,
+          state: prNode.state,
+          url: prNode.url,
+          comments,
+          commits
+        };
+      });
+
+    return { repo, pulls };
+  };
+
+  commitsV2 = async (repo: string) => {
+    const { is_pending, authors: authorStats } = await this.statistics(repo);
+
+    if (is_pending) {
+      return {
+        repo,
+        is_pending,
+        stats: [],
+        commits: []
+      };
+    }
+
+    const stats = authorStats.map(author => ({
+      author: author.login,
+      commits: author.commits
     }));
-  };
+    const repoCommits = await this.commits(repo);
 
-  pullsV2 = (repo: string) => {
-    return Promise.resolve({ repo, pulls: [] });
-  };
+    let commitsResult: Commit[] = [];
+    repoCommits.forEach(repoCommit => {
+      const { author, commits } = repoCommit;
+      commitsResult = [
+        ...commitsResult,
+        ...commits.map(commit => ({ author, ...commit }))
+      ];
+    });
 
-  commitsV2 = (repo: string) => {
-    return Promise.resolve({ repo, is_pending: true, stats: [], commits: [] });
+    return {
+      repo,
+      is_pending,
+      stats,
+      commits: commitsResult
+    };
   };
 }

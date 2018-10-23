@@ -1,34 +1,29 @@
-import { Moment } from "moment";
+import * as moment from "moment";
 import {
   Team,
   Repo,
   Member,
   TeamInfoAPIResult,
   PullsAPIResult,
-  CommitsAPIResult,
-  PullRequest
+  CommitsAPIResult
 } from "gitstats-shared";
-import * as types from "../types";
-
-type PRActivity = {
-  repo: string;
-  pulls: PullRequest[];
-};
 
 export abstract class ServiceClient {
+  periodPrev: moment.Moment;
+  periodNext: moment.Moment;
+
   constructor(
     public token: string,
     public owner: string,
-    public weekStart: Moment
-  ) {}
+    public weekStart: moment.Moment
+  ) {
+    // We use Sunday-Saturday as the definition of the week
+    // This is because of how the Github stats API returns weeks
+    this.periodPrev = moment(this.weekStart).subtract(1, "weeks");
+    this.periodNext = moment(this.weekStart);
+  }
 
   abstract ownerInfo: () => Promise<Team>;
-  abstract report: () => Promise<types.Report>;
-  abstract emailReport: () => Promise<types.EmailReport>;
-  abstract statistics: (repo: string) => Promise<types.RepoStats>;
-  abstract allCommits: () => Promise<types.Commits[]>;
-  abstract prActivity: () => Promise<PRActivity[]>;
-
   abstract repos: () => Promise<Repo[]>;
   abstract members: () => Promise<Member[]>;
   abstract pullsV2: (repo: string) => Promise<PullsAPIResult>;
@@ -45,6 +40,17 @@ export abstract class ServiceClient {
       ...team,
       repos: responses[1],
       members: responses[2]
+    };
+  };
+
+  emailReport = async () => {
+    return {
+      name: this.owner,
+      period: {
+        next: this.periodNext,
+        previous: this.periodPrev
+      },
+      values: {}
     };
   };
 }

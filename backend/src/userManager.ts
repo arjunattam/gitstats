@@ -8,6 +8,7 @@ import {
 import BitbucketService from "./services/bitbucket";
 import GithubService from "./services/github";
 import * as moment from "moment";
+import * as cache from "./redis";
 import { ServiceClient } from "./services/base";
 
 enum Service {
@@ -85,10 +86,24 @@ export default class UserManager {
     this.auth0Client = new Auth0Client();
   }
 
+  async getServiceToken(): Promise<string> {
+    const cacheKey = `token-${this.userId}`;
+    const cachedValue = await cache.get(cacheKey);
+
+    if (!!cachedValue) {
+      return cachedValue;
+    }
+
+    await this.setupServiceManager();
+    const { token, expiryInSeconds } = await this.serviceManager.getTeamToken();
+    const EXPIRY_BUFFER = 10; // seconds
+    await cache.set(cacheKey, token, expiryInSeconds - EXPIRY_BUFFER);
+    return token;
+  }
+
   async getServiceClient(weekStartDate: string): Promise<ServiceClient> {
     let client: ServiceClient;
-    await this.setupServiceManager();
-    const token = await this.serviceManager.getTeamToken();
+    const token = await this.getServiceToken();
     const weekStart = moment(`${weekStartDate}T00:00:00Z`); // only supports UTC
 
     if (this.service === Service.github) {
@@ -130,29 +145,14 @@ export default class UserManager {
   async getEmailContext(weekStartDate: string): Promise<EmailContext> {
     const client = await this.getServiceClient(weekStartDate);
     const report = await client.emailReport();
-    let weekWiseData = {};
-    const { owner, period, repos } = report;
+
+    const { name, period, values } = report;
     const { next } = period;
-    const { name } = owner;
-
-    repos.forEach(repo => {
-      const { stats } = repo;
-      const { authors } = stats;
-      authors.forEach(authorStats => {
-        const { commits } = authorStats;
-        commits.forEach(({ week, value }) => {
-          if (week in weekWiseData) {
-            weekWiseData[week] = value + weekWiseData[week];
-          } else {
-            weekWiseData[week] = value;
-          }
-        });
-      });
-    });
-
-    const keys = Object.keys(weekWiseData).sort();
-    const data = keys.map(key => weekWiseData[key]);
-    const keysFormatted = keys.map(key => moment.unix(+key).format("MMM D"));
+    const keys = Object.keys(values).sort();
+    const data: number[] = keys.map(key => values[key]);
+    const keysFormatted: string[] = keys.map(key =>
+      moment.unix(+key).format("MMM D")
+    );
 
     return {
       name,
@@ -163,7 +163,7 @@ export default class UserManager {
     };
   }
 
-  private getSummaryText(data) {
+  private getSummaryText(data: number[]) {
     const prev = data[data.length - 2];
     const next = data[data.length - 1];
     const diff = (next - prev) / prev;
@@ -175,7 +175,7 @@ export default class UserManager {
     }
   }
 
-  private constructChartUrl(data, xAxis) {
+  private constructChartUrl(data: number[], xAxis: string[]) {
     // "https://image-charts.com/chart?cht=bvs&chd=t%3A200%2C190%2C180%2C290%2C250&chds=a&chof=.png&chs=600x300&chdls=000000&chco=4D89F9%2CC6D9FD&chtt=Commit%20activity&chxt=x%2Cy&chxl=0%3A%7CJan%7CFeb%7CMarch%7CApril%7CMay&chma=10%2C10%2C20&chdlp=b&chf=bg%2Cs%2CFFFFFF&chbh=10&icwt=false";
     const dataString = `t:${data.join(",")}`;
     const axisLabels = `0:|${xAxis.join("|")}`;

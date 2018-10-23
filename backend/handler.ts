@@ -95,36 +95,6 @@ const getCachedResponse = async (
   return response;
 };
 
-export const report: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const response = await getCachedResponse(event, manager, "report", []);
-  return buildResponse(event, response);
-};
-
-export const stats: Handler = async (event: APIGatewayEvent) => {
-  const { owner, repo } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const response = await getCachedResponse(event, manager, "statistics", [
-    repo
-  ]);
-  return buildResponse(event, { repo, stats: response });
-};
-
-export const commits: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const response = await getCachedResponse(event, manager, "allCommits", []);
-  return buildResponse(event, response);
-};
-
-export const pulls: Handler = async (event: APIGatewayEvent) => {
-  const { owner } = event.pathParameters;
-  const manager = getManager(event, owner);
-  const response = await getCachedResponse(event, manager, "prActivity", []);
-  return buildResponse(event, response);
-};
-
 export const commitsV2: Handler = async (event: APIGatewayEvent) => {
   const { pathParameters, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;

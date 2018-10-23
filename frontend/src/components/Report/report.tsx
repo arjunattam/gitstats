@@ -1,4 +1,4 @@
-import { Team } from "gitstats-shared";
+import { CommitsAPIResult, Team } from "gitstats-shared";
 import * as React from "react";
 import { ICommits, IPullRequestData, IReportJson } from "../../types";
 import { getCommitsV2, getPullsV2, getTeamInfo } from "../../utils/api";
@@ -18,6 +18,7 @@ interface IReportState {
   commitsData: ICommits[];
   reportJson: IReportJson;
   isLoading: boolean;
+  team?: Team;
 }
 
 export class Report extends React.Component<IReportProps, IReportState> {
@@ -50,9 +51,10 @@ export class Report extends React.Component<IReportProps, IReportState> {
   }
 
   public render() {
-    const { team, teamLogin } = this.props;
-    const { weekStart } = this.state;
+    const { team: propsTeam, teamLogin } = this.props;
+    const { weekStart, team: stateTeam } = this.state;
     const period = getPeriod(weekStart);
+    const team = !!propsTeam && !!propsTeam.name ? propsTeam : stateTeam;
 
     return (
       <div>
@@ -68,7 +70,7 @@ export class Report extends React.Component<IReportProps, IReportState> {
     const { weekStart } = this.state;
 
     getTeamInfo(teamLogin, weekStart).then(response => {
-      const { login: teamName, avatar, repos, members } = response;
+      const { login: teamName, repos, members } = response;
       const reportRepos = repos.map(repo => {
         return {
           ...repo,
@@ -85,6 +87,12 @@ export class Report extends React.Component<IReportProps, IReportState> {
         reportJson: {
           members,
           repos: reportRepos
+        },
+        team: {
+          avatar: response.avatar,
+          login: response.login,
+          name: response.name,
+          service: response.service
         }
       });
 
@@ -96,50 +104,7 @@ export class Report extends React.Component<IReportProps, IReportState> {
 
   private fetchRepoData(teamLogin, repoName, weekStart) {
     getCommitsV2(teamLogin, repoName, weekStart).then(response => {
-      const { repo, commits, is_pending, stats } = response;
-      const authorWiseCommits = {};
-
-      commits.forEach(commit => {
-        const { author } = commit;
-
-        if (author in authorWiseCommits) {
-          authorWiseCommits[author] = [...authorWiseCommits[author], commit];
-        } else {
-          authorWiseCommits[author] = [commit];
-        }
-      });
-
-      const authors = Object.keys(authorWiseCommits);
-      const commitsResult = authors.map(author => {
-        return { author, commits: authorWiseCommits[author] };
-      });
-      const { commitsData } = this.state;
-
-      this.setState({
-        commitsData: [...commitsData, { repo, commits: commitsResult }]
-      });
-
-      // Update report stats
-      const reportStats = {
-        authors: stats.map(authorStats => ({
-          ...authorStats,
-          login: authorStats.author
-        })),
-        is_pending
-      };
-      const { reportJson } = this.state;
-      this.setState({
-        reportJson: {
-          ...reportJson,
-          repos: reportJson.repos.map(reportRepo => {
-            if (reportRepo.name === repoName) {
-              return { ...reportRepo, stats: reportStats };
-            } else {
-              return reportRepo;
-            }
-          })
-        }
-      });
+      this.handleCommitsResponse(repoName, response);
     });
 
     getPullsV2(teamLogin, repoName, weekStart).then(({ repo, pulls }) => {
@@ -149,4 +114,64 @@ export class Report extends React.Component<IReportProps, IReportState> {
       });
     });
   }
+
+  private handleCommitsResponse = (
+    repoName: string,
+    response: CommitsAPIResult
+  ) => {
+    const { repo, commits, is_pending, stats } = response;
+    const authorWiseCommits = {};
+
+    if (is_pending) {
+      // Wait for Github background job; fire request in 2 seconds
+      const { teamLogin } = this.props;
+      const { weekStart } = this.state;
+      setTimeout(() => {
+        getCommitsV2(teamLogin, repoName, weekStart).then(result =>
+          this.handleCommitsResponse(repoName, result)
+        );
+      }, 2000);
+    }
+
+    commits.forEach(commit => {
+      const { author } = commit;
+
+      if (author in authorWiseCommits) {
+        authorWiseCommits[author] = [...authorWiseCommits[author], commit];
+      } else {
+        authorWiseCommits[author] = [commit];
+      }
+    });
+
+    const authors = Object.keys(authorWiseCommits);
+    const commitsResult = authors.map(author => {
+      return { author, commits: authorWiseCommits[author] };
+    });
+    const { commitsData } = this.state;
+
+    this.setState({
+      commitsData: [...commitsData, { repo, commits: commitsResult }]
+    });
+
+    const reportStats = {
+      authors: stats.map(authorStats => ({
+        ...authorStats,
+        login: authorStats.author
+      })),
+      is_pending
+    };
+    const { reportJson } = this.state;
+    this.setState({
+      reportJson: {
+        ...reportJson,
+        repos: reportJson.repos.map(reportRepo => {
+          if (reportRepo.name === repoName) {
+            return { ...reportRepo, stats: reportStats };
+          } else {
+            return reportRepo;
+          }
+        })
+      }
+    });
+  };
 }

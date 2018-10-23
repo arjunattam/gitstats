@@ -10,6 +10,11 @@ export type ServiceTeam = {
   type: string;
 };
 
+export type TokenResponse = {
+  token: string;
+  expiryInSeconds: number;
+};
+
 export abstract class ServiceManager {
   constructor(
     public accessToken: string,
@@ -17,7 +22,7 @@ export abstract class ServiceManager {
     public teamName?: string
   ) {}
   abstract getTeams(): Promise<ServiceTeam[]>;
-  abstract getTeamToken(): Promise<string>;
+  abstract getTeamToken(): Promise<TokenResponse>;
 }
 
 export class GithubManager extends ServiceManager {
@@ -58,7 +63,7 @@ export class GithubManager extends ServiceManager {
     return parsed;
   }
 
-  async getTeamToken(): Promise<string> {
+  async getTeamToken(): Promise<TokenResponse> {
     const payload = {
       iat: moment().unix(),
       exp: moment()
@@ -81,7 +86,8 @@ export class GithubManager extends ServiceManager {
     });
     const { token, expires_at } = response;
     // expires_at is ISO date time string, 1 hour expiry
-    return token;
+    const inSeconds = moment(expires_at).diff(moment(), "seconds");
+    return { token, expiryInSeconds: inSeconds };
   }
 
   private async getTeamForToken(): Promise<ServiceTeam> {
@@ -101,7 +107,8 @@ export class GithubManager extends ServiceManager {
 }
 
 export class BitbucketManager extends ServiceManager {
-  newAccessToken: string | undefined;
+  newAccessToken: string;
+  expiryInSeconds: number;
 
   async getTeams(): Promise<ServiceTeam[]> {
     await this.getNewToken();
@@ -122,13 +129,16 @@ export class BitbucketManager extends ServiceManager {
     }));
   }
 
-  getTeamToken(): Promise<string> {
+  getTeamToken(): Promise<TokenResponse> {
     return this.getNewToken();
   }
 
-  private async getNewToken(): Promise<string> {
+  private async getNewToken(): Promise<TokenResponse> {
     if (this.newAccessToken) {
-      return Promise.resolve(this.newAccessToken);
+      return Promise.resolve({
+        token: this.newAccessToken,
+        expiryInSeconds: this.expiryInSeconds
+      });
     } else {
       const { BITBUCKET_CLIENT_ID, BITBUCKET_CLIENT_SECRET } = process.env;
       const encodedAuth = Buffer.from(
@@ -146,9 +156,9 @@ export class BitbucketManager extends ServiceManager {
         headers: { Authorization: `Basic ${encodedAuth}` }
       });
       const { access_token, expires_in } = response;
-      // expires in 2 hours
       this.newAccessToken = access_token;
-      return response.access_token;
+      this.expiryInSeconds = expires_in; // 7200 seconds
+      return { token: response.access_token, expiryInSeconds: expires_in };
     }
   }
 }
