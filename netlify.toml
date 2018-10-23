@@ -1,4 +1,4 @@
 [build]
   base    = "frontend"
   publish = "frontend/build"
-  command = "yarn build"
+  command = "yarn add ../shared && yarn build"
