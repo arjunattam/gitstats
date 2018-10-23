@@ -1,11 +1,20 @@
 import axios from "axios";
-import { TeamInfoAPIResult } from "gitstats-shared";
+import {
+  CommitsAPIResult,
+  PullsAPIResult,
+  Team,
+  TeamInfoAPIResult
+} from "gitstats-shared";
 import { getAccessToken } from "./auth";
 
 const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 // const BASE_URL = "http://localhost:8000";
 
-export const getTeams = () => get(`${BASE_URL}/teams`);
+export const getTeams = async () => {
+  const response = await get(`${BASE_URL}/teams`);
+  const result: Team[] = response.message;
+  return result;
+};
 
 export const getTeamInfo = async (name, weekStart) => {
   const response = await get(
@@ -15,17 +24,21 @@ export const getTeamInfo = async (name, weekStart) => {
   return result;
 };
 
-export const getCommits = (owner, weekStart) =>
-  get(`${BASE_URL}/commits/${owner}?week_start=${weekStart}`);
+export const getPullsV2 = async (owner, repo, weekStart) => {
+  const response = await get(
+    `${BASE_URL}/pulls/v2/${owner}/${repo}?week_start=${weekStart}`
+  );
+  const result: PullsAPIResult = response.message;
+  return result;
+};
 
-export const getPRActivity = (owner, weekStart) =>
-  get(`${BASE_URL}/pulls/${owner}?week_start=${weekStart}`);
-
-export const getReport = (owner, weekStart) =>
-  get(`${BASE_URL}/report/${owner}?week_start=${weekStart}`);
-
-export const getRepoStats = (owner, repo, weekStart) =>
-  get(`${BASE_URL}/stats/${owner}/${repo}?week_start=${weekStart}`);
+export const getCommitsV2 = async (owner, repo, weekStart) => {
+  const response = await get(
+    `${BASE_URL}/commits/v2/${owner}/${repo}?week_start=${weekStart}`
+  );
+  const result: CommitsAPIResult = response.message;
+  return result;
+};
 
 export const sendEmail = (toEmail, team, weekStart) =>
   post(`${BASE_URL}/email`, { to: toEmail, team, week_start: weekStart });

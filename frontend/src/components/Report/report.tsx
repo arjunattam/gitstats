@@ -1,13 +1,7 @@
 import { Team } from "gitstats-shared";
 import * as React from "react";
 import { ICommits, IPullRequestData, IReportJson } from "../../types";
-import {
-  getCommits,
-  getPRActivity,
-  getReport,
-  getRepoStats,
-  getTeamInfo
-} from "../../utils/api";
+import { getCommitsV2, getPullsV2, getTeamInfo } from "../../utils/api";
 import { getPeriod, getWeekStart } from "../../utils/date";
 import { ReportContainer } from "./container";
 import { EmailContainer } from "./email";
@@ -27,7 +21,7 @@ interface IReportState {
 }
 
 export class Report extends React.Component<IReportProps, IReportState> {
-  public state = {
+  public state: IReportState = {
     commitsData: [],
     isLoading: true,
     prActivityData: [],
@@ -74,68 +68,85 @@ export class Report extends React.Component<IReportProps, IReportState> {
     const { weekStart } = this.state;
 
     getTeamInfo(teamLogin, weekStart).then(response => {
-      const { name, avatar, repos, members } = response;
-    });
-
-    getReport(teamLogin, weekStart).then(response => {
-      const { repos } = response.message;
-      const pendingRepos = repos.filter(repo => repo.stats.is_pending);
-      pendingRepos.forEach(repo => {
-        setTimeout(() => this.updateRepo(repo.name), 1000);
+      const { login: teamName, avatar, repos, members } = response;
+      const reportRepos = repos.map(repo => {
+        return {
+          ...repo,
+          stats: {
+            authors: [],
+            is_pending: true
+          },
+          prs: []
+        };
       });
-      return this.setState({
+
+      this.setState({
         isLoading: false,
-        reportJson: response.message
+        reportJson: {
+          members,
+          repos: reportRepos
+        }
       });
-    });
 
-    getPRActivity(teamLogin, weekStart).then(response => {
-      const { message } = response;
-      this.setState({
-        prActivityData: message
-      });
-    });
-
-    getCommits(teamLogin, weekStart).then(response => {
-      const { message } = response;
-      this.setState({
-        commitsData: message
+      repos.forEach(({ name }) => {
+        this.fetchRepoData(teamName, name, weekStart);
       });
     });
   }
 
-  private updateRepo(repo) {
-    const { teamLogin } = this.props;
-    const { weekStart } = this.state;
+  private fetchRepoData(teamLogin, repoName, weekStart) {
+    getCommitsV2(teamLogin, repoName, weekStart).then(response => {
+      const { repo, commits, is_pending, stats } = response;
+      const authorWiseCommits = {};
 
-    getRepoStats(teamLogin, repo, weekStart)
-      .then(response => {
-        const { stats } = response.message;
-        const { is_pending } = stats;
+      commits.forEach(commit => {
+        const { author } = commit;
 
-        if (!is_pending) {
-          const { repos } = this.state.reportJson;
-          const newRepos = repos.map(r => {
-            if (r.name === repo) {
-              return { ...r, stats };
-            } else {
-              return r;
-            }
-          });
-
-          this.setState({
-            reportJson: {
-              ...this.state.reportJson,
-              repos: newRepos
-            }
-          });
+        if (author in authorWiseCommits) {
+          authorWiseCommits[author] = [...authorWiseCommits[author], commit];
         } else {
-          setTimeout(() => this.updateRepo(repo), 1000);
+          authorWiseCommits[author] = [commit];
         }
-      })
-      .catch(error => {
-        console.log("update repo errored. will try again", error);
-        setTimeout(() => this.updateRepo(repo), 1000);
       });
+
+      const authors = Object.keys(authorWiseCommits);
+      const commitsResult = authors.map(author => {
+        return { author, commits: authorWiseCommits[author] };
+      });
+      const { commitsData } = this.state;
+
+      this.setState({
+        commitsData: [...commitsData, { repo, commits: commitsResult }]
+      });
+
+      // Update report stats
+      const reportStats = {
+        authors: stats.map(authorStats => ({
+          ...authorStats,
+          login: authorStats.author
+        })),
+        is_pending
+      };
+      const { reportJson } = this.state;
+      this.setState({
+        reportJson: {
+          ...reportJson,
+          repos: reportJson.repos.map(reportRepo => {
+            if (reportRepo.name === repoName) {
+              return { ...reportRepo, stats: reportStats };
+            } else {
+              return reportRepo;
+            }
+          })
+        }
+      });
+    });
+
+    getPullsV2(teamLogin, repoName, weekStart).then(({ repo, pulls }) => {
+      const { prActivityData } = this.state;
+      this.setState({
+        prActivityData: [...prActivityData, { repo, pulls }]
+      });
+    });
   }
 }

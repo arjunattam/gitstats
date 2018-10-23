@@ -52,7 +52,8 @@ export class GithubManager extends ServiceManager {
       login: ins.account.login,
       name: ins.account.login,
       avatar: ins.account.avatar_url,
-      type: ins.account.type
+      type: ins.account.type,
+      service: "github"
     }));
     return parsed;
   }
@@ -116,7 +117,8 @@ export class BitbucketManager extends ServiceManager {
       login: team.username,
       name: team.display_name,
       avatar: team.links.avatar.href,
-      type: team.type
+      type: team.type,
+      service: "bitbucket"
     }));
   }
 

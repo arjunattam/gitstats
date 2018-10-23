@@ -478,8 +478,10 @@ export default class BitbucketService extends ServiceClient {
         sha: commit.hash,
         message: commit.message
       }));
-      authorCommits.filter(({ date }) => this.isInDuration(date, minDate));
-      commits = [...commits, ...authorCommits];
+      commits = [
+        ...commits,
+        ...authorCommits.filter(({ date }) => this.isInDuration(date, minDate))
+      ];
     });
 
     return {

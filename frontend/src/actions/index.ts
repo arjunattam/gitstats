@@ -1,26 +1,26 @@
-import {
-  isAuthenticated,
-  getUserProfile,
-  getGitService,
-  logout as doLogout,
-  AuthWidget
-} from "../utils/auth";
 import { getTeams } from "../utils/api";
+import {
+  AuthWidget,
+  getGitService,
+  getUserProfile,
+  isAuthenticated,
+  logout as doLogout
+} from "../utils/auth";
 
 function getAuthPayload() {
   const { nickname, picture } = getUserProfile();
   return {
     isLoggedIn: isAuthenticated(),
-    user: { name: nickname, avatar: picture },
     service: getGitService(),
-    teams: []
+    teams: [],
+    user: { name: nickname, avatar: picture }
   };
 }
 
 export function initializeAuth() {
   return {
-    type: "INITIALIZE_AUTH_STATE",
-    payload: getAuthPayload()
+    payload: getAuthPayload(),
+    type: "INITIALIZE_AUTH_STATE"
   };
 }
 
@@ -28,29 +28,29 @@ export function login() {
   const auth = new AuthWidget();
   auth.login();
   return {
-    type: "AUTH_STATE_UPDATED",
-    payload: getAuthPayload()
+    payload: getAuthPayload(),
+    type: "AUTH_STATE_UPDATED"
   };
 }
 
 export function authenticated() {
   return {
-    type: "AUTH_STATE_UPDATED",
-    payload: getAuthPayload()
+    payload: getAuthPayload(),
+    type: "AUTH_STATE_UPDATED"
   };
 }
 
 export function logout() {
   doLogout();
   return {
-    type: "AUTH_STATE_UPDATED",
-    payload: getAuthPayload()
+    payload: getAuthPayload(),
+    type: "AUTH_STATE_UPDATED"
   };
 }
 
 export function fetchTeams(data) {
   return {
-    type: "FETCH_TEAMS",
-    payload: getTeams()
+    payload: getTeams(),
+    type: "FETCH_TEAMS"
   };
 }
