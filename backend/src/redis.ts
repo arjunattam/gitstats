@@ -25,3 +25,15 @@ export const get = (key: string) => {
   const client = new Redis(opts);
   return client.get(key);
 };
+
+export const setJson = (key: string, value: object, expiry: number) => {
+  return set(key, JSON.stringify(value), expiry);
+};
+
+export const getJson = async (key: string) => {
+  const value: string = await get(key);
+
+  if (!!value) {
+    return JSON.parse(value);
+  }
+};

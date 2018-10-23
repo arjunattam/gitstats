@@ -9,7 +9,7 @@ import * as jwt from "jsonwebtoken";
 import authorizer from "./src/authorizer";
 import UserManager from "./src/userManager";
 import { sendEmail } from "./src/email";
-import * as redis from "./src/redis";
+import * as cache from "./src/redis";
 
 const HEADERS = {
   // Required for cookies, authorization headers with HTTPS
@@ -56,73 +56,61 @@ const getCacheKey = (path: string, userId: string, weekStart: string) => {
 
 const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds
 
-const getCachedResponse = async (
-  event: APIGatewayEvent,
-  manager: UserManager,
-  methodName: string,
-  params: any[]
-) => {
-  // Checks redis first, else calls the client method
-  const { path, queryStringParameters } = event;
-  const { week_start: weekStart } = queryStringParameters;
-
-  const cacheKey = getCacheKey(path, manager.userId, weekStart);
-  const cacheValue = await redis.get(cacheKey);
-
-  if (!!cacheValue) {
-    const parsedJson = JSON.parse(cacheValue);
-    return parsedJson;
-  }
-
-  const client = await manager.getServiceClient(weekStart);
-  const response = await client[methodName](...params);
-  let writeToCache = true;
-
-  if (methodName === "statistics") {
-    const { is_pending } = response;
-
-    // If this is the stats API, and response is pending, we can't
-    // write to cache.
-    if (is_pending) {
-      writeToCache = false;
-    }
-  }
-
-  if (writeToCache) {
-    await redis.set(cacheKey, JSON.stringify(response), DEFAULT_CACHE_EXPIRY);
-  }
-
-  return response;
-};
-
 export const commitsV2: Handler = async (event: APIGatewayEvent) => {
-  const { pathParameters, queryStringParameters } = event;
+  const { path, pathParameters, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;
   const { owner, repo } = pathParameters;
   const manager = getManager(event, owner);
+  const cacheKey = getCacheKey(path, manager.userId, weekStart);
+  const cachedValue = await cache.getJson(cacheKey);
+
+  if (!!cachedValue) {
+    return buildResponse(event, cachedValue);
+  }
+
   const client = await manager.getServiceClient(weekStart);
   const response = await client.commitsV2(repo);
+
+  if (!response.is_pending) {
+    await cache.setJson(cacheKey, response, DEFAULT_CACHE_EXPIRY);
+  }
+
   return buildResponse(event, response);
 };
 
 export const pullsV2: Handler = async (event: APIGatewayEvent) => {
-  const { pathParameters, queryStringParameters } = event;
+  const { path, pathParameters, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;
   const { owner, repo } = pathParameters;
   const manager = getManager(event, owner);
+  const cacheKey = getCacheKey(path, manager.userId, weekStart);
+  const cachedValue = await cache.getJson(cacheKey);
+
+  if (!!cachedValue) {
+    return buildResponse(event, cachedValue);
+  }
+
   const client = await manager.getServiceClient(weekStart);
   const response = await client.pullsV2(repo);
+  await cache.setJson(cacheKey, response, DEFAULT_CACHE_EXPIRY);
   return buildResponse(event, response);
 };
 
 export const teamInfo: Handler = async (event: APIGatewayEvent) => {
-  const { pathParameters, queryStringParameters } = event;
+  const { path, pathParameters, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;
   const { owner } = pathParameters;
-
   const manager = getManager(event, owner);
+  const cacheKey = getCacheKey(path, manager.userId, weekStart);
+  const cachedValue = await cache.getJson(cacheKey);
+
+  if (!!cachedValue) {
+    return buildResponse(event, cachedValue);
+  }
+
   const client = await manager.getServiceClient(weekStart);
   const response = await client.teamInfo();
+  await cache.setJson(cacheKey, response, DEFAULT_CACHE_EXPIRY);
   return buildResponse(event, response);
 };
 
