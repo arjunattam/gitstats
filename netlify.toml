@@ -1,4 +1,4 @@
 [build]
   base    = "frontend"
   publish = "frontend/build"
-  command = "cd ../shared && npm run build && cd ../frontend && yarn add ../shared && yarn build"
+  command = "cd ../shared && yarn && npm run build && cd ../frontend && yarn add ../shared && yarn build"
