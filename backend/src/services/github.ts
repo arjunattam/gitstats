@@ -217,8 +217,7 @@ export default class GithubService extends ServiceClient {
 
   pullsV2 = async (repo: string) => {
     const { node_id } = await this.repository(repo);
-    // MDEwOlJlcG9zaXRvcnkxMzgyOTEwMzA=
-    console.log("repo id", node_id);
+    // example node id: MDEwOlJlcG9zaXRvcnkxMzgyOTEwMzA=
     const query = `{
       nodes(ids: ["${node_id}"]) {
         id

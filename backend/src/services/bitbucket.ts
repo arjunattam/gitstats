@@ -215,7 +215,10 @@ export default class BitbucketService extends ServiceClient {
         number: pr.id,
         created_at: pr.created_on,
         merged_at: pr.state === "MERGED" ? pr.updated_on : null,
-        closed_at: pr.state === "MERGED" ? pr.updated_on : null,
+        closed_at:
+          pr.state === "MERGED" || pr.state === "DECLINED"
+            ? pr.updated_on
+            : null,
         updated_at: pr.updated_on,
         state: pr.state,
         url: pr.links.html.href

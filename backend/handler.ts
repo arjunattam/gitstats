@@ -50,8 +50,8 @@ const buildResponse = (event, message: any) => {
 };
 
 const getCacheKey = (path: string, userId: string, weekStart: string) => {
-  const suffix = "6";
-  return `${userId}-${path}-${weekStart}-${suffix}`;
+  const nonceSuffix = "1";
+  return `${userId}-${path}-${weekStart}-${nonceSuffix}`;
 };
 
 const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds

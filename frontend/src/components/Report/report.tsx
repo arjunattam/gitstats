@@ -1,14 +1,15 @@
 import {
+  getPeriodLastSevenDays,
   getPeriodLastWeek,
   ICommitsAPIResult,
   IMember,
   IPeriod,
   IPullsAPIResult,
-  ITeam,
-  getPeriodLastSevenDays
+  ITeam
 } from "gitstats-shared";
 import * as React from "react";
-import { ICommits, IPeriodDeprecated, RepoForReport } from "../../types";
+import { getGitService } from "src/utils/auth";
+import { ICommits, RepoForReport } from "../../types";
 import { getCommitsV2, getPullsV2, getTeamInfo } from "../../utils/api";
 import { ReportContainer } from "./container";
 import { EmailContainer } from "./email";
@@ -54,7 +55,22 @@ export class Report extends React.Component<IReportProps, IReportState> {
   }
 
   public componentDidMount() {
-    this.setState({ period: getPeriodLastWeek() }, () => this.update());
+    let period;
+    const { team } = this.props;
+    let service = !!team ? team.service : undefined;
+
+    if (!service) {
+      service = getGitService();
+    }
+
+    if (service === "bitbucket") {
+      period = getPeriodLastSevenDays();
+    } else {
+      // Because github stats API returns commits from Sun-Sat only
+      period = getPeriodLastWeek();
+    }
+
+    this.setState({ period }, () => this.update());
   }
 
   public render() {
