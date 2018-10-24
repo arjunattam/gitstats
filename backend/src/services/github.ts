@@ -1,7 +1,7 @@
 import { GithubAPICaller } from "./api";
 import * as types from "../types";
 import * as moment from "moment";
-import { Team, Repo, Member, Commit } from "gitstats-shared";
+import { ITeam, IRepo, IMember, ICommit } from "gitstats-shared";
 import { ServiceClient } from "./base";
 
 const STATUS_CODES = {
@@ -22,7 +22,7 @@ export default class GithubService extends ServiceClient {
     this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
   }
 
-  repos = async (): Promise<Repo[]> => {
+  repos = async (): Promise<IRepo[]> => {
     // Doc: https://developer.github.com/v3/repos/#list-organization-repositories
     // We can also use https://api.github.com/installation/repositories
     // but that limits us to the organisations in the installation
@@ -52,7 +52,7 @@ export default class GithubService extends ServiceClient {
       }));
   };
 
-  members = async (): Promise<Member[]> => {
+  members = async (): Promise<IMember[]> => {
     // Uses GraphQL because the REST endpoint does not return full names
     // REST API: https://developer.github.com/v3/orgs/members/#members-list
     const organisation = await this.organisation();
@@ -100,7 +100,7 @@ export default class GithubService extends ServiceClient {
     }
   };
 
-  ownerInfo = async (): Promise<Team> => {
+  ownerInfo = async (): Promise<ITeam> => {
     const response = await this.helper.get({
       path: `users/${this.owner}`,
       headers: {},
@@ -323,7 +323,7 @@ export default class GithubService extends ServiceClient {
     }));
     const repoCommits = await this.commits(repo);
 
-    let commitsResult: Commit[] = [];
+    let commitsResult: ICommit[] = [];
     repoCommits.forEach(repoCommit => {
       const { author, commits } = repoCommit;
       commitsResult = [

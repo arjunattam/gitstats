@@ -1,5 +1,6 @@
+import { getPRsMerged } from "gitstats-shared";
 import React from "react";
-import { Value, getCommits, getPRsMerged } from "./utils";
+import { Value, getCommits } from "./utils";
 import Table from "./table";
 
 const RepoName = ({ name, url, description }) => {
@@ -13,20 +14,23 @@ const RepoName = ({ name, url, description }) => {
   );
 };
 
-export const Repos = ({ period, repos, isLoading }) => {
+export const Repos = ({ period, repos, pulls, isLoading }) => {
+  const deprecatedPeriod = {
+    next: period.current.start,
+    previous: period.previous.start
+  };
+
   const data = repos
     ? repos
         .map(repo => {
+          const prsMerged = getPRsMerged(pulls, period, repo.name, undefined);
           return {
             ...repo,
             commits: getCommits(
-              period,
+              deprecatedPeriod,
               repos.filter(r => r.name === repo.name)
             ),
-            prsMerged: getPRsMerged(
-              period,
-              repos.filter(r => r.name === repo.name)
-            )
+            prsMerged: { next: prsMerged.current, previous: prsMerged.previous }
           };
         })
         .sort((a, b) => b.commits.next - a.commits.next)

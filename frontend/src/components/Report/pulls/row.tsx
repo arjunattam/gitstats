@@ -1,13 +1,13 @@
+import { IWeekValue } from "gitstats-shared";
 import * as React from "react";
 import { Row } from "reactstrap";
-import { IWeekValues } from "../../../types";
 import { getDurationLabel } from "../../../utils/date";
 import { TextColWrapper, ValueColWrapper } from "../common";
 
 interface IValueDataPoint {
   next: number | string;
   previous: number | string;
-  chartData?: IWeekValues[];
+  chartData?: IWeekValue[];
 }
 
 interface IPullsRowProps {

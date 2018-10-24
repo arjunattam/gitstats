@@ -1,7 +1,7 @@
+import { IWeekValue } from "gitstats-shared";
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { Col } from "reactstrap";
-import { IWeekValues } from "../../../types";
 import { BarChart } from "../../Charts/base/bar";
 import { getChange } from "../utils";
 
@@ -49,7 +49,7 @@ interface IValueColProps {
   title: string;
   previous: string | number;
   next: string | number;
-  chartData?: IWeekValues[];
+  chartData?: IWeekValue[];
   transformer?: (input: number | string) => string;
 }
 

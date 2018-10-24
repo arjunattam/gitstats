@@ -116,46 +116,6 @@ export const getCommits = (period, repos, authorFilter?) => {
   return getStatsData(period, repos, "commits", authorFilter);
 };
 
-export const getLinesChanged = (period, repos, authorFilter?) => {
-  const added = getStatsData(period, repos, "lines_added", authorFilter);
-  const deleted = getStatsData(period, repos, "lines_deleted", authorFilter);
-  return {
-    next: added.next + deleted.next,
-    previous: added.previous + deleted.previous
-  };
-};
-
-const getPRsData = (period, repos, key, authorFilter?) => {
-  const repoPRs = repos.map(repo => {
-    const data = repo.prs;
-    let prs = [];
-    if (data) {
-      const filtered = data.filter(
-        author => (authorFilter ? author.author === authorFilter : true)
-      );
-      prs = filtered.map(author => author[key]);
-    }
-
-    return {
-      next: prs.reduce((s, v) => s + v.next, 0),
-      previous: prs.reduce((s, v) => s + v.previous, 0)
-    };
-  });
-
-  return {
-    next: repoPRs.reduce((s, v) => s + v.next, 0),
-    previous: repoPRs.reduce((s, v) => s + v.previous, 0)
-  };
-};
-
-export const getPRsMerged = (period, repos, authorFilter?) => {
-  return getPRsData(period, repos, "prs_merged", authorFilter);
-};
-
-export const getPRsOpened = (period, repos, authorFilter?) => {
-  return getPRsData(period, repos, "prs_opened", authorFilter);
-};
-
 export const getPRsMergeTime = (period, repos, authorFilter?) => {
   // TODO: why is period not used?
   const repoPRs = repos.map(repo => {

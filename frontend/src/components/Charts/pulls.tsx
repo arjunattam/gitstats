@@ -1,11 +1,11 @@
 import * as React from "react";
-import { IPullRequest, IPullRequestData } from "../../types";
+import { IPullRequest, IPullsAPIResult } from "gitstats-shared";
 import { TimelineChart } from "./base/timeline";
 
 interface IPRChartContainerProps {
   startDate: Date;
   endDate: Date;
-  data: IPullRequestData[];
+  data: IPullsAPIResult[];
 }
 
 // TODO: this needs a repo to be selected, so prompt if there is none

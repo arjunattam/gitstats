@@ -1,11 +1,11 @@
 import * as moment from "moment";
 import {
-  Team,
-  Repo,
-  Member,
-  TeamInfoAPIResult,
-  PullsAPIResult,
-  CommitsAPIResult
+  ITeam,
+  IRepo,
+  IMember,
+  ITeamInfoAPIResult,
+  IPullsAPIResult,
+  ICommitsAPIResult
 } from "gitstats-shared";
 
 export abstract class ServiceClient {
@@ -23,13 +23,13 @@ export abstract class ServiceClient {
     this.periodNext = moment(this.weekStart);
   }
 
-  abstract ownerInfo: () => Promise<Team>;
-  abstract repos: () => Promise<Repo[]>;
-  abstract members: () => Promise<Member[]>;
-  abstract pullsV2: (repo: string) => Promise<PullsAPIResult>;
-  abstract commitsV2: (repo: string) => Promise<CommitsAPIResult>;
+  abstract ownerInfo: () => Promise<ITeam>;
+  abstract repos: () => Promise<IRepo[]>;
+  abstract members: () => Promise<IMember[]>;
+  abstract pullsV2: (repo: string) => Promise<IPullsAPIResult>;
+  abstract commitsV2: (repo: string) => Promise<ICommitsAPIResult>;
 
-  teamInfo = async (): Promise<TeamInfoAPIResult> => {
+  teamInfo = async (): Promise<ITeamInfoAPIResult> => {
     const responses = await Promise.all([
       this.ownerInfo(),
       this.repos(),

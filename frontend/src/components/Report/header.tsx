@@ -1,11 +1,10 @@
+import { getDateLabels, IPeriod, ITeam } from "gitstats-shared";
 import * as React from "react";
 import { Container } from "reactstrap";
-import { ITeam } from "../../types";
-import { getLabels, getWeek } from "../../utils/date";
 import { TeamName } from "../Common";
 
 const ExpandedDateLabel = ({ input }) => {
-  const { day, date } = getLabels(input);
+  const { day, date } = getDateLabels(input);
   return (
     <span>
       <span className="text-muted">{day}</span>
@@ -26,18 +25,18 @@ const RangeLabel = ({ start, end }) => {
 };
 
 interface IHeaderProps {
-  weekStart: string;
+  period: IPeriod;
   team: ITeam;
 }
 
 export class Header extends React.Component<IHeaderProps, {}> {
   public render() {
-    const { team, weekStart } = this.props;
+    const { team, period } = this.props;
     return (
       <Container>
         <div className="d-flex justify-content-between align-items-center flex-wrap pt-4">
           <TeamName {...team} />
-          <RangeLabel {...getWeek(weekStart)} />
+          <RangeLabel {...period.current} />
         </div>
       </Container>
     );

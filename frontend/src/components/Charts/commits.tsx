@@ -1,12 +1,13 @@
+import { IPullsAPIResult } from "gitstats-shared";
 import * as React from "react";
-import { ICommits, IPullRequestData } from "../../types";
+import { ICommits } from "../../types";
 import { Streamgraph } from "./base/stream";
 
 interface ICommitChartContainerProps {
   startDate: Date;
   endDate: Date;
   commitsData: ICommits[];
-  prData: IPullRequestData[];
+  prData: IPullsAPIResult[];
   selectedRepo: string;
   selectedMember: string;
 }

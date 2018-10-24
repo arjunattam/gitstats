@@ -1,25 +1,25 @@
-import { Member } from "gitstats-shared";
-import * as React from "react";
 import {
-  ICommits,
+  getPRsMerged,
+  IMember,
   IPeriod,
-  IPullRequestData,
-  RepoForReport
-} from "../../../types";
+  IPullsAPIResult
+} from "gitstats-shared";
+import * as React from "react";
+import { ICommits, IPeriodDeprecated, RepoForReport } from "../../../types";
 import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
 import { LighterContainer } from "../common";
 import { Filters } from "../common/filters";
-import { getCommits, getPRsMerged } from "../utils";
+import { getCommits } from "../utils";
 import { SummaryRow } from "./row";
 
 interface IContainerProps {
   repos: RepoForReport[];
-  members: Member[];
+  members: IMember[];
   period: IPeriod;
   isLoading: boolean;
-  prActivityData: IPullRequestData[];
-  commitsData: ICommits[];
+  pulls: IPullsAPIResult[];
+  commits: ICommits[];
   chartBounds: { startDate: Date; endDate: Date };
 }
 
@@ -32,7 +32,7 @@ export class SummaryContainer extends React.Component<
   IContainerProps,
   IContainerState
 > {
-  public state = {
+  public state: IContainerState = {
     selectedMember: null,
     selectedRepo: null
   };
@@ -43,8 +43,8 @@ export class SummaryContainer extends React.Component<
       members,
       period,
       isLoading,
-      prActivityData,
-      commitsData,
+      pulls,
+      commits,
       chartBounds
     } = this.props;
     const { selectedRepo, selectedMember } = this.state;
@@ -57,18 +57,47 @@ export class SummaryContainer extends React.Component<
       value: member.login
     }));
 
+    const deprecatedPeriod: IPeriodDeprecated = {
+      next: period.current.start,
+      previous: period.previous.start
+    };
+
     const filteredRepos = repos.filter(
       repo => !selectedRepo || repo.name === selectedRepo.value
     );
-    const filteredPulls = prActivityData.filter(data => {
+    const filteredPulls = pulls.filter(data => {
       return !selectedRepo || data.repo === selectedRepo.value;
     });
+
     const authorFilter = !selectedMember ? undefined : selectedMember.value;
-    const commits = getCommits(period, filteredRepos, authorFilter);
-    const prsMerged = getPRsMerged(period, filteredRepos, authorFilter);
-    const prComments = getPRComments(period, filteredPulls, authorFilter);
-    const activeRepos = getActiveRepo(period, filteredRepos, authorFilter);
-    const activeMembers = getActiveMember(period, filteredRepos, authorFilter);
+    const commitsValues = getCommits(
+      deprecatedPeriod,
+      filteredRepos,
+      authorFilter
+    );
+
+    const prsMerged = getPRsMerged(
+      pulls,
+      period,
+      !!selectedRepo ? selectedRepo.value : undefined,
+      !!selectedMember ? selectedMember.value : undefined
+    );
+
+    const prComments = getPRComments(
+      deprecatedPeriod,
+      filteredPulls,
+      authorFilter
+    );
+    const activeRepos = getActiveRepo(
+      deprecatedPeriod,
+      filteredRepos,
+      authorFilter
+    );
+    const activeMembers = getActiveMember(
+      deprecatedPeriod,
+      filteredRepos,
+      authorFilter
+    );
 
     return (
       <LighterContainer>
@@ -80,8 +109,8 @@ export class SummaryContainer extends React.Component<
           changeMember={this.changeMember}
         />
         <SummaryRow
-          commits={commits}
-          prsMerged={prsMerged}
+          commits={commitsValues}
+          prsMerged={{ next: prsMerged.current, previous: prsMerged.previous }}
           prComments={prComments}
           activeRepos={activeRepos}
           activeMembers={activeMembers}
@@ -89,8 +118,8 @@ export class SummaryContainer extends React.Component<
         />
         <CommitChartContainer
           {...chartBounds}
-          commitsData={commitsData}
-          prData={prActivityData}
+          commitsData={commits}
+          prData={pulls}
           selectedMember={selectedMember ? selectedMember.value : null}
           selectedRepo={selectedRepo ? selectedRepo.value : null}
         />
@@ -108,7 +137,7 @@ export class SummaryContainer extends React.Component<
 }
 
 const getActiveMember = (
-  period: IPeriod,
+  period: IPeriodDeprecated,
   repos: RepoForReport[],
   authorLogin?: string
 ) => {
@@ -170,7 +199,7 @@ const getActiveMember = (
 };
 
 const getActiveRepo = (
-  period: IPeriod,
+  period: IPeriodDeprecated,
   repos: RepoForReport[],
   authorLogin?: string
 ) => {
@@ -223,8 +252,8 @@ const getActiveRepo = (
 };
 
 const getPRComments = (
-  period: IPeriod,
-  prData: IPullRequestData[],
+  period: IPeriodDeprecated,
+  prData: IPullsAPIResult[],
   authorLogin?: string
 ) => {
   const isInPrevious = (date: Date) => isInWeek(date, period.previous);

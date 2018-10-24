@@ -1,9 +1,9 @@
 import axios from "axios";
 import {
-  CommitsAPIResult,
-  PullsAPIResult,
-  Team,
-  TeamInfoAPIResult
+  ICommitsAPIResult,
+  IPullsAPIResult,
+  ITeam,
+  ITeamInfoAPIResult
 } from "gitstats-shared";
 import { getAccessToken } from "./auth";
 
@@ -12,7 +12,7 @@ const BASE_URL = "https://unb616tblj.execute-api.us-west-1.amazonaws.com/dev";
 
 export const getTeams = async () => {
   const response = await get(`${BASE_URL}/teams`);
-  const result: Team[] = response.message;
+  const result: ITeam[] = response.message;
   return result;
 };
 
@@ -20,7 +20,7 @@ export const getTeamInfo = async (name, weekStart) => {
   const response = await get(
     `${BASE_URL}/team/${name}?week_start=${weekStart}`
   );
-  const result: TeamInfoAPIResult = response.message;
+  const result: ITeamInfoAPIResult = response.message;
   return result;
 };
 
@@ -28,7 +28,7 @@ export const getPullsV2 = async (owner, repo, weekStart) => {
   const response = await get(
     `${BASE_URL}/pulls/v2/${owner}/${repo}?week_start=${weekStart}`
   );
-  const result: PullsAPIResult = response.message;
+  const result: IPullsAPIResult = response.message;
   return result;
 };
 
@@ -36,7 +36,7 @@ export const getCommitsV2 = async (owner, repo, weekStart) => {
   const response = await get(
     `${BASE_URL}/commits/v2/${owner}/${repo}?week_start=${weekStart}`
   );
-  const result: CommitsAPIResult = response.message;
+  const result: ICommitsAPIResult = response.message;
   return result;
 };
 

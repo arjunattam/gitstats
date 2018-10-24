@@ -1,19 +1,32 @@
+import { getPRsMerged } from "gitstats-shared";
 import React from "react";
-import { Value, getCommits, getPRsMerged } from "./utils";
+import { Value, getCommits } from "./utils";
 import Table from "./table";
 import { MemberName } from "../Common";
 
-export const Members = ({ period, repos, members, isLoading }) => {
+export const Members = ({ period, repos, pulls, members, isLoading }) => {
+  const deprecatedPeriod = {
+    next: period.current.start,
+    previous: period.previous.start
+  };
+
   const hasAllData = repos
     ? !repos.filter(repo => repo.stats.is_pending).length
     : false;
+
   const data = members
     ? members
         .map(member => {
+          const prsMerged = getPRsMerged(
+            pulls,
+            period,
+            undefined,
+            member.login
+          );
           return {
             ...member,
-            commits: getCommits(period, repos, member.login),
-            prsMerged: getPRsMerged(period, repos, member.login)
+            commits: getCommits(deprecatedPeriod, repos, member.login),
+            prsMerged: { next: prsMerged.current, previous: prsMerged.previous }
           };
         })
         .filter(member => member.commits.previous || member.commits.next)

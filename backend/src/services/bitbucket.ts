@@ -2,13 +2,13 @@ import * as moment from "moment";
 import * as rp from "request-promise-native";
 import * as url from "url";
 import {
-  Team,
-  Repo,
-  Member,
-  PullsAPIResult,
-  CommitsAPIResult,
-  RepoStats,
-  Commit
+  ITeam,
+  IRepo,
+  IMember,
+  IPullsAPIResult,
+  ICommitsAPIResult,
+  IRepoStats,
+  ICommit
 } from "gitstats-shared";
 import { ServiceClient } from "./base";
 
@@ -118,7 +118,7 @@ export default class BitbucketService extends ServiceClient {
     return values.join(`&${key}=`);
   }
 
-  repos = async (): Promise<Repo[]> => {
+  repos = async (): Promise<IRepo[]> => {
     const values = await this.getAll(
       {
         path: `repositories/${this.owner}`,
@@ -138,7 +138,7 @@ export default class BitbucketService extends ServiceClient {
     }));
   };
 
-  members = async (): Promise<Member[]> => {
+  members = async (): Promise<IMember[]> => {
     const values = await this.getAll(
       {
         path: `teams/${this.owner}/members`,
@@ -153,7 +153,7 @@ export default class BitbucketService extends ServiceClient {
     }));
   };
 
-  ownerInfo = async (): Promise<Team> => {
+  ownerInfo = async (): Promise<ITeam> => {
     const team = await this.get({
       path: `teams/${this.owner}`,
       qs: {}
@@ -199,7 +199,7 @@ export default class BitbucketService extends ServiceClient {
     return response;
   }
 
-  pullsV2 = async (repo: string): Promise<PullsAPIResult> => {
+  pullsV2 = async (repo: string): Promise<IPullsAPIResult> => {
     const responses = await Promise.all([
       this.pullsApi(repo),
       this.prActivityApi(repo)
@@ -304,7 +304,7 @@ export default class BitbucketService extends ServiceClient {
     return authorWiseCommits;
   }
 
-  commitsV2 = async (repo: string): Promise<CommitsAPIResult> => {
+  commitsV2 = async (repo: string): Promise<ICommitsAPIResult> => {
     const NUM_WEEKS = 5;
     const minDateValue = moment(this.periodNext).subtract(
       NUM_WEEKS - 1,
@@ -312,7 +312,7 @@ export default class BitbucketService extends ServiceClient {
     );
     const response = await this.repoCommits(repo, minDateValue);
     const authors = Object.keys(response);
-    const stats: RepoStats[] = authors.map(author => {
+    const stats: IRepoStats[] = authors.map(author => {
       const commits = response[author];
       return {
         author,
@@ -320,10 +320,10 @@ export default class BitbucketService extends ServiceClient {
       };
     });
 
-    let commits: Commit[] = [];
+    let commits: ICommit[] = [];
     const minDate = this.periodPrev;
     authors.forEach(author => {
-      const authorCommits: Commit[] = response[author].map(commit => ({
+      const authorCommits: ICommit[] = response[author].map(commit => ({
         author,
         date: commit.date,
         sha: commit.hash,

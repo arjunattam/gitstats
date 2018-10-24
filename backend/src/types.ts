@@ -1,4 +1,4 @@
-import { WeekValue } from "gitstats-shared";
+import { IWeekValue } from "gitstats-shared";
 
 export type RepoStats = {
   is_pending: boolean;
@@ -7,9 +7,9 @@ export type RepoStats = {
 
 export type AuthorStats = {
   login: string;
-  commits: WeekValue[];
-  lines_added: WeekValue[];
-  lines_deleted: WeekValue[];
+  commits: IWeekValue[];
+  lines_added: IWeekValue[];
+  lines_deleted: IWeekValue[];
 };
 
 export type RepoCommits = {

@@ -1,36 +1,42 @@
-import { CommitsAPIResult, Team } from "gitstats-shared";
+import {
+  getPeriodLastWeek,
+  ICommitsAPIResult,
+  IMember,
+  IPeriod,
+  IPullsAPIResult,
+  ITeam,
+  getPeriodLastSevenDays
+} from "gitstats-shared";
 import * as React from "react";
-import { ICommits, IPullRequestData, IReportJson } from "../../types";
+import { ICommits, IPeriodDeprecated, RepoForReport } from "../../types";
 import { getCommitsV2, getPullsV2, getTeamInfo } from "../../utils/api";
-import { getPeriod, getWeekStart } from "../../utils/date";
 import { ReportContainer } from "./container";
 import { EmailContainer } from "./email";
 import { Header } from "./header";
 
 interface IReportProps {
   teamLogin: string;
-  team?: Team;
+  team?: ITeam;
 }
 
 interface IReportState {
-  weekStart: string;
-  prActivityData: IPullRequestData[];
-  commitsData: ICommits[];
-  reportJson: IReportJson;
+  period: IPeriod;
+  pulls: IPullsAPIResult[];
+  commits: ICommits[];
+  repos: RepoForReport[];
+  members: IMember[];
   isLoading: boolean;
-  team?: Team;
+  team?: ITeam;
 }
 
 export class Report extends React.Component<IReportProps, IReportState> {
   public state: IReportState = {
-    commitsData: [],
+    commits: [],
     isLoading: true,
-    prActivityData: [],
-    reportJson: {
-      members: [],
-      repos: []
-    },
-    weekStart: ""
+    members: [],
+    period: undefined,
+    pulls: [],
+    repos: []
   };
 
   public componentDidUpdate(prevProps: IReportProps, prevState) {
@@ -40,34 +46,51 @@ export class Report extends React.Component<IReportProps, IReportState> {
     if (newOwner !== prevOwner) {
       this.setState({
         isLoading: true,
-        reportJson: { members: [], repos: [] }
+        members: [],
+        repos: []
       });
       this.update();
     }
   }
 
   public componentDidMount() {
-    this.setState({ weekStart: getWeekStart() }, () => this.update());
+    this.setState({ period: getPeriodLastWeek() }, () => this.update());
   }
 
   public render() {
-    const { team: propsTeam, teamLogin } = this.props;
-    const { weekStart, team: stateTeam } = this.state;
-    const period = getPeriod(weekStart);
-    const team = !!propsTeam && !!propsTeam.name ? propsTeam : stateTeam;
+    const { period } = this.state;
+
+    if (!period) {
+      return null;
+    }
+
+    const { teamLogin } = this.props;
+    const weekStart = this.getWeekStart();
+    const team = this.getTeam();
 
     return (
       <div>
-        <Header team={team} weekStart={weekStart} />
-        <ReportContainer {...this.state} period={period} />
+        <Header team={team} period={period} />
+        <ReportContainer {...this.state} />
         <EmailContainer teamLogin={teamLogin} weekStart={weekStart} />
       </div>
     );
   }
 
+  private getTeam(): ITeam {
+    const { team: propsTeam } = this.props;
+    const { team: stateTeam } = this.state;
+    return !!propsTeam && !!propsTeam.name ? propsTeam : stateTeam;
+  }
+
+  private getWeekStart(): string {
+    const { period } = this.state;
+    return period.current.start.substr(0, 10);
+  }
+
   private update() {
     const { teamLogin } = this.props;
-    const { weekStart } = this.state;
+    const weekStart = this.getWeekStart();
 
     getTeamInfo(teamLogin, weekStart).then(response => {
       const { login: teamName, repos, members } = response;
@@ -77,17 +100,14 @@ export class Report extends React.Component<IReportProps, IReportState> {
           stats: {
             authors: [],
             is_pending: true
-          },
-          prs: []
+          }
         };
       });
 
       this.setState({
         isLoading: false,
-        reportJson: {
-          members,
-          repos: reportRepos
-        },
+        members,
+        repos: reportRepos,
         team: {
           avatar: response.avatar,
           login: response.login,
@@ -107,25 +127,28 @@ export class Report extends React.Component<IReportProps, IReportState> {
       this.handleCommitsResponse(repoName, response);
     });
 
-    getPullsV2(teamLogin, repoName, weekStart).then(({ repo, pulls }) => {
-      const { prActivityData } = this.state;
-      this.setState({
-        prActivityData: [...prActivityData, { repo, pulls }]
-      });
-    });
+    getPullsV2(teamLogin, repoName, weekStart).then(
+      ({ repo, pulls: pullsResponse }) => {
+        const { pulls } = this.state;
+        this.setState({
+          pulls: [...pulls, { repo, pulls: pullsResponse }]
+        });
+      }
+    );
   }
 
   private handleCommitsResponse = (
     repoName: string,
-    response: CommitsAPIResult
+    response: ICommitsAPIResult
   ) => {
-    const { repo, commits, is_pending, stats } = response;
+    const { repo, commits: commitsResponse, is_pending, stats } = response;
     const authorWiseCommits = {};
 
     if (is_pending) {
       // Wait for Github background job; fire request in 2 seconds
       const { teamLogin } = this.props;
-      const { weekStart } = this.state;
+      const weekStart = this.getWeekStart();
+
       setTimeout(() => {
         getCommitsV2(teamLogin, repoName, weekStart).then(result =>
           this.handleCommitsResponse(repoName, result)
@@ -133,7 +156,7 @@ export class Report extends React.Component<IReportProps, IReportState> {
       }, 2000);
     }
 
-    commits.forEach(commit => {
+    commitsResponse.forEach(commit => {
       const { author } = commit;
 
       if (author in authorWiseCommits) {
@@ -147,10 +170,10 @@ export class Report extends React.Component<IReportProps, IReportState> {
     const commitsResult = authors.map(author => {
       return { author, commits: authorWiseCommits[author] };
     });
-    const { commitsData } = this.state;
+    const { commits } = this.state;
 
     this.setState({
-      commitsData: [...commitsData, { repo, commits: commitsResult }]
+      commits: [...commits, { repo, commits: commitsResult }]
     });
 
     const reportStats = {
@@ -160,18 +183,15 @@ export class Report extends React.Component<IReportProps, IReportState> {
       })),
       is_pending
     };
-    const { reportJson } = this.state;
+    const { repos } = this.state;
     this.setState({
-      reportJson: {
-        ...reportJson,
-        repos: reportJson.repos.map(reportRepo => {
-          if (reportRepo.name === repoName) {
-            return { ...reportRepo, stats: reportStats };
-          } else {
-            return reportRepo;
-          }
-        })
-      }
+      repos: repos.map(reportRepo => {
+        if (reportRepo.name === repoName) {
+          return { ...reportRepo, stats: reportStats };
+        } else {
+          return reportRepo;
+        }
+      })
     });
   };
 }

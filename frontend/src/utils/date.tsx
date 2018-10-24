@@ -4,41 +4,19 @@ import {
   addSeconds,
   differenceInSeconds,
   distanceInWords,
-  endOfWeek,
-  format,
   isWithinRange,
-  parse,
-  startOfWeek,
-  subDays,
-  subWeeks
+  parse
 } from "date-fns";
-import { IPeriod } from "../types";
 
-export const getWeekStart = () => {
-  // Returns start of last week (which is a Sunday)
-  const now = new Date();
-  const previousWeek = subWeeks(now, 1);
-  const start = startOfWeek(previousWeek, { weekStartsOn: 0 });
-  return format(start, "YYYY-MM-DD");
-};
+function parseISOString(s) {
+  const b = s.split(/\D+/);
+  return new Date(Date.UTC(b[0], --b[1], b[2], b[3], b[4], b[5], b[6]));
+}
 
-export const getWeek = weekStart => {
-  // weekStart looks like 2018-09-23
-  const start = parse(`${weekStart}T00:00:00Z`);
-  const end = endOfWeek(start);
-  return { start, end };
-};
-
-export const getChartBounds = weekStart => {
-  const start = parse(`${weekStart}T00:00:00Z`);
-  const end = addDays(start, 7);
-  return { startDate: start, endDate: end };
-};
-
-export const getLabels = date => {
+export const getChartBounds = period => {
   return {
-    date: format(date, "MMM D"),
-    day: format(date, "dddd")
+    endDate: parseISOString(period.current.end),
+    startDate: parseISOString(period.current.start)
   };
 };
 
@@ -50,13 +28,6 @@ export const isInWeek = (date, weekStart) => {
   const start = parse(weekStart);
   const end = addDays(start, 7);
   return isWithinRange(date, start, end);
-};
-
-export const getPeriod = (weekStart): IPeriod => {
-  // TODO: this should return in UTC, not in local time zone
-  const nextParsed = parse(`${weekStart}T00:00:00Z`);
-  const prevParsed = subDays(nextParsed, 7);
-  return { next: format(nextParsed), previous: format(prevParsed) };
 };
 
 export const getDurationLabel = (seconds: number): string => {

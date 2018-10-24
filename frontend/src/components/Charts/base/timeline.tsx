@@ -1,7 +1,7 @@
 import * as d3 from "d3";
+import { IPullRequest } from "gitstats-shared";
 import * as React from "react";
 import * as ReactFauxDOM from "react-faux-dom";
-import { IPullRequest } from "../../../types";
 import "./index.css";
 import { addLegend, addXAxis, COLORS, LEGEND_PADDING } from "./utils";
 

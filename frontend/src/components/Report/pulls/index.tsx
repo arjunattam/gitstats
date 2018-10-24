@@ -1,25 +1,29 @@
 import { median } from "d3";
-import { Member, Repo } from "gitstats-shared";
-import * as React from "react";
-import { Container as BootstrapContainer } from "reactstrap";
 import {
+  getPRsMerged,
+  getPRsOpened,
+  IComment,
+  IMember,
   IPeriod,
   IPullRequest,
-  IPullRequestComment,
-  IPullRequestData
-} from "../../../types";
+  IPullsAPIResult,
+  IRepo
+} from "gitstats-shared";
+import * as React from "react";
+import { Container as BootstrapContainer } from "reactstrap";
+import { IPeriodDeprecated } from "../../../types";
 import { diffInSeconds, isInWeek } from "../../../utils/date";
 import { PRChartContainer } from "../../Charts/pulls";
 import { Filters } from "../common/filters";
-import { getPRsMerged, getPRsMergeTime, getPRsOpened } from "../utils";
+import { getPRsMergeTime } from "../utils";
 import { PullsRow } from "./row";
 
 interface IContainerProps {
-  repos: Repo[];
-  members: Member[];
+  repos: IRepo[];
+  members: IMember[];
   period: IPeriod;
   isLoading: boolean;
-  prActivityData: IPullRequestData[];
+  pulls: IPullsAPIResult[];
   chartBounds: { startDate: Date; endDate: Date };
 }
 
@@ -44,7 +48,7 @@ export class PullsContainer extends React.Component<
       isLoading,
       members,
       repos,
-      prActivityData
+      pulls
     } = this.props;
     const { selectedMember, selectedRepo } = this.state;
     const repoItems = repos.map(repo => ({
@@ -56,10 +60,15 @@ export class PullsContainer extends React.Component<
       value: member.login
     }));
 
+    const deprecatedPeriod: IPeriodDeprecated = {
+      next: period.current.start,
+      previous: period.previous.start
+    };
+
     const filteredRepos = repos.filter(
       repo => !selectedRepo || repo.name === selectedRepo.value
     );
-    const filteredPulls = prActivityData
+    const filteredPulls = pulls
       .filter(data => !selectedRepo || data.repo === selectedRepo.value)
       .map(({ pulls, ...rest }) => ({
         pulls: pulls.filter(
@@ -69,16 +78,31 @@ export class PullsContainer extends React.Component<
       }));
     const authorFilter = !selectedMember ? undefined : selectedMember.value;
 
-    const prsOpened = getPRsOpened(period, filteredRepos, authorFilter);
-    const prsMerged = getPRsMerged(period, filteredRepos, authorFilter);
-    const prsReviewed = getPRsReviewed(period, filteredPulls);
-    const medianMergeTimes = getPRsMergeTime(
+    const prsOpened = getPRsOpened(
+      pulls,
       period,
+      !!selectedRepo ? selectedRepo.value : undefined,
+      !!selectedMember ? selectedMember.value : undefined
+    );
+
+    const prsMerged = getPRsMerged(
+      pulls,
+      period,
+      !!selectedRepo ? selectedRepo.value : undefined,
+      !!selectedMember ? selectedMember.value : undefined
+    );
+
+    const prsReviewed = getPRsReviewed(deprecatedPeriod, filteredPulls);
+    const medianMergeTimes = getPRsMergeTime(
+      deprecatedPeriod,
       filteredRepos,
       authorFilter
     );
-    const medianCommentTimes = getPRsCommentTime(period, filteredPulls);
-    const activeReviewer = getActiveReviewer(period, filteredPulls);
+    const medianCommentTimes = getPRsCommentTime(
+      deprecatedPeriod,
+      filteredPulls
+    );
+    const activeReviewer = getActiveReviewer(deprecatedPeriod, filteredPulls);
 
     return (
       <BootstrapContainer>
@@ -91,8 +115,8 @@ export class PullsContainer extends React.Component<
         />
 
         <PullsRow
-          prsOpened={prsOpened}
-          prsMerged={prsMerged}
+          prsOpened={{ next: prsOpened.current, previous: prsOpened.previous }}
+          prsMerged={{ next: prsMerged.current, previous: prsMerged.previous }}
           prsReviewed={prsReviewed}
           activeReviewer={activeReviewer}
           medianMergeTimes={medianMergeTimes}
@@ -114,13 +138,16 @@ export class PullsContainer extends React.Component<
   };
 }
 
-const flattenedPulls = (pulls: IPullRequestData[]) =>
+const flattenedPulls = (pulls: IPullsAPIResult[]) =>
   pulls.reduce(
     (acc: IPullRequest[], current) => [...acc, ...current.pulls],
     []
   );
 
-const getPRsReviewed = (period: IPeriod, pulls: IPullRequestData[]) => {
+const getPRsReviewed = (
+  period: IPeriodDeprecated,
+  pulls: IPullsAPIResult[]
+) => {
   const { next: nextDate, previous: previousDate } = period;
   const flattened = flattenedPulls(pulls);
 
@@ -139,7 +166,10 @@ const getPRsReviewed = (period: IPeriod, pulls: IPullRequestData[]) => {
   };
 };
 
-const getPRsCommentTime = (period: IPeriod, pulls: IPullRequestData[]) => {
+const getPRsCommentTime = (
+  period: IPeriodDeprecated,
+  pulls: IPullsAPIResult[]
+) => {
   const { next: nextDate, previous: previousDate } = period;
   const flattened = flattenedPulls(pulls);
 
@@ -174,18 +204,21 @@ const getPRsCommentTime = (period: IPeriod, pulls: IPullRequestData[]) => {
   };
 };
 
-const getActiveReviewer = (period: IPeriod, pulls: IPullRequestData[]) => {
+const getActiveReviewer = (
+  period: IPeriodDeprecated,
+  pulls: IPullsAPIResult[]
+) => {
   const { next: nextDate, previous: previousDate } = period;
   const flattened = flattenedPulls(pulls);
-  const comments: IPullRequestComment[] = flattened.reduce((acc, current) => {
+  const comments: IComment[] = flattened.reduce((acc, current) => {
     return [...acc, ...current.comments];
   }, []);
 
-  const commentsInWeek = (input: IPullRequestComment[], weekStart) => {
+  const commentsInWeek = (input: IComment[], weekStart) => {
     return input.filter(({ date }) => isInWeek(date, weekStart));
   };
 
-  const maxAuthor = (input: IPullRequestComment[]): string => {
+  const maxAuthor = (input: IComment[]): string => {
     const authors = {};
     input.forEach(({ author }) => {
       authors[author] = author in authors ? authors[author] + 1 : 1;
