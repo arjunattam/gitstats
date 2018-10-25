@@ -1,46 +1,22 @@
 import { median } from "d3";
 import {
   getPRsMerged,
+  getPRsMergeTime,
   getPRsOpened,
   IComment,
-  IMember,
-  IPeriod,
   IPullRequest,
-  IPullsAPIResult,
-  IRepo
+  IPullsAPIResult
 } from "gitstats-shared";
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { IPeriodDeprecated } from "../../../types";
 import { diffInSeconds, isInWeek } from "../../../utils/date";
 import { PRChartContainer } from "../../Charts/pulls";
+import { BaseFilteredContainer } from "../base";
 import { Filters } from "../common/filters";
-import { getPRsMergeTime } from "../utils";
 import { PullsRow } from "./row";
 
-interface IContainerProps {
-  repos: IRepo[];
-  members: IMember[];
-  period: IPeriod;
-  isLoading: boolean;
-  pulls: IPullsAPIResult[];
-  chartBounds: { startDate: Date; endDate: Date };
-}
-
-interface IContainerState {
-  selectedRepo: { value: string; label: string };
-  selectedMember: { value: string; label: string };
-}
-
-export class PullsContainer extends React.Component<
-  IContainerProps,
-  IContainerState
-> {
-  public state = {
-    selectedMember: null,
-    selectedRepo: null
-  };
-
+export class PullsContainer extends BaseFilteredContainer {
   public render() {
     const {
       period,
@@ -50,59 +26,61 @@ export class PullsContainer extends React.Component<
       repos,
       pulls
     } = this.props;
-    const { selectedMember, selectedRepo } = this.state;
-    const repoItems = repos.map(repo => ({
-      label: repo.name,
-      value: repo.name
-    }));
-    const memberItems = members.map(member => ({
-      label: member.login,
-      value: member.login
-    }));
+    const { filteredMember, filteredRepo } = this.state;
+    const selectedRepo = !!filteredRepo ? filteredRepo.value : undefined;
+    const selectedMember = !!filteredMember ? filteredMember.value : undefined;
+    const repoItems = repos.map(repo => {
+      const metric = getPRsOpened(pulls, period, repo.name, selectedMember);
+      return {
+        label: `${repo.name} (${metric.current})`,
+        value: repo.name
+      };
+    });
+    const memberItems = members.map(member => {
+      const metric = getPRsOpened(pulls, period, selectedRepo, member.login);
+      return {
+        label: `${member.login} (${metric.current})`,
+        value: member.login
+      };
+    });
 
     const deprecatedPeriod: IPeriodDeprecated = {
       next: period.current.start,
       previous: period.previous.start
     };
 
-    const filteredRepos = repos.filter(
-      repo => !selectedRepo || repo.name === selectedRepo.value
-    );
     const filteredPulls = pulls
-      .filter(data => !selectedRepo || data.repo === selectedRepo.value)
+      .filter(data => !selectedRepo || data.repo === selectedRepo)
       .map(({ pulls, ...rest }) => ({
         pulls: pulls.filter(
-          pull => !selectedMember || pull.author === selectedMember.value
+          pull => !selectedMember || pull.author === selectedMember
         ),
         ...rest
       }));
-    const authorFilter = !selectedMember ? undefined : selectedMember.value;
-
-    const prsOpened = getPRsOpened(
-      pulls,
-      period,
-      !!selectedRepo ? selectedRepo.value : undefined,
-      !!selectedMember ? selectedMember.value : undefined
-    );
-
-    const prsMerged = getPRsMerged(
-      pulls,
-      period,
-      !!selectedRepo ? selectedRepo.value : undefined,
-      !!selectedMember ? selectedMember.value : undefined
-    );
-
+    const prsOpened = getPRsOpened(pulls, period, selectedRepo, selectedMember);
+    const prsMerged = getPRsMerged(pulls, period, selectedRepo, selectedMember);
     const prsReviewed = getPRsReviewed(deprecatedPeriod, filteredPulls);
-    const medianMergeTimes = getPRsMergeTime(
-      deprecatedPeriod,
-      filteredRepos,
-      authorFilter
+    const mergeTimes = getPRsMergeTime(
+      pulls,
+      period,
+      selectedRepo,
+      selectedMember
     );
     const medianCommentTimes = getPRsCommentTime(
       deprecatedPeriod,
       filteredPulls
     );
     const activeReviewer = getActiveReviewer(deprecatedPeriod, filteredPulls);
+
+    let chartData: IPullRequest[] = [];
+
+    if (!!selectedRepo || !!selectedMember) {
+      // At least one filter must be applied for the PR chart to show data
+      chartData = pulls
+        .filter(({ repo }) => !selectedRepo || repo === selectedRepo)
+        .reduce((acc, curr) => [...acc, ...curr.pulls], [])
+        .filter(({ author }) => !selectedMember || author === selectedMember);
+    }
 
     return (
       <BootstrapContainer>
@@ -113,29 +91,22 @@ export class PullsContainer extends React.Component<
           members={memberItems}
           changeMember={this.changeMember}
         />
-
         <PullsRow
           prsOpened={{ next: prsOpened.current, previous: prsOpened.previous }}
           prsMerged={{ next: prsMerged.current, previous: prsMerged.previous }}
           prsReviewed={prsReviewed}
           activeReviewer={activeReviewer}
-          medianMergeTimes={medianMergeTimes}
+          medianMergeTimes={{
+            next: mergeTimes.current,
+            previous: mergeTimes.previous
+          }}
           medianCommentTimes={medianCommentTimes}
           isLoading={isLoading}
         />
-
-        <PRChartContainer {...chartBounds} data={filteredPulls} />
+        <PRChartContainer {...chartBounds} data={chartData} />
       </BootstrapContainer>
     );
   }
-
-  private changeRepo = repo => {
-    this.setState({ selectedRepo: repo });
-  };
-
-  private changeMember = member => {
-    this.setState({ selectedMember: member });
-  };
 }
 
 const flattenedPulls = (pulls: IPullsAPIResult[]) =>

@@ -1,12 +1,12 @@
-import React from "react";
+import * as React from "react";
 import { Container } from "reactstrap";
 import { Report } from "../Report/report";
 
 const SENTRY_TEAM = {
+  avatar: "https://avatars0.githubusercontent.com/u/1396951?v=4",
   login: "getsentry",
   name: "Sentry",
-  service: "github",
-  avatar: "https://avatars0.githubusercontent.com/u/1396951?v=4"
+  service: "github"
 };
 
 const Home = () => (

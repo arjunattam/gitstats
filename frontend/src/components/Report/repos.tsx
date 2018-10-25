@@ -1,7 +1,7 @@
 import { getPRsMerged } from "gitstats-shared";
-import React from "react";
-import { Value, getCommits } from "./utils";
+import * as React from "react";
 import Table from "./table";
+import { getCommits, Value } from "./utils";
 
 const RepoName = ({ name, url, description }) => {
   return (
@@ -14,7 +14,7 @@ const RepoName = ({ name, url, description }) => {
   );
 };
 
-export const Repos = ({ period, repos, pulls, isLoading }) => {
+export const ReposTable = ({ period, repos, pulls, isLoading }) => {
   const deprecatedPeriod = {
     next: period.current.start,
     previous: period.previous.start
@@ -42,8 +42,8 @@ export const Repos = ({ period, repos, pulls, isLoading }) => {
 
   const rowData = data.map(d => {
     return {
-      key: d.name,
       isLoading: d.stats.is_pending,
+      key: d.name,
       values: [
         <RepoName {...d} />,
         <Value {...d.commits} />,

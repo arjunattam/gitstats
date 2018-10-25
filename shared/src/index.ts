@@ -1,4 +1,5 @@
 import moment from "moment";
+import { median } from "./utils";
 
 export interface ITeam {
   login: string;
@@ -140,7 +141,7 @@ export const getDateLabels = (input: string) => {
   };
 };
 
-const filterPulls = (
+const filterForPropertyInRange = (
   pulls: IPullRequest[],
   range: IPeriodRange,
   property: string
@@ -157,8 +158,8 @@ const getPRValues = (
   period: IPeriod
 ) => {
   const { current, previous } = period;
-  const currentPulls = filterPulls(pulls, current, property);
-  const previousPulls = filterPulls(pulls, previous, property);
+  const currentPulls = filterForPropertyInRange(pulls, current, property);
+  const previousPulls = filterForPropertyInRange(pulls, previous, property);
   return {
     current: currentPulls.length,
     previous: previousPulls.length
@@ -200,4 +201,32 @@ export const getPRsMerged = (
 ) => {
   const filtered = getFilteredPulls(pulls, selectedRepo, selectedAuthor);
   return getPRValues(filtered, "merged_at", period);
+};
+
+const getPRDurations = (
+  pulls: IPullRequest[],
+  endProperty: string,
+  startProperty: string
+) => {
+  return pulls.map((pull: any) => {
+    const endTime = moment(pull[endProperty]);
+    const startTime = moment(pull[startProperty]);
+    return endTime.diff(startTime, "seconds");
+  });
+};
+
+export const getPRsMergeTime = (
+  allPulls: IPullsAPIResult[],
+  period: IPeriod,
+  selectedRepo: string,
+  selectedAuthor: string
+) => {
+  const pulls = getFilteredPulls(allPulls, selectedRepo, selectedAuthor);
+  const { current, previous } = period;
+  const currentPulls = filterForPropertyInRange(pulls, current, "merged_at");
+  const previousPulls = filterForPropertyInRange(pulls, previous, "merged_at");
+  return {
+    current: median(getPRDurations(currentPulls, "merged_at", "created_at")),
+    previous: median(getPRDurations(previousPulls, "merged_at", "created_at"))
+  };
 };

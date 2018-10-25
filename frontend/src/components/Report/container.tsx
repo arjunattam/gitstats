@@ -3,9 +3,9 @@ import * as React from "react";
 import { ICommits, RepoForReport } from "../../types";
 import { getChartBounds } from "../../utils/date";
 import { LighterContainer } from "./common";
-import { Members } from "./members";
+import { MembersTable } from "./members";
 import { PullsContainer } from "./pulls";
-import { Repos } from "./repos";
+import { ReposTable } from "./repos";
 import { SummaryContainer } from "./summary";
 
 interface IContainerProps {
@@ -25,8 +25,8 @@ export const ReportContainer: React.SFC<IContainerProps> = props => {
       <SummaryContainer {...props} chartBounds={chartBounds} />
       <PullsContainer {...props} chartBounds={chartBounds} />
       <LighterContainer>
-        <Members {...props} />
-        <Repos {...props} />
+        <MembersTable {...props} />
+        <ReposTable {...props} />
       </LighterContainer>
     </div>
   );

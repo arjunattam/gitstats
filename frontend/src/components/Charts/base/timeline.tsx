@@ -54,9 +54,9 @@ export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
     return div.toReact();
   }
 
-  private renderPR(prData, svg, x, y, yValue) {
+  private renderPR(prData: IPullRequest, svg, x, y, yValue) {
     const { created_at, closed_at, commits, comments } = prData;
-    const { title, url, number: idNumber } = prData;
+    const { title, url, number: idNumber, state } = prData;
     const { startDate, endDate } = this.props;
 
     // Plot area
@@ -118,6 +118,6 @@ export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
       .style("font-size", "8px")
       .attr("y", y(yValue + 0.35))
       .attr("x", "20") // margin-left
-      .text(`#${idNumber}: ${title}`);
+      .text(`#${idNumber}: ${title} (${state})`);
   }
 }

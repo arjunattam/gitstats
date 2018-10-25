@@ -1,4 +1,3 @@
-import { median } from "d3";
 import * as React from "react";
 
 export const getChange = (previous, next) => {
@@ -114,26 +113,4 @@ const getStatsData = (period, repos, key, authorFilter?) => {
 
 export const getCommits = (period, repos, authorFilter?) => {
   return getStatsData(period, repos, "commits", authorFilter);
-};
-
-export const getPRsMergeTime = (period, repos, authorFilter?) => {
-  // TODO: why is period not used?
-  const repoPRs = repos.map(repo => {
-    const data = repo.prs;
-    let prs = [];
-    if (data) {
-      const filtered = data.filter(
-        author => (authorFilter ? author.author === authorFilter : true)
-      );
-      prs = filtered.map(author => author.time_to_merge);
-    }
-    return {
-      next: prs.reduce((s, v) => [...s, ...v.next], []),
-      previous: prs.reduce((s, v) => [...s, ...v.previous], [])
-    };
-  });
-  return {
-    next: median(repoPRs.reduce((s, v) => [...s, ...v.next], [])),
-    previous: median(repoPRs.reduce((s, v) => [...s, ...v.previous], []))
-  };
 };

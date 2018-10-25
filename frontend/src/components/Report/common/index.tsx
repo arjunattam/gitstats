@@ -65,7 +65,10 @@ export const ValueColWrapper: React.SFC<IValueColProps> = ({
   let summaryText;
   let miniSummary;
 
-  if (isInfinity) {
+  if (value === 0) {
+    summaryText = "Same as last week";
+    miniSummary = "";
+  } else if (isInfinity) {
     summaryText = "Big jump over last week";
     miniSummary = "↑ ∞";
   } else {

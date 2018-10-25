@@ -1,10 +1,10 @@
 import { getPRsMerged } from "gitstats-shared";
-import React from "react";
-import { Value, getCommits } from "./utils";
-import Table from "./table";
+import * as React from "react";
 import { MemberName } from "../Common";
+import Table from "./table";
+import { getCommits, Value } from "./utils";
 
-export const Members = ({ period, repos, pulls, members, isLoading }) => {
+export const MembersTable = ({ period, repos, pulls, members, isLoading }) => {
   const deprecatedPeriod = {
     next: period.current.start,
     previous: period.previous.start
@@ -33,8 +33,8 @@ export const Members = ({ period, repos, pulls, members, isLoading }) => {
         .sort((a, b) => b.commits.next - a.commits.next)
     : [];
   const rowData = data.map(d => ({
-    key: d.login,
     isLoading: !hasAllData,
+    key: d.login,
     values: [
       <MemberName {...d} />,
       <Value {...d.commits} />,

@@ -147,13 +147,13 @@ export default class GithubService extends ServiceClient {
         .map(result => {
           const { author, weeks } = result;
           return {
-            login: author.login,
+            login: author ? author.login : undefined,
             commits: allWeeks.map(ts => getAttr(weeks, ts, "c")),
             lines_added: allWeeks.map(ts => getAttr(weeks, ts, "a")),
             lines_deleted: allWeeks.map(ts => getAttr(weeks, ts, "d"))
           };
         })
-        .filter(author => sumOfValues(author.commits) > 0);
+        .filter(author => author.login && sumOfValues(author.commits) > 0);
 
       return { is_pending: false, authors };
     }

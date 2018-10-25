@@ -1,42 +1,15 @@
-import {
-  getPRsMerged,
-  IMember,
-  IPeriod,
-  IPullsAPIResult
-} from "gitstats-shared";
+import { getPRsMerged, IPullsAPIResult } from "gitstats-shared";
 import * as React from "react";
-import { ICommits, IPeriodDeprecated, RepoForReport } from "../../../types";
+import { IPeriodDeprecated, RepoForReport } from "../../../types";
 import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
+import { BaseFilteredContainer } from "../base";
 import { LighterContainer } from "../common";
 import { Filters } from "../common/filters";
 import { getCommits } from "../utils";
 import { SummaryRow } from "./row";
 
-interface IContainerProps {
-  repos: RepoForReport[];
-  members: IMember[];
-  period: IPeriod;
-  isLoading: boolean;
-  pulls: IPullsAPIResult[];
-  commits: ICommits[];
-  chartBounds: { startDate: Date; endDate: Date };
-}
-
-interface IContainerState {
-  selectedRepo: { value: string; label: string };
-  selectedMember: { value: string; label: string };
-}
-
-export class SummaryContainer extends React.Component<
-  IContainerProps,
-  IContainerState
-> {
-  public state: IContainerState = {
-    selectedMember: null,
-    selectedRepo: null
-  };
-
+export class SummaryContainer extends BaseFilteredContainer {
   public render() {
     const {
       repos,
@@ -47,15 +20,21 @@ export class SummaryContainer extends React.Component<
       commits,
       chartBounds
     } = this.props;
-    const { selectedRepo, selectedMember } = this.state;
-    const repoItems = repos.map(repo => ({
-      label: repo.name,
-      value: repo.name
-    }));
-    const memberItems = members.map(member => ({
-      label: member.login,
-      value: member.login
-    }));
+    const { filteredRepo, filteredMember } = this.state;
+    const selectedRepo = !!filteredRepo ? filteredRepo.value : undefined;
+    const selectedMember = !!filteredMember ? filteredMember.value : undefined;
+    const repoItems = repos.map(repo => {
+      return {
+        label: repo.name,
+        value: repo.name
+      };
+    });
+    const memberItems = members.map(member => {
+      return {
+        label: member.login,
+        value: member.login
+      };
+    });
 
     const deprecatedPeriod: IPeriodDeprecated = {
       next: period.current.start,
@@ -63,40 +42,33 @@ export class SummaryContainer extends React.Component<
     };
 
     const filteredRepos = repos.filter(
-      repo => !selectedRepo || repo.name === selectedRepo.value
+      repo => !selectedRepo || repo.name === selectedRepo
     );
     const filteredPulls = pulls.filter(data => {
-      return !selectedRepo || data.repo === selectedRepo.value;
+      return !selectedRepo || data.repo === selectedRepo;
     });
 
-    const authorFilter = !selectedMember ? undefined : selectedMember.value;
     const commitsValues = getCommits(
       deprecatedPeriod,
       filteredRepos,
-      authorFilter
+      selectedMember
     );
 
-    const prsMerged = getPRsMerged(
-      pulls,
-      period,
-      !!selectedRepo ? selectedRepo.value : undefined,
-      !!selectedMember ? selectedMember.value : undefined
-    );
-
+    const prsMerged = getPRsMerged(pulls, period, selectedRepo, selectedMember);
     const prComments = getPRComments(
       deprecatedPeriod,
       filteredPulls,
-      authorFilter
+      selectedMember
     );
     const activeRepos = getActiveRepo(
       deprecatedPeriod,
       filteredRepos,
-      authorFilter
+      selectedMember
     );
     const activeMembers = getActiveMember(
       deprecatedPeriod,
       filteredRepos,
-      authorFilter
+      selectedMember
     );
 
     return (
@@ -120,20 +92,12 @@ export class SummaryContainer extends React.Component<
           {...chartBounds}
           commitsData={commits}
           prData={pulls}
-          selectedMember={selectedMember ? selectedMember.value : null}
-          selectedRepo={selectedRepo ? selectedRepo.value : null}
+          selectedMember={selectedMember}
+          selectedRepo={selectedRepo}
         />
       </LighterContainer>
     );
   }
-
-  private changeRepo = repo => {
-    this.setState({ selectedRepo: repo });
-  };
-
-  private changeMember = member => {
-    this.setState({ selectedMember: member });
-  };
 }
 
 const getActiveMember = (

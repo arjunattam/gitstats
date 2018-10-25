@@ -1,21 +1,20 @@
-import React from "react";
-import PropTypes from "prop-types";
+import * as React from "react";
 import { Button } from "reactstrap";
 import { BodyLoader, TitleLoader } from "./loaders";
 
-class TableRow extends React.Component {
-  static propTypes = {
-    values: PropTypes.array,
-    isLoading: PropTypes.bool
-  };
+interface ITableRowProps {
+  values: any[];
+  isLoading: boolean;
+}
 
-  render() {
+class TableRow extends React.Component<ITableRowProps, {}> {
+  public render() {
     const { values, isLoading } = this.props;
     // assumes that the first column is available
     return isLoading ? (
       <tr>
         <td>{values[0]}</td>
-        <td colSpan="2">
+        <td colSpan={2}>
           <TitleLoader />
         </td>
       </tr>
@@ -57,43 +56,24 @@ const ExpandButton = ({ onClick, text }) => (
   </div>
 );
 
-export default class Table extends React.Component {
-  static propTypes = {
-    rowHeadings: PropTypes.arrayOf(PropTypes.string),
-    rowData: PropTypes.arrayOf(PropTypes.object),
-    rowLimit: PropTypes.number,
-    isLoading: PropTypes.bool
-  };
+interface ITableProps {
+  isLoading: boolean;
+  rowLimit: number;
+  rowHeadings: string[];
+  rowData: any[];
+}
 
-  state = {
+interface ITableState {
+  isExpanded: boolean;
+}
+
+// tslint:disable-next-line:max-classes-per-file
+export default class Table extends React.Component<ITableProps, ITableState> {
+  public state = {
     isExpanded: false
   };
 
-  toggleExpand = () => {
-    this.setState({ isExpanded: !this.state.isExpanded });
-  };
-
-  getRowData = () => {
-    const { isExpanded } = this.state;
-    const { rowData, rowLimit } = this.props;
-    return isExpanded ? rowData : rowData.slice(0, rowLimit);
-  };
-
-  renderExpandButton = () => {
-    const { rowData, rowLimit } = this.props;
-    const length = rowData.length;
-    const more = length - rowLimit;
-    const isExpandable = more > 0;
-    const text = this.state.isExpanded
-      ? "Show less"
-      : `Show all (${more} more)`;
-
-    return isExpandable ? (
-      <ExpandButton text={text} onClick={this.toggleExpand} />
-    ) : null;
-  };
-
-  render() {
+  public render() {
     const { rowHeadings, isLoading } = this.props;
     return isLoading ? (
       <div>
@@ -112,6 +92,30 @@ export default class Table extends React.Component {
       </div>
     );
   }
+
+  private toggleExpand = () => {
+    this.setState({ isExpanded: !this.state.isExpanded });
+  };
+
+  private getRowData = () => {
+    const { isExpanded } = this.state;
+    const { rowData, rowLimit } = this.props;
+    return isExpanded ? rowData : rowData.slice(0, rowLimit);
+  };
+
+  private renderExpandButton = () => {
+    const { rowData, rowLimit } = this.props;
+    const length = rowData.length;
+    const more = length - rowLimit;
+    const isExpandable = more > 0;
+    const text = this.state.isExpanded
+      ? "Show less"
+      : `Show all (${more} more)`;
+
+    return isExpandable ? (
+      <ExpandButton text={text} onClick={this.toggleExpand} />
+    ) : null;
+  };
 }
 
 const BaseTable = ({ children }) => (
