@@ -14,7 +14,7 @@ class TableRow extends React.Component<ITableRowProps, {}> {
     return isLoading ? (
       <tr>
         <td>{values[0]}</td>
-        <td colSpan={2}>
+        <td colSpan={3}>
           <TitleLoader />
         </td>
       </tr>
@@ -23,6 +23,7 @@ class TableRow extends React.Component<ITableRowProps, {}> {
         <td>{values[0]}</td>
         <td>{values[1]}</td>
         <td>{values[2]}</td>
+        <td>{values[3]}</td>
       </tr>
     );
   }
@@ -32,9 +33,10 @@ const THeader = ({ rowHeadings }) => {
   return (
     <thead className="thead-light">
       <tr>
-        <th style={{ width: "33%" }}>{rowHeadings[0]}</th>
-        <th style={{ width: "33%" }}>{rowHeadings[1]}</th>
-        <th style={{ width: "33%" }}>{rowHeadings[2]}</th>
+        <th style={{ width: "31%" }}>{rowHeadings[0]}</th>
+        <th style={{ width: "23%" }}>{rowHeadings[1]}</th>
+        <th style={{ width: "23%" }}>{rowHeadings[2]}</th>
+        <th style={{ width: "23%" }}>{rowHeadings[3]}</th>
       </tr>
     </thead>
   );
@@ -50,7 +52,7 @@ const TBody = ({ rowData }) => (
 
 const ExpandButton = ({ onClick, text }) => (
   <div className="mb-3 text-center">
-    <Button outline color="secondary" size="sm" onClick={onClick}>
+    <Button outline={true} color="secondary" size="sm" onClick={onClick}>
       {text}
     </Button>
   </div>

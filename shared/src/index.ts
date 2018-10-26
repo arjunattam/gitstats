@@ -142,7 +142,7 @@ export const getDateLabels = (input: string) => {
 };
 
 const filterForPropertyInRange = (
-  pulls: IPullRequest[],
+  pulls: any[],
   range: IPeriodRange,
   property: string
 ) => {
@@ -228,5 +228,27 @@ export const getPRsMergeTime = (
   return {
     current: median(getPRDurations(currentPulls, "merged_at", "created_at")),
     previous: median(getPRDurations(previousPulls, "merged_at", "created_at"))
+  };
+};
+
+export const getPRsCommentTime = (
+  allPulls: IPullsAPIResult[],
+  period: IPeriod,
+  selectedRepo: string,
+  selectedAuthor: string
+) => {
+  const pulls = getFilteredPulls(allPulls, selectedRepo, selectedAuthor).map(
+    pull => {
+      const { comments } = pull;
+      const comment_at = comments.length > 0 ? comments[0].date : null;
+      return { ...pull, comment_at };
+    }
+  );
+  const { current, previous } = period;
+  const currentPulls = filterForPropertyInRange(pulls, current, "comment_at");
+  const previousPulls = filterForPropertyInRange(pulls, previous, "comment_at");
+  return {
+    current: median(getPRDurations(currentPulls, "comment_at", "created_at")),
+    previous: median(getPRDurations(previousPulls, "comment_at", "created_at"))
   };
 };

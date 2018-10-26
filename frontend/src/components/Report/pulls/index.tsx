@@ -1,5 +1,5 @@
-import { median } from "d3";
 import {
+  getPRsCommentTime,
   getPRsMerged,
   getPRsMergeTime,
   getPRsOpened,
@@ -10,7 +10,7 @@ import {
 import * as React from "react";
 import { Container as BootstrapContainer } from "reactstrap";
 import { IPeriodDeprecated } from "../../../types";
-import { diffInSeconds, isInWeek } from "../../../utils/date";
+import { isInWeek } from "../../../utils/date";
 import { PRChartContainer } from "../../Charts/pulls";
 import { BaseFilteredContainer } from "../base";
 import { Filters } from "../common/filters";
@@ -66,9 +66,11 @@ export class PullsContainer extends BaseFilteredContainer {
       selectedRepo,
       selectedMember
     );
-    const medianCommentTimes = getPRsCommentTime(
-      deprecatedPeriod,
-      filteredPulls
+    const commentTimes = getPRsCommentTime(
+      pulls,
+      period,
+      selectedRepo,
+      selectedMember
     );
     const activeReviewer = getActiveReviewer(deprecatedPeriod, filteredPulls);
 
@@ -100,7 +102,10 @@ export class PullsContainer extends BaseFilteredContainer {
             next: mergeTimes.current,
             previous: mergeTimes.previous
           }}
-          medianCommentTimes={medianCommentTimes}
+          medianCommentTimes={{
+            next: commentTimes.current,
+            previous: commentTimes.previous
+          }}
           isLoading={isLoading}
         />
         <PRChartContainer {...chartBounds} data={chartData} />
@@ -134,44 +139,6 @@ const getPRsReviewed = (
   return {
     next: pullsWithCommentsInWeek(flattened, nextDate).length,
     previous: pullsWithCommentsInWeek(flattened, previousDate).length
-  };
-};
-
-const getPRsCommentTime = (
-  period: IPeriodDeprecated,
-  pulls: IPullsAPIResult[]
-) => {
-  const { next: nextDate, previous: previousDate } = period;
-  const flattened = flattenedPulls(pulls);
-
-  const pullsWithFirstCommentInWeek = (
-    inputPulls: IPullRequest[],
-    weekStart
-  ) => {
-    return inputPulls.filter(({ comments }) => {
-      if (comments.length > 0) {
-        const firstComment = comments[0];
-        return isInWeek(firstComment.date, weekStart);
-      } else {
-        return false;
-      }
-    });
-  };
-
-  const commentTimes = (inputPulls: IPullRequest[]) => {
-    return inputPulls.map(({ comments, created_at: openDate }) => {
-      const { date: commentDate } = comments[0];
-      return diffInSeconds(openDate, commentDate);
-    });
-  };
-
-  const result = weekStart =>
-    median(commentTimes(pullsWithFirstCommentInWeek(flattened, weekStart))) ||
-    undefined;
-
-  return {
-    next: result(nextDate),
-    previous: result(previousDate)
   };
 };
 

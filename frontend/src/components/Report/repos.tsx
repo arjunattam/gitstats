@@ -1,5 +1,6 @@
-import { getPRsMerged } from "gitstats-shared";
+import { getPRsCommentTime, getPRsMerged } from "gitstats-shared";
 import * as React from "react";
+import { getDurationLabel } from "src/utils/date";
 import Table from "./table";
 import { getCommits, Value } from "./utils";
 
@@ -24,13 +25,26 @@ export const ReposTable = ({ period, repos, pulls, isLoading }) => {
     ? repos
         .map(repo => {
           const prsMerged = getPRsMerged(pulls, period, repo.name, undefined);
+          const commentTimes = getPRsCommentTime(
+            pulls,
+            period,
+            repo.name,
+            undefined
+          );
           return {
             ...repo,
+            commentTimes: {
+              next: commentTimes.current,
+              previous: commentTimes.previous
+            },
             commits: getCommits(
               deprecatedPeriod,
               repos.filter(r => r.name === repo.name)
             ),
-            prsMerged: { next: prsMerged.current, previous: prsMerged.previous }
+            prsMerged: {
+              next: prsMerged.current,
+              previous: prsMerged.previous
+            }
           };
         })
         .sort((a, b) => b.commits.next - a.commits.next)
@@ -47,14 +61,15 @@ export const ReposTable = ({ period, repos, pulls, isLoading }) => {
       values: [
         <RepoName {...d} />,
         <Value {...d.commits} />,
-        <Value {...d.prsMerged} />
+        <Value {...d.prsMerged} />,
+        <Value {...d.commentTimes} transformer={getDurationLabel} />
       ]
     };
   });
 
   return (
     <Table
-      rowHeadings={["Repository", "Commits", "PRs merged"]}
+      rowHeadings={["Repository", "Commits", "PRs merged", "Time to comment"]}
       rowLimit={3}
       isLoading={isLoading}
       rowData={rowData}
