@@ -177,7 +177,7 @@ export default class GithubService extends ServiceClient {
     return response.body;
   }
 
-  private async commits(repo: string): Promise<types.RepoCommits[]> {
+  private async commitsApi(repo: string): Promise<types.RepoCommits[]> {
     // Only default branch (master). Add ?sha=develop to get commits from other branches
     const params = {
       path: `repos/${this.owner}/${repo}/commits`,
@@ -215,7 +215,7 @@ export default class GithubService extends ServiceClient {
     }));
   }
 
-  pullsV2 = async (repo: string) => {
+  pulls = async (repo: string) => {
     const { node_id } = await this.repository(repo);
     // example node id: MDEwOlJlcG9zaXRvcnkxMzgyOTEwMzA=
     const query = `{
@@ -304,7 +304,7 @@ export default class GithubService extends ServiceClient {
     return { repo, pulls };
   };
 
-  commitsV2 = async (repo: string) => {
+  commits = async (repo: string) => {
     const { is_pending, authors: authorStats } = await this.statistics(repo);
 
     if (is_pending) {
@@ -320,7 +320,14 @@ export default class GithubService extends ServiceClient {
       author: author.login,
       commits: author.commits
     }));
-    const repoCommits = await this.commits(repo);
+
+    let repoCommits = [];
+    try {
+      repoCommits = await this.commitsApi(repo);
+    } catch (error) {
+      // Fetching commits can fail because the github app does not obtain
+      // the required permission to access private repo commits.
+    }
 
     let commitsResult: ICommit[] = [];
     repoCommits.forEach(repoCommit => {

@@ -10,7 +10,7 @@ import {
 import * as React from "react";
 import { getGitService } from "src/utils/auth";
 import { ICommits, RepoForReport } from "../../types";
-import { getCommitsV2, getPullsV2, getTeamInfo } from "../../utils/api";
+import { getCommits, getPulls, getTeamInfo } from "../../utils/api";
 import { ReportContainer } from "./container";
 import { EmailContainer } from "./email";
 import { Header } from "./header";
@@ -139,11 +139,11 @@ export class Report extends React.Component<IReportProps, IReportState> {
   }
 
   private fetchRepoData(teamLogin, repoName, weekStart) {
-    getCommitsV2(teamLogin, repoName, weekStart).then(response => {
+    getCommits(teamLogin, repoName, weekStart).then(response => {
       this.handleCommitsResponse(repoName, response);
     });
 
-    getPullsV2(teamLogin, repoName, weekStart).then(
+    getPulls(teamLogin, repoName, weekStart).then(
       ({ repo, pulls: pullsResponse }) => {
         const { pulls } = this.state;
         this.setState({
@@ -166,7 +166,7 @@ export class Report extends React.Component<IReportProps, IReportState> {
       const weekStart = this.getWeekStart();
 
       setTimeout(() => {
-        getCommitsV2(teamLogin, repoName, weekStart).then(result =>
+        getCommits(teamLogin, repoName, weekStart).then(result =>
           this.handleCommitsResponse(repoName, result)
         );
       }, 2000);

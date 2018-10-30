@@ -26,8 +26,8 @@ export abstract class ServiceClient {
   abstract ownerInfo: () => Promise<ITeam>;
   abstract repos: () => Promise<IRepo[]>;
   abstract members: () => Promise<IMember[]>;
-  abstract pullsV2: (repo: string) => Promise<IPullsAPIResult>;
-  abstract commitsV2: (repo: string) => Promise<ICommitsAPIResult>;
+  abstract pulls: (repo: string) => Promise<IPullsAPIResult>;
+  abstract commits: (repo: string) => Promise<ICommitsAPIResult>;
 
   teamInfo = async (): Promise<ITeamInfoAPIResult> => {
     const responses = await Promise.all([

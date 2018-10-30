@@ -45,18 +45,17 @@ export default class BitbucketService extends ServiceClient {
     });
   }
 
-  private getAll({ path, qs }, aggregateValues) {
-    return this.get({ path, qs }).then(response => {
-      const { values, next } = response;
-      const newAggregate = [...aggregateValues, ...values];
+  private async getAll({ path, qs }, aggregateValues) {
+    const response = await this.get({ path, qs });
+    const { values, next } = response;
+    const newAggregate = [...aggregateValues, ...values];
 
-      if (next) {
-        const { query } = url.parse(next, true);
-        return this.getAll({ path, qs: { ...qs, ...query } }, newAggregate);
-      } else {
-        return newAggregate;
-      }
-    });
+    if (next) {
+      const { query } = url.parse(next, true);
+      return this.getAll({ path, qs: { ...qs, ...query } }, newAggregate);
+    } else {
+      return newAggregate;
+    }
   }
 
   // This method accesses arbitrarily nested property of an object
@@ -64,47 +63,51 @@ export default class BitbucketService extends ServiceClient {
   private access = (p, o) =>
     p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o);
 
-  private getAllTillDate({ path, qs }, aggregateValues, key, minDateValue) {
+  private async getAllTillDate(
+    { path, qs },
+    aggregateValues: any[],
+    key: string,
+    minDateValue: moment.Moment
+  ) {
     // Assumes the response is sorted in desc by key (which is true for commits)
     // key can be a nested field (using .) or a combination of fields (using ,)
     // eg, key as update.date,comment.created_on checks for two nested fields
-    return this.get({ path, qs }).then(response => {
-      const { values, next } = response;
-      const filtered = values.filter(value => {
-        const allKeys = key.split(",");
-        let keyValue;
+    const response = await this.get({ path, qs });
+    const { values, next } = response;
+    const filtered = values.filter(value => {
+      const allKeys = key.split(",");
+      let keyValue;
 
-        allKeys.forEach(key => {
-          const result = this.access(key.split("."), value);
-          if (result) {
-            keyValue = result;
-          }
-        });
-
-        return !keyValue || moment(keyValue) > minDateValue;
+      allKeys.forEach(key => {
+        const result = this.access(key.split("."), value);
+        if (result) {
+          keyValue = result;
+        }
       });
 
-      if (filtered.length < values.length) {
-        // We have all the data
-        const newAggregate = [...aggregateValues, ...filtered];
-        return newAggregate;
-      }
-
-      // We will need next page if available
-      const newAggregate = [...aggregateValues, ...values];
-
-      if (next) {
-        const { query } = url.parse(next, true);
-        return this.getAllTillDate(
-          { path, qs: { ...qs, ...query } },
-          newAggregate,
-          key,
-          minDateValue
-        );
-      } else {
-        return newAggregate;
-      }
+      return !keyValue || moment(keyValue) > minDateValue;
     });
+
+    if (filtered.length < values.length) {
+      // We have all the data
+      const newAggregate = [...aggregateValues, ...filtered];
+      return newAggregate;
+    }
+
+    // We will need next page if available
+    const newAggregate = [...aggregateValues, ...values];
+
+    if (next) {
+      const { query } = url.parse(next, true);
+      return this.getAllTillDate(
+        { path, qs: { ...qs, ...query } },
+        newAggregate,
+        key,
+        minDateValue
+      );
+    } else {
+      return newAggregate;
+    }
   }
 
   private getCommonQueryParams() {
@@ -199,14 +202,13 @@ export default class BitbucketService extends ServiceClient {
     return response;
   }
 
-  pullsV2 = async (repo: string): Promise<IPullsAPIResult> => {
+  pulls = async (repo: string): Promise<IPullsAPIResult> => {
     const responses = await Promise.all([
       this.pullsApi(repo),
       this.prActivityApi(repo)
     ]);
     const pulls = responses[0];
     const prActivity = responses[1];
-
     const filteredPulls = pulls
       .filter(pr => moment(pr.updated_on) > this.periodPrev)
       .map(pr => ({
@@ -307,7 +309,7 @@ export default class BitbucketService extends ServiceClient {
     return authorWiseCommits;
   }
 
-  commitsV2 = async (repo: string): Promise<ICommitsAPIResult> => {
+  commits = async (repo: string): Promise<ICommitsAPIResult> => {
     const NUM_WEEKS = 5;
     const minDateValue = moment(this.periodNext).subtract(
       NUM_WEEKS - 1,

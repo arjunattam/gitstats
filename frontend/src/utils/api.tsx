@@ -24,17 +24,17 @@ export const getTeamInfo = async (name, weekStart) => {
   return result;
 };
 
-export const getPullsV2 = async (owner, repo, weekStart) => {
+export const getPulls = async (owner, repo, weekStart) => {
   const response = await get(
-    `${BASE_URL}/pulls/v2/${owner}/${repo}?week_start=${weekStart}`
+    `${BASE_URL}/pulls/${owner}/${repo}?week_start=${weekStart}`
   );
   const result: IPullsAPIResult = response.message;
   return result;
 };
 
-export const getCommitsV2 = async (owner, repo, weekStart) => {
+export const getCommits = async (owner, repo, weekStart) => {
   const response = await get(
-    `${BASE_URL}/commits/v2/${owner}/${repo}?week_start=${weekStart}`
+    `${BASE_URL}/commits/${owner}/${repo}?week_start=${weekStart}`
   );
   const result: ICommitsAPIResult = response.message;
   return result;

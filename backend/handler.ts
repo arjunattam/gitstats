@@ -56,7 +56,7 @@ const getCacheKey = (path: string, userId: string, weekStart: string) => {
 
 const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds
 
-export const commitsV2: Handler = async (event: APIGatewayEvent) => {
+export const commits: Handler = async (event: APIGatewayEvent) => {
   const { path, pathParameters, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;
   const { owner, repo } = pathParameters;
@@ -69,7 +69,7 @@ export const commitsV2: Handler = async (event: APIGatewayEvent) => {
   }
 
   const client = await manager.getServiceClient(weekStart);
-  const response = await client.commitsV2(repo);
+  const response = await client.commits(repo);
 
   if (!response.is_pending) {
     await cache.setJson(cacheKey, response, DEFAULT_CACHE_EXPIRY);
@@ -78,7 +78,7 @@ export const commitsV2: Handler = async (event: APIGatewayEvent) => {
   return buildResponse(event, response);
 };
 
-export const pullsV2: Handler = async (event: APIGatewayEvent) => {
+export const pulls: Handler = async (event: APIGatewayEvent) => {
   const { path, pathParameters, queryStringParameters } = event;
   const { week_start: weekStart } = queryStringParameters;
   const { owner, repo } = pathParameters;
@@ -91,7 +91,7 @@ export const pullsV2: Handler = async (event: APIGatewayEvent) => {
   }
 
   const client = await manager.getServiceClient(weekStart);
-  const response = await client.pullsV2(repo);
+  const response = await client.pulls(repo);
   await cache.setJson(cacheKey, response, DEFAULT_CACHE_EXPIRY);
   return buildResponse(event, response);
 };
