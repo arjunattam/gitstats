@@ -1,6 +1,6 @@
 import * as moment from "moment";
-const rp = require("request-promise-native");
-const parseLink = require("parse-link-header");
+import * as rp from "request-promise-native";
+import * as parseLink from "parse-link-header";
 
 export class GithubAPICaller {
   baseUrl: string;
@@ -50,7 +50,8 @@ export class GithubAPICaller {
     return this.get(params).then(response => {
       const { body, headers } = response;
       const { link } = headers;
-      const next = link ? parseLink(link).next : {};
+      const parsedLink = link ? parseLink(link) : undefined;
+      const next = parsedLink ? parsedLink.next : undefined;
       const newAggregate = [...aggregate, ...body];
 
       if (next && next.page) {
@@ -95,24 +96,23 @@ export class GithubAPICaller {
     });
   }
 
-  getAllForAsc(params, key) {
+  async getAllForAsc(params, key) {
     // Useful for API responses that are sorted by `key` but in
     // ascending order. We parse the APIs in reverse from last page
-    return this.get(params).then(response => {
-      const { link } = response.headers;
-      const parsedLink = link ? parseLink(link) : {};
+    const response = await this.get(params);
+    const { link } = response.headers;
+    const parsedLink = link ? parseLink(link) : {};
 
-      if (parsedLink && parsedLink.last) {
-        const { page } = parsedLink.last;
-        const bodyPromise = this.buildResponse([], key, {
-          ...params,
-          qs: { ...params.qs, page }
-        });
-        return bodyPromise;
-      } else {
-        return response.body; // There is just one page
-      }
-    });
+    if (parsedLink && parsedLink.last) {
+      const { page } = parsedLink.last;
+      const bodyPromise = this.buildResponse([], key, {
+        ...params,
+        qs: { ...params.qs, page }
+      });
+      return bodyPromise;
+    } else {
+      return response.body; // There is just one page
+    }
   }
 
   buildResponse(aggregatedBody, key, params) {
@@ -121,8 +121,10 @@ export class GithubAPICaller {
     return this.get(params).then(response => {
       const { body, headers } = response;
       const { link } = headers;
-      const { prev } = parseLink(link);
+      const parsedLink = parseLink(link);
+      const prev = parsedLink ? parsedLink.prev : undefined;
       let hasReachedLimit = false;
+
       body.forEach(r => {
         if (moment(r[key]) < this.periodPrev) {
           hasReachedLimit = true; // We have reached the end.

@@ -31,7 +31,7 @@ export const setJson = (key: string, value: object, expiry: number) => {
 };
 
 export const getJson = async (key: string) => {
-  const value: string = await get(key);
+  const value: string | undefined = await get(key);
 
   if (!!value) {
     return JSON.parse(value);

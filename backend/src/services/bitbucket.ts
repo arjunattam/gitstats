@@ -5,6 +5,8 @@ import {
   ITeam,
   IRepo,
   IMember,
+  IComment,
+  IPullRequest,
   IPullsAPIResult,
   ICommitsAPIResult,
   IRepoStats,
@@ -33,7 +35,7 @@ export default class BitbucketService extends ServiceClient {
     );
   }
 
-  private get({ path, qs }) {
+  private get({ path, qs }: { path: string; qs: any }) {
     return rp({
       baseUrl: this.baseUrl,
       uri: path,
@@ -202,6 +204,83 @@ export default class BitbucketService extends ServiceClient {
     return response;
   }
 
+  private getCommitsFromActivity(prNumber, prActivity: any[]): ICommit[] {
+    // This returns one extra commit around when the PR is opened
+    // TODO: Can we filter by unique commit SHA?
+    return prActivity
+      .filter(value => {
+        const { update, pull_request } = value;
+        return !!update && pull_request.id === prNumber;
+      })
+      .filter(value => {
+        const { update } = value;
+        return update.state === "OPEN";
+      })
+      .map(({ update }) => {
+        const { source, author, date } = update;
+        return {
+          date,
+          message: "",
+          sha: source && source.commit ? source.commit.hash : null,
+          author: author ? author.username : null
+        };
+      });
+  }
+
+  private getCommentsFromActivity(prNumber, prActivity: any[]): IComment[] {
+    const relevantActivity = prActivity.filter(
+      ({ pull_request }) => pull_request.id === prNumber
+    );
+
+    const plainComments = relevantActivity
+      .filter(({ comment }) => !!comment)
+      .map(({ comment }) => ({
+        date: comment.created_on,
+        author: comment.user.username,
+        type: "comment" as "comment"
+      }));
+
+    const mergeComments = relevantActivity
+      .filter(({ update }) => !!update && update.state === "MERGED")
+      .map(({ update }) => {
+        const { date, author } = update;
+        return {
+          date,
+          author: author ? author.username : null,
+          type: "merged" as "merged"
+        };
+      });
+
+    const approvedComments = relevantActivity
+      .filter(({ approval }) => !!approval)
+      .map(({ approval }) => {
+        const { date, user } = approval;
+        return {
+          date,
+          author: user ? user.username : null,
+          type: "approved" as "approved"
+        };
+      });
+
+    const declinedComments = relevantActivity
+      .filter(({ update }) => !!update && update.state === "DECLINED")
+      .map(({ update }) => {
+        const { date, author } = update;
+        return {
+          date,
+          author: author ? author.username : null,
+          type: "declined" as "declined"
+        };
+      });
+
+    return [
+      ...plainComments,
+      ...mergeComments,
+      ...approvedComments,
+      ...declinedComments
+    ];
+  }
+
   pulls = async (repo: string): Promise<IPullsAPIResult> => {
     const responses = await Promise.all([
       this.pullsApi(repo),
@@ -210,12 +289,13 @@ export default class BitbucketService extends ServiceClient {
     const pulls = responses[0];
     const prActivity = responses[1];
     const filteredPulls = pulls
-      .filter(pr => moment(pr.updated_on) > this.periodPrev)
-      .map(pr => ({
+      .filter((pr: any) => moment(pr.updated_on) > this.periodPrev)
+      .map((pr: any) => ({
         author: pr.author.username,
         title: pr.title,
         number: pr.id,
         created_at: pr.created_on,
+        // TODO: the comments field knows merged_at precisely -> so use that
         merged_at: pr.state === "MERGED" ? pr.updated_on : null,
         closed_at:
           pr.state === "MERGED" || pr.state === "DECLINED"
@@ -226,26 +306,10 @@ export default class BitbucketService extends ServiceClient {
         url: pr.links.html.href
       }));
 
-    const result = filteredPulls.map(pr => ({
+    const result: IPullRequest[] = filteredPulls.map(pr => ({
       ...pr,
-      commits: prActivity
-        .filter(value => {
-          const { update, pull_request } = value;
-          return !!update && pull_request.id === pr.number;
-        })
-        .map(value => ({
-          date: value.update.date,
-          author: value.update.author ? value.update.author.username : null
-        })),
-      comments: prActivity
-        .filter(value => {
-          const { comment, pull_request } = value;
-          return !!comment && pull_request.id === pr.number;
-        })
-        .map(value => ({
-          date: value.comment.created_on,
-          author: value.comment.user.username
-        }))
+      commits: this.getCommitsFromActivity(pr.number, prActivity),
+      comments: this.getCommentsFromActivity(pr.number, prActivity)
     }));
 
     return {

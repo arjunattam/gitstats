@@ -12,10 +12,10 @@ export const sendEmail = (toEmail, subject, context) => {
   let ses = new AWS.SES();
   const hbs = Handlebars.compile(template);
 
-  let emailParams = {
+  let emailParams: AWS.SES.SendEmailRequest = {
     Destination: {
       ToAddresses: [toEmail],
-      BccAddresses: [process.env.SES_BCC_EMAIL]
+      BccAddresses: [process.env.SES_BCC_EMAIL as string]
     },
     Message: {
       Body: {
@@ -27,7 +27,7 @@ export const sendEmail = (toEmail, subject, context) => {
         Data: subject
       }
     },
-    Source: process.env.SES_FROM_EMAIL
+    Source: process.env.SES_FROM_EMAIL as string
   };
 
   return new Promise((resolve, reject) => {

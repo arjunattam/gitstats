@@ -64,14 +64,17 @@ export class GithubManager extends ServiceManager {
   }
 
   async getTeamToken(): Promise<TokenResponse> {
+    const ghAppId = process.env.GITHUB_APP_ID as string;
+    const ghAppPrivateKey = process.env.GITHUB_APP_PRIVATE_KEY as string;
+
     const payload = {
       iat: moment().unix(),
       exp: moment()
         .add(5, "minutes")
         .unix(),
-      iss: +process.env.GITHUB_APP_ID
+      iss: +ghAppId
     };
-    const authToken = jwt.sign(payload, process.env.GITHUB_APP_PRIVATE_KEY, {
+    const authToken = jwt.sign(payload, ghAppPrivateKey, {
       algorithm: "RS256"
     });
 
@@ -107,8 +110,8 @@ export class GithubManager extends ServiceManager {
 }
 
 export class BitbucketManager extends ServiceManager {
-  newAccessToken: string;
-  expiryInSeconds: number;
+  newAccessToken: string = "";
+  expiryInSeconds: number = 0;
 
   async getTeams(): Promise<ServiceTeam[]> {
     await this.getNewToken();

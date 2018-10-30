@@ -13,7 +13,8 @@ import { ServiceClient } from "./services/base";
 
 enum Service {
   github = "github",
-  bitbucket = "bitbucket"
+  bitbucket = "bitbucket",
+  unknown = "unknown"
 }
 
 type EmailContext = {
@@ -38,7 +39,7 @@ class Auth0Client {
     } = process.env;
 
     const response = await rp({
-      uri,
+      uri: uri as string,
       method: "POST",
       body: {
         client_id: clientId,
@@ -71,19 +72,21 @@ class Auth0Client {
 
 export default class UserManager {
   service: Service;
-  auth0Client: Auth0Client | undefined;
+  auth0Client: Auth0Client;
   userAccessToken: string | undefined;
   userRefreshToken: string | undefined;
   serviceManager: ServiceManager | undefined;
 
   constructor(public userId: string, public ownerName?: string) {
+    this.auth0Client = new Auth0Client();
+
     if (this.userId.startsWith("github")) {
       this.service = Service.github;
     } else if (this.userId.startsWith("bitbucket")) {
       this.service = Service.bitbucket;
+    } else {
+      this.service = Service.unknown;
     }
-
-    this.auth0Client = new Auth0Client();
   }
 
   async getServiceToken(): Promise<string> {
@@ -95,10 +98,16 @@ export default class UserManager {
     }
 
     await this.setupServiceManager();
-    const { token, expiryInSeconds } = await this.serviceManager.getTeamToken();
-    const EXPIRY_BUFFER = 10; // seconds
-    await cache.set(cacheKey, token, expiryInSeconds - EXPIRY_BUFFER);
-    return token;
+
+    if (!!this.serviceManager) {
+      const tokenResponse = await this.serviceManager.getTeamToken();
+      const { token, expiryInSeconds } = tokenResponse;
+      const EXPIRY_BUFFER = 10; // seconds
+      await cache.set(cacheKey, token, expiryInSeconds - EXPIRY_BUFFER);
+      return token;
+    }
+
+    return "";
   }
 
   async getServiceClient(weekStartDate: string): Promise<ServiceClient> {
@@ -106,10 +115,12 @@ export default class UserManager {
     const token = await this.getServiceToken();
     const weekStart = moment(`${weekStartDate}T00:00:00Z`); // only supports UTC
 
+    console.log("token", token);
+
     if (this.service === Service.github) {
-      client = new GithubService(token, this.ownerName, weekStart);
-    } else if (this.service === Service.bitbucket) {
-      client = new BitbucketService(token, this.ownerName, weekStart);
+      client = new GithubService(token, this.ownerName as string, weekStart);
+    } else {
+      client = new BitbucketService(token, this.ownerName as string, weekStart);
     }
 
     return client;
@@ -117,15 +128,20 @@ export default class UserManager {
 
   async getServiceTeams(): Promise<ServiceTeam[]> {
     await this.setupServiceManager();
-    return this.serviceManager.getTeams();
+
+    if (!!this.serviceManager) {
+      return this.serviceManager.getTeams();
+    }
+
+    return [];
   }
 
   private async setupServiceManager() {
     const user = await this.auth0Client.getUser(this.userId);
     const { identities } = user;
     const serviceIdentity = identities.filter(i => i.provider === this.service);
-    this.userAccessToken = serviceIdentity[0].access_token;
-    this.userRefreshToken = serviceIdentity[0].refresh_token;
+    this.userAccessToken = serviceIdentity[0].access_token as string;
+    this.userRefreshToken = serviceIdentity[0].refresh_token as string;
 
     if (this.service === Service.github) {
       this.serviceManager = new GithubManager(
@@ -142,25 +158,30 @@ export default class UserManager {
     }
   }
 
-  async getEmailContext(weekStartDate: string): Promise<EmailContext> {
+  async getEmailContext(
+    weekStartDate: string
+  ): Promise<EmailContext | undefined> {
     const client = await this.getServiceClient(weekStartDate);
-    const report = await client.emailReport();
 
-    const { name, period, values } = report;
-    const { next } = period;
-    const keys = Object.keys(values).sort();
-    const data: number[] = keys.map(key => values[key]);
-    const keysFormatted: string[] = keys.map(key =>
-      moment.unix(+key).format("MMM D")
-    );
+    if (!!client) {
+      const report = await client.emailReport();
 
-    return {
-      name,
-      subject: `${name}: gitstats for the week of ${next.format("MMM D")}`,
-      summaryText: this.getSummaryText(data),
-      chartUrl: this.constructChartUrl(data, keysFormatted),
-      reportLink: "https://gitstats.report/"
-    };
+      const { name, period, values } = report;
+      const { next } = period;
+      const keys = Object.keys(values).sort();
+      const data: number[] = keys.map(key => values[key]);
+      const keysFormatted: string[] = keys.map(key =>
+        moment.unix(+key).format("MMM D")
+      );
+
+      return {
+        name,
+        subject: `${name}: gitstats for the week of ${next.format("MMM D")}`,
+        summaryText: this.getSummaryText(data),
+        chartUrl: this.constructChartUrl(data, keysFormatted),
+        reportLink: "https://gitstats.report/"
+      };
+    }
   }
 
   private getSummaryText(data: number[]) {

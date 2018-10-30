@@ -119,7 +119,7 @@ export default class GithubService extends ServiceClient {
     const { statusCode, body } = response;
 
     if (statusCode === STATUS_CODES.pending) {
-      return { is_pending: true };
+      return { is_pending: true, authors: [] };
     } else if (statusCode === STATUS_CODES.noContent) {
       return { is_pending: false, authors: [] };
     } else if (statusCode === STATUS_CODES.success) {
@@ -157,6 +157,8 @@ export default class GithubService extends ServiceClient {
 
       return { is_pending: false, authors };
     }
+
+    return { is_pending: false, authors: [] };
   };
 
   private async organisation() {
@@ -316,12 +318,14 @@ export default class GithubService extends ServiceClient {
       };
     }
 
-    const stats = authorStats.map(author => ({
-      author: author.login,
-      commits: author.commits
-    }));
+    const stats = authorStats
+      ? authorStats.map(({ login, commits }) => ({
+          author: login,
+          commits
+        }))
+      : [];
 
-    let repoCommits = [];
+    let repoCommits: types.RepoCommits[] = [];
     try {
       repoCommits = await this.commitsApi(repo);
     } catch (error) {

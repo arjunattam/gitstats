@@ -34,6 +34,7 @@ export interface ICommit {
 export interface IComment {
   author: string;
   date: string;
+  type: "comment" | "approved" | "declined" | "merged";
 }
 
 export interface IPullRequest {
@@ -244,8 +245,11 @@ export const getPRsCommentTime = (
       const authorComments = comments.filter(
         ({ author }) => !selectedAuthor || author === selectedAuthor
       );
+      const sortedComments = authorComments.sort((f, g) =>
+        f.date.localeCompare(g.date)
+      );
       const comment_at =
-        authorComments.length > 0 ? authorComments[0].date : null;
+        sortedComments.length > 0 ? sortedComments[0].date : null;
       return { ...pull, comment_at };
     }
   );

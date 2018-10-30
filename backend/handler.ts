@@ -33,7 +33,7 @@ const getManager = (event: APIGatewayEvent, owner?: string) => {
     accessToken = process.env.DEFAULT_ACCESS_TOKEN;
   }
 
-  const decoded: any = jwt.decode(accessToken);
+  const decoded: any = jwt.decode(accessToken as string);
   const { sub: userId } = decoded;
   return new UserManager(userId, owner);
 };
@@ -50,7 +50,7 @@ const buildResponse = (event, message: any) => {
 };
 
 const getCacheKey = (path: string, userId: string, weekStart: string) => {
-  const nonceSuffix = "1";
+  const nonceSuffix = "2";
   return `${userId}-${path}-${weekStart}-${nonceSuffix}`;
 };
 
@@ -58,8 +58,8 @@ const DEFAULT_CACHE_EXPIRY = 3600 * 24; // in seconds
 
 export const commits: Handler = async (event: APIGatewayEvent) => {
   const { path, pathParameters, queryStringParameters } = event;
-  const { week_start: weekStart } = queryStringParameters;
-  const { owner, repo } = pathParameters;
+  const { week_start: weekStart } = queryStringParameters as any;
+  const { owner, repo } = pathParameters as any;
   const manager = getManager(event, owner);
   const cacheKey = getCacheKey(path, manager.userId, weekStart);
   const cachedValue = await cache.getJson(cacheKey);
@@ -80,8 +80,8 @@ export const commits: Handler = async (event: APIGatewayEvent) => {
 
 export const pulls: Handler = async (event: APIGatewayEvent) => {
   const { path, pathParameters, queryStringParameters } = event;
-  const { week_start: weekStart } = queryStringParameters;
-  const { owner, repo } = pathParameters;
+  const { week_start: weekStart } = queryStringParameters as any;
+  const { owner, repo } = pathParameters as any;
   const manager = getManager(event, owner);
   const cacheKey = getCacheKey(path, manager.userId, weekStart);
   const cachedValue = await cache.getJson(cacheKey);
@@ -98,8 +98,8 @@ export const pulls: Handler = async (event: APIGatewayEvent) => {
 
 export const teamInfo: Handler = async (event: APIGatewayEvent) => {
   const { path, pathParameters, queryStringParameters } = event;
-  const { week_start: weekStart } = queryStringParameters;
-  const { owner } = pathParameters;
+  const { week_start: weekStart } = queryStringParameters as any;
+  const { owner } = pathParameters as any;
   const manager = getManager(event, owner);
   const cacheKey = getCacheKey(path, manager.userId, weekStart);
   const cachedValue = await cache.getJson(cacheKey);
@@ -121,14 +121,16 @@ export const teams: Handler = async (event: APIGatewayEvent) => {
 };
 
 export const email: Handler = async (event: APIGatewayEvent) => {
-  const body = JSON.parse(event.body);
+  const body = JSON.parse(event.body as string);
   const { to, team, week_start: weekStart } = body;
   const manager = getManager(event, team);
   const context = await manager.getEmailContext(weekStart);
 
-  const { subject } = context;
-  await sendEmail(to, subject, context);
-  return buildResponse(event, {});
+  if (!!context) {
+    const { subject } = context;
+    await sendEmail(to, subject, context);
+    return buildResponse(event, {});
+  }
 };
 
 export const auth: Handler = (

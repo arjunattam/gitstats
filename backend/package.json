@@ -28,6 +28,7 @@
     "@types/jest": "^23.3.5",
     "@types/jsonwebtoken": "^7.2.8",
     "@types/node": "^8.0.57",
+    "@types/parse-link-header": "^1.0.0",
     "@types/request-promise-native": "^1.0.15",
     "jest": "^23.6.0",
     "mjml-loader": "^1.0.1",
