@@ -169,7 +169,7 @@ const getPRValues = (
 const getFilteredPulls = (
   pulls: IPullsAPIResult[],
   selectedRepo: string,
-  selectedAuthor: string
+  selectedAuthor?: string
 ) => {
   const filteredByRepo = pulls.filter(
     ({ repo }) => !selectedRepo || repo === selectedRepo
@@ -237,10 +237,15 @@ export const getPRsCommentTime = (
   selectedRepo: string,
   selectedAuthor: string
 ) => {
-  const pulls = getFilteredPulls(allPulls, selectedRepo, selectedAuthor).map(
+  // The author filter is applied on the comments, and not while filtering pull requests
+  const pulls = getFilteredPulls(allPulls, selectedRepo, undefined).map(
     pull => {
       const { comments } = pull;
-      const comment_at = comments.length > 0 ? comments[0].date : null;
+      const authorComments = comments.filter(
+        ({ author }) => !selectedAuthor || author === selectedAuthor
+      );
+      const comment_at =
+        authorComments.length > 0 ? authorComments[0].date : null;
       return { ...pull, comment_at };
     }
   );
