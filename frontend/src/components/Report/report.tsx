@@ -5,11 +5,12 @@ import {
   IMember,
   IPeriod,
   IPullsAPIResult,
+  IRepo,
   ITeam
 } from "gitstats-shared";
 import * as React from "react";
 import { getGitService } from "src/utils/auth";
-import { ICommits, RepoForReport } from "../../types";
+import { ICommitsDeprecated, RepoForReport } from "../../types";
 import { getCommits, getPulls, getTeamInfo } from "../../utils/api";
 import { ReportContainer } from "./container";
 import { EmailContainer } from "./email";
@@ -22,22 +23,26 @@ interface IReportProps {
 
 interface IReportState {
   period: IPeriod;
+  repos: IRepo[];
   pulls: IPullsAPIResult[];
-  commits: ICommits[];
-  repos: RepoForReport[];
+  commits: ICommitsAPIResult[];
   members: IMember[];
-  isLoading: boolean;
   team?: ITeam;
+  isLoading: boolean;
+  commitsDeprecated: ICommitsDeprecated[];
+  reposDeprecated: RepoForReport[];
 }
 
 export class Report extends React.Component<IReportProps, IReportState> {
   public state: IReportState = {
-    commits: [],
+    commitsDeprecated: [],
     isLoading: true,
     members: [],
     period: undefined,
     pulls: [],
-    repos: []
+    repos: [],
+    commits: [],
+    reposDeprecated: []
   };
 
   public componentDidUpdate(prevProps: IReportProps, prevState) {
@@ -48,7 +53,7 @@ export class Report extends React.Component<IReportProps, IReportState> {
       this.setState({
         isLoading: true,
         members: [],
-        repos: []
+        reposDeprecated: []
       });
       this.update();
     }
@@ -123,7 +128,8 @@ export class Report extends React.Component<IReportProps, IReportState> {
       this.setState({
         isLoading: false,
         members,
-        repos: reportRepos,
+        repos,
+        reposDeprecated: reportRepos,
         team: {
           avatar: response.avatar,
           login: response.login,
@@ -140,6 +146,11 @@ export class Report extends React.Component<IReportProps, IReportState> {
 
   private fetchRepoData(teamLogin, repoName, weekStart) {
     getCommits(teamLogin, repoName, weekStart).then(response => {
+      const { commits } = this.state;
+      this.setState({
+        commits: [...commits, response]
+      });
+
       this.handleCommitsResponse(repoName, response);
     });
 
@@ -186,10 +197,13 @@ export class Report extends React.Component<IReportProps, IReportState> {
     const commitsResult = authors.map(author => {
       return { author, commits: authorWiseCommits[author] };
     });
-    const { commits } = this.state;
+    const { commitsDeprecated } = this.state;
 
     this.setState({
-      commits: [...commits, { repo, commits: commitsResult }]
+      commitsDeprecated: [
+        ...commitsDeprecated,
+        { repo, commits: commitsResult }
+      ]
     });
 
     const reportStats = {
@@ -199,9 +213,9 @@ export class Report extends React.Component<IReportProps, IReportState> {
       })),
       is_pending
     };
-    const { repos } = this.state;
+    const { reposDeprecated } = this.state;
     this.setState({
-      repos: repos.map(reportRepo => {
+      reposDeprecated: reposDeprecated.map(reportRepo => {
         if (reportRepo.name === repoName) {
           return { ...reportRepo, stats: reportStats };
         } else {

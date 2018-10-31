@@ -1,14 +1,22 @@
-import { IMember, IPeriod, IPullsAPIResult } from "gitstats-shared";
+import {
+  ICommitsAPIResult,
+  IMember,
+  IPeriod,
+  IPullsAPIResult,
+  IRepo
+} from "gitstats-shared";
 import * as React from "react";
-import { ICommits, RepoForReport } from "../../../types";
+import { ICommitsDeprecated, RepoForReport } from "../../../types";
 
 interface IContainerProps {
-  repos: RepoForReport[];
+  reposDeprecated: RepoForReport[];
+  repos: IRepo[];
   members: IMember[];
   period: IPeriod;
   isLoading: boolean;
   pulls: IPullsAPIResult[];
-  commits: ICommits[];
+  commits: ICommitsAPIResult[];
+  commitsDeprecated: ICommitsDeprecated[];
   chartBounds: { startDate: Date; endDate: Date };
 }
 

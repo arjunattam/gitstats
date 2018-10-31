@@ -3584,6 +3584,7 @@ gitstats-shared@../shared:
   version "1.0.0"
   dependencies:
     moment "^2.22.2"
+    percentile "^1.2.1"
 
 glob-base@^0.3.0:
   version "0.3.0"
@@ -6015,6 +6016,10 @@ pbkdf2@^3.0.3:
     ripemd160 "^2.0.1"
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
+
+percentile@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/percentile/-/percentile-1.2.1.tgz#da59f88213c86498f6fd6b927577b20480983f61"
 
 performance-now@^2.1.0:
   version "2.1.0"

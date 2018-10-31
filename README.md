@@ -14,5 +14,3 @@ The `shared` components are not automatically updated after changes. Whenever sh
 
 1. Run `npm run build` inside shared
 2. Run `yarn add '../shared'` inside frontend or backend
-
-## Support

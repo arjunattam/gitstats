@@ -4,26 +4,27 @@ import { IPeriodDeprecated, RepoForReport } from "../../../types";
 import { isInWeek } from "../../../utils/date";
 import { CommitChartContainer } from "../../Charts/commits";
 import { BaseFilteredContainer } from "../base";
-import { LighterContainer } from "../common";
+import { GrayContainer } from "../common";
 import { Filters } from "../common/filters";
 import { getCommits } from "../utils";
 import { SummaryRow } from "./row";
+import { SummaryTable } from "./table";
 
 export class SummaryContainer extends BaseFilteredContainer {
   public render() {
     const {
-      repos,
+      reposDeprecated,
       members,
       period,
       isLoading,
       pulls,
-      commits,
+      commitsDeprecated,
       chartBounds
     } = this.props;
     const { filteredRepo, filteredMember } = this.state;
     const selectedRepo = !!filteredRepo ? filteredRepo.value : undefined;
     const selectedMember = !!filteredMember ? filteredMember.value : undefined;
-    const repoItems = repos.map(repo => {
+    const repoItems = reposDeprecated.map(repo => {
       return {
         label: repo.name,
         value: repo.name
@@ -41,7 +42,7 @@ export class SummaryContainer extends BaseFilteredContainer {
       previous: period.previous.start
     };
 
-    const filteredRepos = repos.filter(
+    const filteredRepos = reposDeprecated.filter(
       repo => !selectedRepo || repo.name === selectedRepo
     );
     const filteredPulls = pulls.filter(data => {
@@ -72,7 +73,15 @@ export class SummaryContainer extends BaseFilteredContainer {
     );
 
     return (
-      <LighterContainer>
+      <GrayContainer>
+        <SummaryTable
+          commits={this.props.commits}
+          repos={this.props.repos}
+          members={this.props.members}
+          period={this.props.period}
+          pulls={this.props.pulls}
+        />
+
         <Filters
           title={"Activity"}
           repos={repoItems}
@@ -90,12 +99,12 @@ export class SummaryContainer extends BaseFilteredContainer {
         />
         <CommitChartContainer
           {...chartBounds}
-          commitsData={commits}
+          commitsData={commitsDeprecated}
           prData={pulls}
           selectedMember={selectedMember}
           selectedRepo={selectedRepo}
         />
-      </LighterContainer>
+      </GrayContainer>
     );
   }
 }

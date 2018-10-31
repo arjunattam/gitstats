@@ -8,7 +8,7 @@ import {
   IPullsAPIResult
 } from "gitstats-shared";
 import * as React from "react";
-import { Container as BootstrapContainer } from "reactstrap";
+import { Container as WhiteContainer } from "reactstrap";
 import { IPeriodDeprecated } from "../../../types";
 import { isInWeek } from "../../../utils/date";
 import { PRChartContainer } from "../../Charts/pulls";
@@ -23,13 +23,13 @@ export class PullsContainer extends BaseFilteredContainer {
       chartBounds,
       isLoading,
       members,
-      repos,
+      reposDeprecated,
       pulls
     } = this.props;
     const { filteredMember, filteredRepo } = this.state;
     const selectedRepo = !!filteredRepo ? filteredRepo.value : undefined;
     const selectedMember = !!filteredMember ? filteredMember.value : undefined;
-    const repoItems = repos.map(repo => {
+    const repoItems = reposDeprecated.map(repo => {
       const metric = getPRsOpened(pulls, period, repo.name, selectedMember);
       return {
         label: `${repo.name} (${metric.current})`,
@@ -85,7 +85,7 @@ export class PullsContainer extends BaseFilteredContainer {
     }
 
     return (
-      <BootstrapContainer>
+      <WhiteContainer>
         <Filters
           title={"Pull Requests"}
           repos={repoItems}
@@ -109,7 +109,7 @@ export class PullsContainer extends BaseFilteredContainer {
           isLoading={isLoading}
         />
         <PRChartContainer {...chartBounds} data={chartData} />
-      </BootstrapContainer>
+      </WhiteContainer>
     );
   }
 }

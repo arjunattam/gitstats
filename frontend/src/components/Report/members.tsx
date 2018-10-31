@@ -5,7 +5,14 @@ import { MemberName } from "../Common";
 import Table from "./table";
 import { getCommits, Value } from "./utils";
 
-export const MembersTable = ({ period, repos, pulls, members, isLoading }) => {
+export const MembersTable = ({
+  period,
+  reposDeprecated,
+  pulls,
+  members,
+  isLoading
+}) => {
+  const repos = reposDeprecated;
   const deprecatedPeriod = {
     next: period.current.start,
     previous: period.previous.start

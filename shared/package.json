@@ -11,6 +11,7 @@
     "typescript": "^3.1.3"
   },
   "dependencies": {
-    "moment": "^2.22.2"
+    "moment": "^2.22.2",
+    "percentile": "^1.2.1"
   }
 }

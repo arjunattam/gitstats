@@ -1,8 +1,14 @@
-import { IMember, IPeriod, IPullsAPIResult } from "gitstats-shared";
+import {
+  ICommitsAPIResult,
+  IMember,
+  IPeriod,
+  IPullsAPIResult,
+  IRepo
+} from "gitstats-shared";
 import * as React from "react";
-import { ICommits, RepoForReport } from "../../types";
+import { ICommitsDeprecated, RepoForReport } from "../../types";
 import { getChartBounds } from "../../utils/date";
-import { LighterContainer } from "./common";
+import { GrayContainer } from "./common";
 import { MembersTable } from "./members";
 import { PullsContainer } from "./pulls";
 import { ReposTable } from "./repos";
@@ -13,8 +19,10 @@ interface IContainerProps {
   pulls: IPullsAPIResult[];
   period: IPeriod;
   members: IMember[];
-  repos: RepoForReport[];
-  commits: ICommits[];
+  repos: IRepo[];
+  commits: ICommitsAPIResult[];
+  reposDeprecated: RepoForReport[];
+  commitsDeprecated: ICommitsDeprecated[];
 }
 
 export const ReportContainer: React.SFC<IContainerProps> = props => {
@@ -24,10 +32,10 @@ export const ReportContainer: React.SFC<IContainerProps> = props => {
     <div>
       <SummaryContainer {...props} chartBounds={chartBounds} />
       <PullsContainer {...props} chartBounds={chartBounds} />
-      <LighterContainer>
+      <GrayContainer>
         <MembersTable {...props} />
         <ReposTable {...props} />
-      </LighterContainer>
+      </GrayContainer>
     </div>
   );
 };

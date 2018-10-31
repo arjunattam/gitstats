@@ -7,7 +7,7 @@ export interface IPeriodDeprecated {
 
 export type RepoForReport = IRepo & { stats: any };
 
-export interface ICommits {
+export interface ICommitsDeprecated {
   repo: string;
   commits: ICommitData[];
 }

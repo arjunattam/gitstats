@@ -1,4 +1,4 @@
-import { IPullRequest, IPullsAPIResult } from "gitstats-shared";
+import { IPullRequest } from "gitstats-shared";
 import * as React from "react";
 import { TimelineChart } from "./base/timeline";
 

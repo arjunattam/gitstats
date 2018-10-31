@@ -15,7 +15,8 @@ const RepoName = ({ name, url, description }) => {
   );
 };
 
-export const ReposTable = ({ period, repos, pulls, isLoading }) => {
+export const ReposTable = ({ period, reposDeprecated, pulls, isLoading }) => {
+  const repos = reposDeprecated;
   const deprecatedPeriod = {
     next: period.current.start,
     previous: period.previous.start

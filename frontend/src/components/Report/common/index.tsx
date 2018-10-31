@@ -111,7 +111,7 @@ export const TextColWrapper = ({ title, previous, next }) => {
   return <ValueCol title={title} value={next} summaryText={summaryText} />;
 };
 
-export const LighterContainer = ({ children }) => {
+export const GrayContainer = ({ children }) => {
   return (
     <div className="my-4 py-4 border-top border-bottom bg-light">
       <BootstrapContainer>{children}</BootstrapContainer>
