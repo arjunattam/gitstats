@@ -88,6 +88,29 @@ export interface IPeriod {
   previous: IPeriodRange;
 }
 
+export const getPeriodForStartDate = (weekStartDate: string): IPeriod => {
+  const weekStart = moment(`${weekStartDate}T00:00:00Z`); // only UTC
+  const startPrevious = weekStart.clone().subtract(1, "week");
+  return {
+    current: {
+      start: weekStart.clone().toISOString(),
+      end: weekStart
+        .clone()
+        .add(1, "week")
+        .subtract(1, "millisecond")
+        .toISOString()
+    },
+    previous: {
+      start: startPrevious.clone().toISOString(),
+      end: startPrevious
+        .clone()
+        .add(1, "week")
+        .subtract(1, "millisecond")
+        .toISOString()
+    }
+  };
+};
+
 export const getPeriodLastWeek = (): IPeriod => {
   const now = moment.utc();
   const startCurrent = now.startOf("week").subtract(1, "week");

@@ -10,6 +10,7 @@ import GithubService from "./services/github";
 import * as moment from "moment";
 import * as cache from "./redis";
 import { ServiceClient } from "./services/base";
+import { getPeriodForStartDate } from "gitstats-shared";
 
 enum Service {
   github = "github",
@@ -113,14 +114,13 @@ export default class UserManager {
   async getServiceClient(weekStartDate: string): Promise<ServiceClient> {
     let client: ServiceClient;
     const token = await this.getServiceToken();
-    const weekStart = moment(`${weekStartDate}T00:00:00Z`); // only supports UTC
-
-    console.log("token", token);
+    const reportPeriod = getPeriodForStartDate(weekStartDate);
+    const teamName = this.ownerName as string;
 
     if (this.service === Service.github) {
-      client = new GithubService(token, this.ownerName as string, weekStart);
+      client = new GithubService(token, teamName, reportPeriod);
     } else {
-      client = new BitbucketService(token, this.ownerName as string, weekStart);
+      client = new BitbucketService(token, teamName, reportPeriod);
     }
 
     return client;

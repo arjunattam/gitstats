@@ -1,7 +1,7 @@
 import { GithubAPICaller } from "./api";
 import * as types from "../types";
 import * as moment from "moment";
-import { ITeam, IRepo, IMember, ICommit } from "gitstats-shared";
+import { IPeriod, ITeam, IRepo, IMember, ICommit } from "gitstats-shared";
 import { ServiceClient } from "./base";
 
 const STATUS_CODES = {
@@ -16,10 +16,12 @@ export default class GithubService extends ServiceClient {
   constructor(
     public token: string,
     public owner: string,
-    public weekStart: moment.Moment
+    public period: IPeriod
   ) {
-    super(token, owner, weekStart);
-    this.helper = new GithubAPICaller(token, this.periodPrev, this.periodNext);
+    super(token, owner, period);
+    const previousStart = moment(this.period.previous.start);
+    const currentStart = moment(this.period.current.start);
+    this.helper = new GithubAPICaller(token, previousStart, currentStart);
   }
 
   repos = async (): Promise<IRepo[]> => {
@@ -40,7 +42,9 @@ export default class GithubService extends ServiceClient {
 
     const result = await this.helper.getAllPages([], params);
     return result
-      .filter(repo => moment(repo.updated_at) > this.periodPrev)
+      .filter(
+        repo => moment(repo.updated_at) > moment(this.period.previous.start)
+      )
       .map(repo => ({
         name: repo.name,
         url: repo.html_url,
@@ -124,7 +128,7 @@ export default class GithubService extends ServiceClient {
       return { is_pending: false, authors: [] };
     } else if (statusCode === STATUS_CODES.success) {
       const allWeeks = [0, 1, 2, 3, 4].map(value =>
-        moment(this.periodNext)
+        moment(this.period.current.start)
           .subtract(value, "weeks")
           .unix()
       );
@@ -184,7 +188,7 @@ export default class GithubService extends ServiceClient {
     const params = {
       path: `repos/${this.owner}/${repo}/commits`,
       qs: {
-        since: this.periodPrev.toISOString(),
+        since: this.period.previous.start,
         per_page: 100
       }
     };
@@ -270,7 +274,9 @@ export default class GithubService extends ServiceClient {
     const responseNode = response.body.data.nodes[0];
 
     const pulls = responseNode.pullRequests.nodes
-      .filter(prNode => moment(prNode.updatedAt) > this.periodPrev)
+      .filter(
+        prNode => moment(prNode.updatedAt) > moment(this.period.previous.start)
+      )
       .map(prNode => {
         const commits = prNode.commits.nodes
           // TODO: we are filtering for only recognised committers

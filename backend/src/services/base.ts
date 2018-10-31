@@ -1,6 +1,7 @@
 import * as moment from "moment";
 import {
   ITeam,
+  IPeriod,
   IRepo,
   IMember,
   ITeamInfoAPIResult,
@@ -9,19 +10,11 @@ import {
 } from "gitstats-shared";
 
 export abstract class ServiceClient {
-  periodPrev: moment.Moment;
-  periodNext: moment.Moment;
-
   constructor(
     public token: string,
     public owner: string,
-    public weekStart: moment.Moment
-  ) {
-    // We use Sunday-Saturday as the definition of the week
-    // This is because of how the Github stats API returns weeks
-    this.periodPrev = moment(this.weekStart).subtract(1, "weeks");
-    this.periodNext = moment(this.weekStart);
-  }
+    public period: IPeriod
+  ) {}
 
   abstract ownerInfo: () => Promise<ITeam>;
   abstract repos: () => Promise<IRepo[]>;
@@ -44,11 +37,13 @@ export abstract class ServiceClient {
   };
 
   emailReport = async () => {
+    const periodNext = moment(this.period.current.start);
+    const periodPrev = moment(this.period.previous.start);
     return {
       name: this.owner,
       period: {
-        next: this.periodNext,
-        previous: this.periodPrev
+        next: periodNext,
+        previous: periodPrev
       },
       values: {}
     };

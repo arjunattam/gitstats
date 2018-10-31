@@ -10,29 +10,17 @@ import {
   IPullsAPIResult,
   ICommitsAPIResult,
   IRepoStats,
-  ICommit
+  ICommit,
+  IPeriod
 } from "gitstats-shared";
 import { ServiceClient } from "./base";
 
 export default class BitbucketService extends ServiceClient {
   baseUrl: string = "https://api.bitbucket.org/2.0/";
 
-  constructor(
-    public token: string,
-    public owner: string,
-    public weekStart: moment.Moment
-  ) {
-    super(token, owner, weekStart);
-  }
-
   private isInDuration(date: string, minDateValue: moment.Moment) {
-    return (
-      moment(date) > minDateValue &&
-      moment(date) <
-        moment()
-          .utc()
-          .startOf("week")
-    );
+    const maxDateValue = moment(this.period.current.end);
+    return moment(date) > minDateValue && moment(date) < maxDateValue;
   }
 
   private get({ path, qs }: { path: string; qs: any }) {
@@ -113,7 +101,8 @@ export default class BitbucketService extends ServiceClient {
   }
 
   private getCommonQueryParams() {
-    const lastDate = this.periodPrev.toISOString().substr(0, 10);
+    const previousStart = this.period.previous.start;
+    const lastDate = previousStart.substr(0, 10);
     return { sort: "-updated_on", q: `updated_on>=${lastDate}` };
   }
 
@@ -195,11 +184,12 @@ export default class BitbucketService extends ServiceClient {
       path: `repositories/${this.owner}/${repo}/pullrequests/activity`,
       qs: {}
     };
+    const previousStart = moment(this.period.previous.start);
     const response = await this.getAllTillDate(
       params,
       [],
       "update.date,comment.created_on",
-      this.periodPrev
+      previousStart
     );
     return response;
   }
@@ -289,7 +279,9 @@ export default class BitbucketService extends ServiceClient {
     const pulls = responses[0];
     const prActivity = responses[1];
     const filteredPulls = pulls
-      .filter((pr: any) => moment(pr.updated_on) > this.periodPrev)
+      .filter(
+        (pr: any) => moment(pr.updated_on) > moment(this.period.previous.start)
+      )
       .map((pr: any) => ({
         author: pr.author.username,
         title: pr.title,
@@ -321,7 +313,7 @@ export default class BitbucketService extends ServiceClient {
   private getWeekValues = (numWeeks, commits) => {
     const indexNumbers = Array.from(Array(numWeeks).keys());
     return indexNumbers.map(index => {
-      const start = moment(this.periodNext).subtract(index, "weeks");
+      const start = moment(this.period.current.start).subtract(index, "weeks");
       const end = moment(start).add(1, "weeks");
 
       return {
@@ -375,7 +367,7 @@ export default class BitbucketService extends ServiceClient {
 
   commits = async (repo: string): Promise<ICommitsAPIResult> => {
     const NUM_WEEKS = 5;
-    const minDateValue = moment(this.periodNext).subtract(
+    const minDateValue = moment(this.period.current.start).subtract(
       NUM_WEEKS - 1,
       "weeks"
     );
@@ -390,7 +382,7 @@ export default class BitbucketService extends ServiceClient {
     });
 
     let commits: ICommit[] = [];
-    const minDate = this.periodPrev;
+    const minDate = moment(this.period.previous.start);
     authors.forEach(author => {
       const authorCommits: ICommit[] = response[author].map(commit => ({
         author,
