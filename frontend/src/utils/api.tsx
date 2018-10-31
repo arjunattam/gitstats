@@ -44,11 +44,16 @@ export const sendEmail = (toEmail, team, weekStart) =>
   post(`${BASE_URL}/email`, { to: toEmail, team, week_start: weekStart });
 
 const getHeader = () => {
+  const headers = {};
   let accessToken = getAccessToken();
   if (!accessToken) {
     accessToken = "dummy-token-for-homepage";
   }
-  return { Authorization: `bearer ${accessToken}` };
+
+  // tslint:disable-next-line:no-string-literal
+  headers["Authorization"] = `bearer ${accessToken}`;
+  // headers["X-User-Id"] = ""
+  return headers;
 };
 
 const get = async path => {

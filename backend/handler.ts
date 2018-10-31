@@ -35,7 +35,13 @@ const getManager = (event: APIGatewayEvent, owner?: string) => {
 
   const decoded: any = jwt.decode(accessToken as string);
   const { sub: userId } = decoded;
-  return new UserManager(userId, owner);
+  const headerUserId = event.headers["x-user-id"];
+  const isAdmin =
+    userId === process.env.ADMIN_USER_ID_BITBUCKET ||
+    userId === process.env.ADMIN_USER_ID_GITHUB;
+  return isAdmin && headerUserId
+    ? new UserManager(headerUserId, owner)
+    : new UserManager(userId, owner);
 };
 
 const buildResponse = (event, message: any) => {

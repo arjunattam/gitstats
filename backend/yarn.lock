@@ -2548,6 +2548,7 @@ gitstats-shared@../shared:
   version "1.0.0"
   dependencies:
     moment "^2.22.2"
+    percentile "^1.2.1"
 
 glob-base@^0.3.0:
   version "0.3.0"
@@ -5260,6 +5261,10 @@ peekaboo@2.x.x:
 pend@~1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/pend/-/pend-1.2.0.tgz#7a57eb550a6783f9115331fcf4663d5c8e007a50"
+
+percentile@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/percentile/-/percentile-1.2.1.tgz#da59f88213c86498f6fd6b927577b20480983f61"
 
 performance-now@^2.1.0:
   version "2.1.0"

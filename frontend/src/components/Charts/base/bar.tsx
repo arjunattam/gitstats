@@ -5,7 +5,7 @@ import "./index.css";
 
 const MIN_Y_VALUE = 4;
 
-interface IChartDataElement {
+export interface IChartDataElement {
   week: string;
   value: number;
 }

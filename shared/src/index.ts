@@ -47,6 +47,7 @@ export interface IPullRequest {
   updated_at: string;
   state: string;
   url: string;
+  review_assignees: string[];
   comments: IComment[];
   commits: ICommit[];
 }

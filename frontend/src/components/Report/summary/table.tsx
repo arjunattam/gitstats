@@ -2,15 +2,16 @@ import {
   ICommitsAPIResult,
   IMember,
   IPeriod,
-  IPeriodRange,
   IPullsAPIResult,
   IRepo
 } from "gitstats-shared";
 import * as React from "react";
 import { Col, Row } from "reactstrap";
+import { getComments, getCommits } from "../base/utils";
 
 interface IListValue {
-  name: string;
+  label: string;
+  value: string;
   commits: number;
   comments: number;
 }
@@ -24,11 +25,11 @@ const sumOfValues = (value: IListValue) => {
   return value.comments + value.commits;
 };
 
-const Checkbox = ({ name, onCheckChanged }) => {
+const Checkbox = ({ value, onCheckChanged }) => {
   return (
     <input
       type="checkbox"
-      onChange={event => onCheckChanged(name, event.target.checked)}
+      onChange={event => onCheckChanged(value, event.target.checked)}
     />
   );
 };
@@ -39,70 +40,16 @@ const SummaryList: React.SFC<IListProps> = ({ values, onCheck }) => {
     .sort((a, b) => sumOfValues(b) - sumOfValues(a));
   return (
     <ul>
-      {filtered.map(({ name, commits, comments }) => {
-        const checkbox = <Checkbox name={name} onCheckChanged={onCheck} />;
+      {filtered.map(({ label, value, commits, comments }) => {
+        const checkbox = <Checkbox value={value} onCheckChanged={onCheck} />;
         return (
-          <li key={name}>
-            {checkbox} {name}: {commits}, {comments}
+          <li key={label}>
+            {checkbox} {label}: {commits}, {comments}
           </li>
         );
       })}
     </ul>
   );
-};
-
-const isSelected = (selectedList, value) => {
-  return selectedList.length === 0 || selectedList.indexOf(value) >= 0;
-};
-
-const getCommits = (
-  allCommits: ICommitsAPIResult[],
-  weekUnix: number,
-  selectedRepos: string[],
-  selectedAuthors: string[]
-): number => {
-  const repoCommits = allCommits
-    .filter(({ is_pending }) => !is_pending)
-    .filter(({ repo }) => isSelected(selectedRepos, repo))
-    .map(({ stats }) => {
-      const authorStats = stats.filter(({ author }) =>
-        isSelected(selectedAuthors, author)
-      );
-      return authorStats.reduce((total, current) => {
-        const { commits: values } = current;
-        const thisWeek = values.find(({ week }) => week === weekUnix);
-        const weekValue = !!thisWeek ? thisWeek.value : 0;
-        return total + weekValue;
-      }, 0);
-    });
-
-  return repoCommits.reduce((total, current) => total + current, 0);
-};
-
-const isInRange = (date: string, range: IPeriodRange) => {
-  return !!date && range.start <= date && range.end >= date;
-};
-
-const getComments = (
-  allPulls: IPullsAPIResult[],
-  dateRange: IPeriodRange,
-  selectedRepos: string[],
-  selectedAuthors: string[]
-) => {
-  const repoComments = allPulls
-    .filter(({ repo }) => isSelected(selectedRepos, repo))
-    .map(({ pulls }) => {
-      const authorComments = pulls.map(({ comments }) => {
-        const filteredComments = comments
-          .filter(({ author }) => isSelected(selectedAuthors, author))
-          .filter(({ date }) => isInRange(date, dateRange));
-        return filteredComments.length;
-      });
-
-      return authorComments.reduce((total, current) => total + current, 0);
-    });
-
-  return repoComments.reduce((total, current) => total + current, 0);
 };
 
 interface ITableProps {
@@ -111,23 +58,22 @@ interface ITableProps {
   period: IPeriod;
   commits: ICommitsAPIResult[];
   pulls: IPullsAPIResult[];
-}
-
-interface ITableState {
   selectedRepos: string[];
   selectedMembers: string[];
+  onRepoSelected: (repos: string[]) => void;
+  onMemberSelected: (members: string[]) => void;
 }
 
-export class SummaryTable extends React.Component<ITableProps, ITableState> {
-  public state: ITableState = {
-    selectedMembers: [],
-    selectedRepos: []
-  };
+const getMemberName = (memberLogin, members: IMember[]) => {
+  const member = members.find(({ login }) => login === memberLogin);
+  return !!member ? member.name : memberLogin;
+};
 
+export class SummaryTable extends React.Component<ITableProps, {}> {
   public render() {
     const { period, repos, members, commits, pulls } = this.props;
+    const { selectedRepos, selectedMembers } = this.props;
     const weekUnix = +new Date(period.current.start) / 1000;
-    const { selectedRepos, selectedMembers } = this.state;
 
     const repoValues = repos.map(repo => {
       return {
@@ -138,7 +84,8 @@ export class SummaryTable extends React.Component<ITableProps, ITableState> {
           selectedMembers
         ),
         commits: getCommits(commits, weekUnix, [repo.name], selectedMembers),
-        name: repo.name
+        label: repo.name,
+        value: repo.name
       };
     });
 
@@ -148,50 +95,49 @@ export class SummaryTable extends React.Component<ITableProps, ITableState> {
           member.login
         ]),
         commits: getCommits(commits, weekUnix, selectedRepos, [member.login]),
-        name: member.login
+        label: getMemberName(member.login, members),
+        value: member.login
       };
     });
 
     return (
-      <Row>
-        <Col>
-          <SummaryList values={repoValues} onCheck={this.onRepoFilterChanged} />
-        </Col>
-        <Col>
-          <SummaryList
-            values={memberValues}
-            onCheck={this.onMemberFilterChanged}
-          />
-        </Col>
-      </Row>
+      <div>
+        <h4>Activity summary</h4>
+        <Row>
+          <Col>
+            <SummaryList
+              values={repoValues}
+              onCheck={this.onRepoFilterChanged}
+            />
+          </Col>
+          <Col>
+            <SummaryList
+              values={memberValues}
+              onCheck={this.onMemberFilterChanged}
+            />
+          </Col>
+        </Row>
+      </div>
     );
   }
 
   private onRepoFilterChanged = (repoName, isChecked) => {
-    const { selectedRepos } = this.state;
+    const { selectedRepos, onRepoSelected } = this.props;
     if (isChecked) {
-      this.setState({
-        selectedRepos: [...selectedRepos, repoName]
-      });
+      onRepoSelected([...selectedRepos, repoName]);
     } else {
-      this.setState({
-        selectedRepos: selectedRepos.filter(repo => repo !== repoName)
-      });
+      onRepoSelected(selectedRepos.filter(repo => repo !== repoName));
     }
   };
 
   private onMemberFilterChanged = (memberLogin, isChecked) => {
-    const { selectedMembers } = this.state;
+    const { selectedMembers, onMemberSelected } = this.props;
     if (isChecked) {
-      this.setState({
-        selectedMembers: [...selectedMembers, memberLogin]
-      });
+      onMemberSelected([...selectedMembers, memberLogin]);
     } else {
-      this.setState({
-        selectedMembers: selectedMembers.filter(
-          member => member !== memberLogin
-        )
-      });
+      onMemberSelected(
+        selectedMembers.filter(member => member !== memberLogin)
+      );
     }
   };
 }

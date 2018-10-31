@@ -1,10 +1,10 @@
-import { IPullRequest } from "gitstats-shared";
+import { IPeriod, IPullRequest } from "gitstats-shared";
 import * as React from "react";
+import { getChartBounds } from "src/utils/date";
 import { TimelineChart } from "./base/timeline";
 
 interface IPRChartContainerProps {
-  startDate: Date;
-  endDate: Date;
+  period: IPeriod;
   data: IPullRequest[];
 }
 
@@ -13,12 +13,19 @@ export class PRChartContainer extends React.Component<
   {}
 > {
   public render() {
-    const { data } = this.props;
-    return <TimelineChart {...this.props} data={this.filteredPulls(data)} />;
+    const { data, period } = this.props;
+    const { startDate, endDate } = getChartBounds(period);
+    return (
+      <TimelineChart
+        data={this.filteredPulls(data)}
+        startDate={startDate}
+        endDate={endDate}
+      />
+    );
   }
 
   private filteredPulls = pulls => {
-    const { endDate, startDate } = this.props;
+    const { endDate, startDate } = getChartBounds(this.props.period);
     return pulls.filter(
       pr =>
         new Date(pr.created_at) < endDate &&

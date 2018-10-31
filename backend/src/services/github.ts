@@ -304,6 +304,7 @@ export default class GithubService extends ServiceClient {
           updated_at: prNode.updatedAt,
           state: prNode.state,
           url: prNode.url,
+          review_assignees: [],
           comments,
           commits
         };

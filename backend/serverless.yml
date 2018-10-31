@@ -31,7 +31,17 @@ functions:
           path: teams
           resp: http
           authorizer: auth
-          cors: true
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: # <-- Specify allowed headers
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Id
+            allowCredentials: false
   teamInfo:
     handler: handler.teamInfo
     timeout: 30
@@ -41,7 +51,17 @@ functions:
           path: team/{owner}
           resp: http
           authorizer: auth
-          cors: true
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: # <-- Specify allowed headers
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Id
+            allowCredentials: false
   pulls:
     handler: handler.pulls
     timeout: 120
@@ -51,7 +71,17 @@ functions:
           path: pulls/{owner}/{repo}
           resp: http
           authorizer: auth
-          cors: true
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: # <-- Specify allowed headers
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Id
+            allowCredentials: false
   commits:
     handler: handler.commits
     timeout: 120
@@ -61,7 +91,17 @@ functions:
           path: commits/{owner}/{repo}
           resp: http
           authorizer: auth
-          cors: true
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: # <-- Specify allowed headers
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Id
+            allowCredentials: false
   email:
     handler: handler.email
     timeout: 30

@@ -8,11 +8,19 @@ import { addLegend, addXAxis, COLORS, LEGEND_PADDING } from "./utils";
 const INTERVAL_SIZE = 4; // hours
 const MIN_Y = 3;
 
+export interface IStreamgraphDataElement {
+  author: string;
+  repo: string;
+  type: "pr_comment" | "commit";
+  x: string;
+  y: number;
+}
+
 interface IStreamgraphProps {
   startDate: Date;
   endDate: Date;
-  data: any[];
-  prevData: any[];
+  data: IStreamgraphDataElement[];
+  prevData: IStreamgraphDataElement[];
 }
 
 interface IStreamgraphState {

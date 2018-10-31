@@ -1,7 +1,7 @@
 import * as React from "react";
 import Select from "react-select";
 
-const InlineSelect = ({ width, ...props }) => {
+export const InlineSelect = ({ width, ...props }) => {
   return (
     <div className="d-inline-block mx-1" style={{ width }}>
       <Select {...props} />
@@ -12,9 +12,11 @@ const InlineSelect = ({ width, ...props }) => {
 export const Filters = ({
   title,
   repos,
-  members,
+  authors,
+  reviewers,
   changeRepo,
-  changeMember
+  changeAuthor,
+  changeReviewer
 }) => {
   return (
     <div className="d-flex justify-content-between align-items-center flex-wrap my-2">
@@ -25,17 +27,24 @@ export const Filters = ({
         <span className="small text-muted text-uppercase">Filters</span>
         <InlineSelect
           width={200}
-          placeholder={"Repos..."}
+          placeholder={"by Repo"}
           isClearable={true}
           onChange={changeRepo}
           options={repos}
         />
         <InlineSelect
           width={200}
-          placeholder={"Members..."}
+          placeholder={"by Author"}
           isClearable={true}
-          onChange={changeMember}
-          options={members}
+          onChange={changeAuthor}
+          options={authors}
+        />
+        <InlineSelect
+          width={200}
+          placeholder={"by Reviewer"}
+          isClearable={true}
+          onChange={changeReviewer}
+          options={reviewers}
         />
       </div>
     </div>

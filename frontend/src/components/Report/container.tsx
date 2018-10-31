@@ -7,7 +7,6 @@ import {
 } from "gitstats-shared";
 import * as React from "react";
 import { ICommitsDeprecated, RepoForReport } from "../../types";
-import { getChartBounds } from "../../utils/date";
 import { GrayContainer } from "./common";
 import { MembersTable } from "./members";
 import { PullsContainer } from "./pulls";
@@ -26,12 +25,10 @@ interface IContainerProps {
 }
 
 export const ReportContainer: React.SFC<IContainerProps> = props => {
-  const { period } = props;
-  const chartBounds = getChartBounds(period);
   return (
     <div>
-      <SummaryContainer {...props} chartBounds={chartBounds} />
-      <PullsContainer {...props} chartBounds={chartBounds} />
+      <SummaryContainer {...props} />
+      <PullsContainer {...props} />
       <GrayContainer>
         <MembersTable {...props} />
         <ReposTable {...props} />

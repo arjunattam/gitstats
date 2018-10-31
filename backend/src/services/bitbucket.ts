@@ -223,7 +223,7 @@ export default class BitbucketService extends ServiceClient {
     );
 
     const plainComments = relevantActivity
-      .filter(({ comment }) => !!comment)
+      .filter(({ comment }) => !!comment && !comment.deleted)
       .map(({ comment }) => ({
         date: comment.created_on,
         author: comment.user.username,
@@ -295,7 +295,8 @@ export default class BitbucketService extends ServiceClient {
             : null,
         updated_at: pr.updated_on,
         state: pr.state,
-        url: pr.links.html.href
+        url: pr.links.html.href,
+        review_assignees: []
       }));
 
     const result: IPullRequest[] = filteredPulls.map(pr => ({

@@ -1,257 +1,112 @@
-import { getPRsMerged, IPullsAPIResult } from "gitstats-shared";
+import { IComment, IPullsAPIResult } from "gitstats-shared";
+import { ICommitsAPIResult, IMember, IPeriod, IRepo } from "gitstats-shared";
 import * as React from "react";
-import { IPeriodDeprecated, RepoForReport } from "../../../types";
-import { isInWeek } from "../../../utils/date";
-import { CommitChartContainer } from "../../Charts/commits";
-import { BaseFilteredContainer } from "../base";
+import { Col, Row } from "reactstrap";
+import { BarChart } from "../../Charts/base/bar";
+import {
+  CommitChartContainer,
+  IStreamgraphComment,
+  IStreamgraphCommit
+} from "../../Charts/commits";
+import { getCommitsChartData, isSelected } from "../base/utils";
 import { GrayContainer } from "../common";
-import { Filters } from "../common/filters";
-import { getCommits } from "../utils";
-import { SummaryRow } from "./row";
 import { SummaryTable } from "./table";
 
-export class SummaryContainer extends BaseFilteredContainer {
+const BASE_COLOR = `#ffb154`;
+const ALPHA_COLOR = `${BASE_COLOR}60`;
+
+interface IContainerProps {
+  repos: IRepo[];
+  members: IMember[];
+  period: IPeriod;
+  isLoading: boolean;
+  pulls: IPullsAPIResult[];
+  commits: ICommitsAPIResult[];
+}
+
+interface IContainerState {
+  selectedRepos: string[];
+  selectedMembers: string[];
+}
+
+export class SummaryContainer extends React.Component<IContainerProps, {}> {
+  public state: IContainerState = {
+    selectedMembers: [],
+    selectedRepos: []
+  };
+
   public render() {
-    const {
-      reposDeprecated,
-      members,
-      period,
-      isLoading,
-      pulls,
-      commitsDeprecated,
-      chartBounds
-    } = this.props;
-    const { filteredRepo, filteredMember } = this.state;
-    const selectedRepo = !!filteredRepo ? filteredRepo.value : undefined;
-    const selectedMember = !!filteredMember ? filteredMember.value : undefined;
-    const repoItems = reposDeprecated.map(repo => {
-      return {
-        label: repo.name,
-        value: repo.name
-      };
-    });
-    const memberItems = members.map(member => {
-      return {
-        label: member.login,
-        value: member.login
-      };
-    });
+    const { period, isLoading, pulls, commits } = this.props;
+    const { selectedMembers, selectedRepos } = this.state;
 
-    const deprecatedPeriod: IPeriodDeprecated = {
-      next: period.current.start,
-      previous: period.previous.start
-    };
-
-    const filteredRepos = reposDeprecated.filter(
-      repo => !selectedRepo || repo.name === selectedRepo
-    );
-    const filteredPulls = pulls.filter(data => {
-      return !selectedRepo || data.repo === selectedRepo;
-    });
-
-    const commitsValues = getCommits(
-      deprecatedPeriod,
-      filteredRepos,
-      selectedMember
+    const chartData = getCommitsChartData(
+      commits,
+      selectedRepos,
+      selectedMembers
     );
 
-    const prsMerged = getPRsMerged(pulls, period, selectedRepo, selectedMember);
-    const prComments = getPRComments(
-      deprecatedPeriod,
-      filteredPulls,
-      selectedMember
-    );
-    const activeRepos = getActiveRepo(
-      deprecatedPeriod,
-      filteredRepos,
-      selectedMember
-    );
-    const activeMembers = getActiveMember(
-      deprecatedPeriod,
-      filteredRepos,
-      selectedMember
-    );
+    const chartCommitsData: IStreamgraphCommit[] = commits
+      .filter(({ is_pending }) => !is_pending)
+      .filter(({ repo }) => isSelected(selectedRepos, repo))
+      .reduce((acc, current) => {
+        const { repo, commits: commitsData } = current;
+        const filteredCommits = commitsData.filter(({ author }) =>
+          isSelected(selectedMembers, author)
+        );
+        return [...acc, filteredCommits.map(c => ({ ...c, repo }))];
+      }, [])
+      .reduce((acc, current) => [...acc, ...current], []);
+
+    const chartCommentsData: IStreamgraphComment[] = pulls
+      .filter(({ repo }) => isSelected(selectedRepos, repo))
+      .reduce((acc, current) => {
+        const { repo, pulls: repoPulls } = current;
+        const pullComments: IComment[] = repoPulls.reduce(
+          (allComments, currentPR) => [...allComments, ...currentPR.comments],
+          []
+        );
+        const filteredComments = pullComments.filter(({ author }) =>
+          isSelected(selectedMembers, author)
+        );
+        return [...acc, filteredComments.map(c => ({ ...c, repo }))];
+      }, [])
+      .reduce((acc, current) => [...acc, ...current], []);
 
     return (
       <GrayContainer>
         <SummaryTable
-          commits={this.props.commits}
-          repos={this.props.repos}
-          members={this.props.members}
-          period={this.props.period}
-          pulls={this.props.pulls}
+          {...this.props}
+          {...this.state}
+          onRepoSelected={this.onRepoSelected}
+          onMemberSelected={this.onMemberSelected}
         />
 
-        <Filters
-          title={"Activity"}
-          repos={repoItems}
-          changeRepo={this.changeRepo}
-          members={memberItems}
-          changeMember={this.changeMember}
-        />
-        <SummaryRow
-          commits={commitsValues}
-          prsMerged={{ next: prsMerged.current, previous: prsMerged.previous }}
-          prComments={prComments}
-          activeRepos={activeRepos}
-          activeMembers={activeMembers}
-          isLoading={isLoading}
-        />
-        <CommitChartContainer
-          {...chartBounds}
-          commitsData={commitsDeprecated}
-          prData={pulls}
-          selectedMember={selectedMember}
-          selectedRepo={selectedRepo}
-        />
+        <Row>
+          <Col className="col-4">
+            <BarChart
+              xAxisTitle={"LAST 5 WEEKS"}
+              data={chartData}
+              color={ALPHA_COLOR}
+              textColor={"#bbb"}
+            />
+          </Col>
+          <Col className="col-8">
+            <CommitChartContainer
+              period={period}
+              commits={chartCommitsData}
+              prComments={chartCommentsData}
+            />
+          </Col>
+        </Row>
       </GrayContainer>
     );
   }
+
+  private onRepoSelected = selectedRepos => {
+    this.setState({ selectedRepos });
+  };
+
+  private onMemberSelected = selectedMembers => {
+    this.setState({ selectedMembers });
+  };
 }
-
-const getActiveMember = (
-  period: IPeriodDeprecated,
-  repos: RepoForReport[],
-  authorLogin?: string
-) => {
-  // TODO: only commits is a flawed metric?
-  const nextTs = +new Date(period.next) / 1000;
-  const previousTs = +new Date(period.previous) / 1000;
-  const authorWise = {};
-
-  repos.forEach(({ stats }) => {
-    const { is_pending, authors } = stats;
-
-    if (!is_pending) {
-      authors
-        .filter(author => {
-          return !authorLogin || author.login === authorLogin;
-        })
-        .forEach(({ login, commits }) => {
-          let previous = 0;
-          let next = 0;
-
-          const previousFiltered = commits.filter(
-            ({ week }) => week === previousTs
-          );
-          const nextFiltered = commits.filter(({ week }) => week === nextTs);
-
-          if (previousFiltered) {
-            previous = previousFiltered[0].value;
-          }
-          if (nextFiltered) {
-            next = nextFiltered[0].value;
-          }
-
-          if (next > 0 || previous > 0) {
-            if (login in authorWise) {
-              const {
-                previous: existingPrevious,
-                next: existingNext
-              } = authorWise[login];
-              authorWise[login] = {
-                next: existingNext + next,
-                previous: existingPrevious + previous
-              };
-            } else {
-              authorWise[login] = { next, previous };
-            }
-          }
-        });
-    }
-  });
-
-  return {
-    next: Object.keys(authorWise).sort(
-      (a, b) => authorWise[b].next - authorWise[a].next
-    )[0],
-    previous: Object.keys(authorWise).sort(
-      (a, b) => authorWise[b].previous - authorWise[a].previous
-    )[0]
-  };
-};
-
-const getActiveRepo = (
-  period: IPeriodDeprecated,
-  repos: RepoForReport[],
-  authorLogin?: string
-) => {
-  // TODO: only commits is a flawed metric?
-  const nextTs = +new Date(period.next) / 1000;
-  const previousTs = +new Date(period.previous) / 1000;
-
-  const parsed = repos.map(({ name, stats }) => {
-    const { is_pending, authors } = stats;
-    let previous = 0;
-    let next = 0;
-
-    if (!is_pending) {
-      const filteredAuthors = authors.filter(author => {
-        return !authorLogin || author.login === authorLogin;
-      });
-
-      previous = filteredAuthors.reduce((acc, current) => {
-        const { commits } = current;
-        const filtered = commits.filter(({ week }) => week === previousTs);
-        return filtered ? acc + filtered[0].value : acc;
-      }, 0);
-
-      next = filteredAuthors.reduce((acc, current) => {
-        const { commits } = current;
-        const filtered = commits.filter(({ week }) => week === nextTs);
-        return filtered ? acc + filtered[0].value : acc;
-      }, 0);
-    }
-
-    return {
-      name,
-      next,
-      previous
-    };
-  });
-
-  const previousRepo = parsed
-    .slice()
-    .filter(d => d.previous)
-    .sort((a, b) => b.previous - a.previous)[0];
-  const nextRepo = parsed
-    .slice()
-    .filter(d => d.next)
-    .sort((a, b) => b.next - a.next)[0];
-  return {
-    next: nextRepo ? nextRepo.name : undefined,
-    previous: previousRepo ? previousRepo.name : undefined
-  };
-};
-
-const getPRComments = (
-  period: IPeriodDeprecated,
-  prData: IPullsAPIResult[],
-  authorLogin?: string
-) => {
-  const isInPrevious = (date: Date) => isInWeek(date, period.previous);
-  const isInNext = (date: Date) => isInWeek(date, period.next);
-
-  const repoWise = prData.map(({ pulls }) => {
-    let previous = 0;
-    let next = 0;
-
-    pulls.forEach(({ comments }) => {
-      const filteredComments = comments.filter(
-        comment => !authorLogin || authorLogin === comment.author
-      );
-      const dates = filteredComments.map(({ date }) => new Date(date));
-      const previousValue = dates.filter(date => isInPrevious(date)).length;
-      const nextValue = dates.filter(date => isInNext(date)).length;
-      previous += previousValue;
-      next += nextValue;
-    });
-
-    return { next, previous };
-  });
-
-  return {
-    next: repoWise.reduce((acc, current) => acc + current.next, 0),
-    previous: repoWise.reduce((acc, current) => acc + current.previous, 0)
-  };
-};

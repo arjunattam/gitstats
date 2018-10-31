@@ -1,28 +1,31 @@
-import { IPullsAPIResult } from "gitstats-shared";
+import { IComment, ICommit, IPeriod } from "gitstats-shared";
 import * as React from "react";
-import { ICommitsDeprecated } from "../../types";
+import { getChartBounds } from "src/utils/date";
 import { Streamgraph } from "./base/stream";
 
-interface ICommitChartContainerProps {
-  startDate: Date;
-  endDate: Date;
-  commitsData: ICommitsDeprecated[];
-  prData: IPullsAPIResult[];
-  selectedRepo: string;
-  selectedMember: string;
+export interface IStreamgraphComment extends IComment {
+  repo: string; // adds repo name to comment object
+}
+
+export interface IStreamgraphCommit extends ICommit {
+  repo: string; // adds repo name to commit object
+}
+
+interface ICommitChartProps {
+  period: IPeriod;
+  commits: IStreamgraphCommit[];
+  prComments: IStreamgraphComment[];
 }
 
 export class CommitChartContainer extends React.Component<
-  ICommitChartContainerProps,
+  ICommitChartProps,
   {}
 > {
   public render() {
-    const { startDate, endDate } = this.props;
+    const { startDate, endDate } = getChartBounds(this.props.period);
     const { data, prevData } = this.getChartData();
-    const dataFiltered = this.filterBySelection(data);
-    const prevFiltered = this.filterBySelection(prevData);
 
-    const layeredData = dataFiltered.reduce((result, current) => {
+    const layeredData = data.reduce((result, current) => {
       const { type } = current;
       result[type] = !!result[type] ? [...result[type], current] : [current];
       return result;
@@ -33,7 +36,7 @@ export class CommitChartContainer extends React.Component<
       <div>
         <Streamgraph
           data={layeredValues}
-          prevData={[prevFiltered]}
+          prevData={[prevData]}
           startDate={startDate}
           endDate={endDate}
         />
@@ -42,7 +45,9 @@ export class CommitChartContainer extends React.Component<
   }
 
   private getPrevStart = () => {
-    const copy = new Date(this.props.startDate);
+    const { period } = this.props;
+    const { startDate } = getChartBounds(period);
+    const copy = new Date(startDate);
     return new Date(copy.setDate(copy.getDate() - 7));
   };
 
@@ -54,46 +59,31 @@ export class CommitChartContainer extends React.Component<
   };
 
   private getChartData = () => {
-    const { commitsData, prData, startDate, endDate } = this.props;
+    const { commits, prComments, period } = this.props;
+    const { startDate, endDate } = getChartBounds(period);
     const prevEnd = new Date(startDate);
     const prevStart = this.getPrevStart();
 
     const allData = [];
-    // Each entity has x (date), y, type, author, repo
-    commitsData.forEach(repoCommits => {
-      const { repo, commits } = repoCommits;
-
-      commits.forEach(authorCommits => {
-        const { author, commits } = authorCommits;
-        commits.forEach(commitObject => {
-          const { message, date } = commitObject;
-          allData.push({
-            author,
-            message,
-            repo,
-            type: "commit",
-            x: date,
-            y: 1
-          });
-        });
+    commits.forEach(commit => {
+      const { author, message, repo, date } = commit;
+      allData.push({
+        author,
+        message,
+        repo,
+        type: "commit",
+        x: date,
+        y: 1
       });
     });
-
-    prData.forEach(repoPrItems => {
-      const { repo, pulls } = repoPrItems;
-      pulls.forEach(prItem => {
-        const { comments } = prItem;
-        comments.forEach(comment => {
-          // TODO: comment does not have message
-          const { author, date } = comment;
-          allData.push({
-            author,
-            repo,
-            type: "pr_comment",
-            x: date,
-            y: 1
-          });
-        });
+    prComments.forEach(comment => {
+      const { author, repo, date } = comment;
+      allData.push({
+        author,
+        repo,
+        type: "pr_comment",
+        x: date,
+        y: 1
       });
     });
 
@@ -101,20 +91,5 @@ export class CommitChartContainer extends React.Component<
       data: this.getFilteredByDate(allData, startDate, endDate),
       prevData: this.getFilteredByDate(allData, prevStart, prevEnd)
     };
-  };
-
-  private filterBySelection = (data, excludeKey?) => {
-    const { selectedRepo, selectedMember } = this.props;
-    return data
-      .filter(
-        item =>
-          excludeKey === "repo" || !selectedRepo || item.repo === selectedRepo
-      )
-      .filter(
-        item =>
-          excludeKey === "author" ||
-          !selectedMember ||
-          item.author === selectedMember
-      );
   };
 }
