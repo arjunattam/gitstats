@@ -31,8 +31,8 @@ const RepoFilter = ({ repos, changeRepo }) => {
   const repoItems = repos.map(repo => ({ value: repo.name, label: repo.name }));
   return (
     <InlineSelect
-      width={200}
-      placeholder={"by Repo"}
+      width={250}
+      placeholder={"Filter by Repo"}
       isClearable={true}
       onChange={changeRepo}
       options={repoItems}
@@ -61,9 +61,8 @@ export abstract class BasePRMetricsTable extends React.Component<
     const values = this.getValues(selectedRepo);
     const totalValues = this.getTotal(selectedRepo);
     return (
-      <div>
-        <h4>{this.getTableTitle()}</h4>
-        <RepoFilter repos={this.props.repos} changeRepo={this.onRepoChanged} />
+      <div className="my-4">
+        {this.renderTitle()}
         <table className="table">
           <thead>{this.getTableHeadRow()}</thead>
           <tbody>
@@ -80,4 +79,20 @@ export abstract class BasePRMetricsTable extends React.Component<
   protected abstract getTotal(repo: string);
   protected abstract getTableHeadRow();
   protected abstract getTableTitle();
+
+  private renderTitle() {
+    return (
+      <div className="d-flex justify-content-between align-items-center flex-wrap my-2">
+        <div>
+          <h4>{this.getTableTitle()}</h4>
+        </div>
+        <div>
+          <RepoFilter
+            repos={this.props.repos}
+            changeRepo={this.onRepoChanged}
+          />
+        </div>
+      </div>
+    );
+  }
 }

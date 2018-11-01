@@ -9,20 +9,18 @@ import * as React from "react";
 import { Col, Row } from "reactstrap";
 import { InlineStacked } from "src/components/Charts/base/inline";
 import { getComments, getCommits } from "../base/utils";
+import { TitleLoader } from "../loaders";
 
 const ScrollableTable = ({ maxHeight, colgroup, tbody, thead }) => {
   return (
     <div>
       <div>
-        <table className="table mb-0">
-          <colgroup>{colgroup}</colgroup>
-          <thead>{thead}</thead>
-        </table>
+        <table className="table mb-0">{thead}</table>
       </div>
       <div style={{ maxHeight, overflow: "auto" }}>
         <table className="table">
-          <colgroup>{colgroup}</colgroup>
-          <tbody>{tbody}</tbody>
+          {colgroup}
+          {tbody}
         </table>
       </div>
     </div>
@@ -34,10 +32,12 @@ interface IListValue {
   value: string;
   commits: number;
   comments: number;
+  isLoading: boolean;
 }
 
 interface IListProps {
   values: IListValue[];
+  listOf: string;
   onCheckChanged: (name: string, isChecked: boolean) => void;
 }
 
@@ -54,9 +54,13 @@ const Checkbox = ({ value, onCheckChanged }) => {
   );
 };
 
-const SummaryList: React.SFC<IListProps> = ({ values, onCheckChanged }) => {
+const SummaryList: React.SFC<IListProps> = ({
+  values,
+  onCheckChanged,
+  listOf
+}) => {
   const filtered = values
-    .filter(value => sumOfValues(value) > 0)
+    .filter(value => sumOfValues(value) > 0 || value.isLoading)
     .sort((a, b) => sumOfValues(b) - sumOfValues(a));
 
   let maxValue = 0;
@@ -64,23 +68,37 @@ const SummaryList: React.SFC<IListProps> = ({ values, onCheckChanged }) => {
     maxValue = sumOfValues(filtered[0]);
   }
 
-  const rows = filtered.map(({ label, value, commits, comments }) => {
-    const checkbox = <Checkbox value={value} onCheckChanged={onCheckChanged} />;
-    return (
-      <tr key={value}>
-        <td>{checkbox}</td>
-        <td style={{ whiteSpace: "nowrap" }}>{label}</td>
-        <td>
-          <InlineStacked
-            height={25}
-            commits={commits}
-            comments={comments}
-            width={maxValue}
-          />
-        </td>
-      </tr>
-    );
-  });
+  const rows = filtered.map(
+    ({ label, value, commits, comments, isLoading }) => {
+      const checkbox = (
+        <Checkbox value={value} onCheckChanged={onCheckChanged} />
+      );
+      return (
+        <tr key={value}>
+          <td>{checkbox}</td>
+          <td style={{ whiteSpace: "nowrap" }}>{label}</td>
+          <td>
+            {isLoading ? (
+              <TitleLoader />
+            ) : (
+              <InlineStacked
+                height={25}
+                commits={commits}
+                comments={comments}
+                width={maxValue}
+              />
+            )}
+          </td>
+        </tr>
+      );
+    }
+  );
+
+  const numRows = rows.length;
+  const summaryText =
+    numRows === 1
+      ? `${numRows} active ${listOf}`
+      : `${numRows} active ${listOf}s`;
 
   return (
     <ScrollableTable
@@ -93,12 +111,14 @@ const SummaryList: React.SFC<IListProps> = ({ values, onCheckChanged }) => {
         </colgroup>
       }
       thead={
-        <tr className="small">
-          <th colSpan={2}>Filter</th>
-          <th>&nbsp;</th>
-        </tr>
+        <thead style={{ textTransform: "uppercase" }}>
+          <tr className="small">
+            <th style={{ fontWeight: "normal" }}>Filter</th>
+            <th style={{ textAlign: "right" }}>{summaryText}</th>
+          </tr>
+        </thead>
       }
-      tbody={rows}
+      tbody={<tbody>{rows}</tbody>}
     />
   );
 };
@@ -120,6 +140,16 @@ const getMemberName = (memberLogin, members: IMember[]) => {
   return !!member ? member.name : memberLogin;
 };
 
+const isRepoLoading = (
+  repoName: string,
+  commits: ICommitsAPIResult[],
+  pulls: IPullsAPIResult[]
+) => {
+  const repoPulls = pulls.find(({ repo }) => repo === repoName);
+  const repoCommits = commits.find(({ repo }) => repo === repoName);
+  return !repoPulls || !repoCommits || repoCommits.is_pending;
+};
+
 export class SummaryTable extends React.Component<ITableProps, {}> {
   public render() {
     const { period, repos, members, commits, pulls } = this.props;
@@ -136,10 +166,11 @@ export class SummaryTable extends React.Component<ITableProps, {}> {
         ),
         commits: getCommits(commits, weekUnix, [repo.name], selectedMembers),
         label: repo.name,
-        value: repo.name
+        value: repo.name,
+        isLoading: isRepoLoading(repo.name, commits, pulls)
       };
     });
-
+    const isLoadingRepos = !!repoValues.find(({ isLoading }) => isLoading);
     const memberValues = members.map(member => {
       return {
         comments: getComments(pulls, period.current, selectedRepos, [
@@ -147,20 +178,23 @@ export class SummaryTable extends React.Component<ITableProps, {}> {
         ]),
         commits: getCommits(commits, weekUnix, selectedRepos, [member.login]),
         label: getMemberName(member.login, members),
-        value: member.login
+        value: member.login,
+        isLoading: isLoadingRepos
       };
     });
 
     return (
-      <Row>
+      <Row className="mt-3">
         <Col className="col-6">
           <SummaryList
+            listOf={"repo"}
             values={repoValues}
             onCheckChanged={this.onRepoFilterChanged}
           />
         </Col>
         <Col className="col-6">
           <SummaryList
+            listOf={"member"}
             values={memberValues}
             onCheckChanged={this.onMemberFilterChanged}
           />

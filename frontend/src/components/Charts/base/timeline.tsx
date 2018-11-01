@@ -3,7 +3,9 @@ import { IPullRequest } from "gitstats-shared";
 import * as React from "react";
 import * as ReactFauxDOM from "react-faux-dom";
 import "./index.css";
-import { addLegend, addXAxis, CHART_COLORS, LEGEND_PADDING } from "./utils";
+import { addLegend, addXAxis, CHART_COLORS } from "./utils";
+
+const LEGEND_PADDING = 40;
 
 interface ITimelineChartProps {
   startDate: Date;
@@ -42,7 +44,7 @@ export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`);
 
-    addLegend(svg, width);
+    addLegend(svg, width, LEGEND_PADDING);
 
     // Chart content
     const content = svg

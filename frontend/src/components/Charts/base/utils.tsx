@@ -1,18 +1,16 @@
 import * as d3 from "d3";
 import { plusHours } from "../../../utils/date";
 
-export const LEGEND_PADDING = 40;
-
 export const CHART_COLORS = {
   commit: "#ffb154",
   pr_comment: "#5b88d6"
 };
 
-export const addLegend = (svg, width) => {
+export const addLegend = (svg, width, padding) => {
   const legend = svg
     .append("g")
     .attr("class", "g-legend")
-    .attr("transform", `translate(${width / 2 - 40},${LEGEND_PADDING / 2})`);
+    .attr("transform", `translate(${width / 2 - 40},${padding / 2})`);
 
   legend
     .append("svg:circle")

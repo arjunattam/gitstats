@@ -21,22 +21,10 @@ export class BarChart extends React.Component<IChartProps, {}> {
   public render() {
     const div = new ReactFauxDOM.Element("div");
     const { data, color, textColor, xAxisTitle } = this.props;
-
     const width = 300;
     const TEXT_PADDING = 14;
-    const height = 100;
+    const height = 180;
     const actualHeight = height - 2 * TEXT_PADDING;
-
-    const x = d3
-      .scaleBand()
-      .rangeRound([0, width])
-      .padding(0.3)
-      .domain(data.map(d => d.week));
-
-    const y = d3
-      .scaleLinear()
-      .rangeRound([actualHeight, 0])
-      .domain([0, d3.max(data, d => Math.max(d.value, MIN_Y_VALUE))]);
 
     const svg = d3
       .select(div)
@@ -49,6 +37,18 @@ export class BarChart extends React.Component<IChartProps, {}> {
       .append("g")
       .classed("g-content", true)
       .attr("transform", `translate(0,${TEXT_PADDING})`);
+
+    const x = d3
+      .scaleBand()
+      .rangeRound([0, width])
+      .padding(0.3)
+      .domain(data.map(d => d.week));
+
+    const y = d3
+      .scaleLinear()
+      .rangeRound([actualHeight, 0])
+      .domain([0, d3.max(data, d => Math.max(d.value, MIN_Y_VALUE))]);
+
     content
       .selectAll(".bar")
       .data(data)

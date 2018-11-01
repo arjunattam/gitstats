@@ -2,14 +2,15 @@
   display: inline-block;
   position: relative;
   width: 100%;
-  padding-bottom: 33%; /* Depends on aspect ratio */
+  /* padding-bottom Depends on aspect ratio */
+  padding-bottom: 33%;
   vertical-align: top;
   overflow: hidden;
 }
 
 .inline-svg-container {
   display: inline-block;
-  width: 250px;
+  width: 100%;
   font-size: 13px;
 }
 
@@ -27,8 +28,8 @@
 
 .tick text,
 .g-legend text {
-  font-size: 7px;
-  fill: #999;
+  font-size: 12px;
+  fill: #666;
 }
 
 .message-text {
@@ -37,12 +38,12 @@
 }
 
 .tick line {
-  stroke: #999;
+  stroke: #666;
   stroke-width: 0.5;
 }
 
 .domain {
-  stroke: #999;
+  stroke: #666;
   stroke-width: 0.5;
 }
 

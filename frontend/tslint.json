@@ -1,7 +1,7 @@
 {
   "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
   "defaultSeverity": "warning",
-  "jsRules": {
+  "rules": {
     "object-literal-sort-keys": false
   },
   "linterOptions": {

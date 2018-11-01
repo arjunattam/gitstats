@@ -7,12 +7,12 @@ export const TitleLoader = props => (
     width={400}
     speed={2}
     primaryColor="#f3f3f3"
-    secondaryColor="#ecebeb"
+    secondaryColor="#e0e0e0"
     {...props}
   >
-    <rect x="0" y="0" rx="3" ry="3" width="70" height="10" />
-    <rect x="80" y="0" rx="3" ry="3" width="100" height="10" />
-    <rect x="190" y="0" rx="3" ry="3" width="10" height="10" />
+    <rect x="0" y="0" rx="3" ry="3" width="70" height="25" />
+    <rect x="80" y="0" rx="3" ry="3" width="150" height="25" />
+    <rect x="240" y="0" rx="3" ry="3" width="40" height="25" />
   </ContentLoader>
 );
 

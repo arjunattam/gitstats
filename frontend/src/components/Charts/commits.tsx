@@ -13,8 +13,10 @@ export interface IStreamgraphCommit extends ICommit {
 
 interface ICommitChartProps {
   period: IPeriod;
-  commits: IStreamgraphCommit[];
-  prComments: IStreamgraphComment[];
+  data: {
+    commits: IStreamgraphCommit[];
+    prComments: IStreamgraphComment[];
+  };
 }
 
 export class CommitChartContainer extends React.Component<
@@ -35,6 +37,7 @@ export class CommitChartContainer extends React.Component<
     return (
       <div>
         <Streamgraph
+          hasLegend={false}
           hasPrevComparison={false}
           data={layeredValues}
           prevData={[prevData]}
@@ -60,7 +63,8 @@ export class CommitChartContainer extends React.Component<
   };
 
   private getChartData = () => {
-    const { commits, prComments, period } = this.props;
+    const { data, period } = this.props;
+    const { commits, prComments } = data;
     const { startDate, endDate } = getChartBounds(period);
     const prevEnd = new Date(startDate);
     const prevStart = this.getPrevStart();

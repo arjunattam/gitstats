@@ -3,10 +3,11 @@ import * as React from "react";
 import * as ReactFauxDOM from "react-faux-dom";
 import { plusHours } from "../../../utils/date";
 import "./index.css";
-import { addLegend, addXAxis, CHART_COLORS, LEGEND_PADDING } from "./utils";
+import { addLegend, addXAxis, CHART_COLORS } from "./utils";
 
 const INTERVAL_SIZE = 4; // hours
 const MIN_Y = 3;
+const LEGEND_PADDING = 40;
 
 export interface IStreamgraphDataElement {
   author: string;
@@ -22,6 +23,7 @@ interface IStreamgraphProps {
   data: IStreamgraphDataElement[];
   prevData: IStreamgraphDataElement[];
   hasPrevComparison: boolean;
+  hasLegend: boolean;
 }
 
 interface IStreamgraphState {
@@ -40,7 +42,7 @@ export class Streamgraph extends React.Component<
 
   public render() {
     const div = new ReactFauxDOM.Element("div");
-    const { startDate, endDate, hasPrevComparison } = this.props;
+    const { startDate, endDate, hasPrevComparison, hasLegend } = this.props;
     const data = this.parsedData();
     const prevData = this.parsedPrevData();
     const hoverContents = this.getHoverContent(data);
@@ -50,10 +52,11 @@ export class Streamgraph extends React.Component<
       maxY = this.getMaxY([...data]);
     }
 
+    const legendPadding = hasLegend ? LEGEND_PADDING : 0;
     const width = 600;
-    const height = 150 + LEGEND_PADDING;
+    const height = 180 + legendPadding;
     const margin = 20;
-    const actualHeight = height - margin - LEGEND_PADDING;
+    const actualHeight = height - margin - legendPadding;
     const actualWidth = width - 2 * margin;
 
     const svg = d3
@@ -72,13 +75,15 @@ export class Streamgraph extends React.Component<
       .domain([0, maxY + 2])
       .range([actualHeight, 0]);
 
-    addLegend(svg, width);
+    if (hasLegend) {
+      addLegend(svg, width, legendPadding);
+    }
 
     // Chart content
     const content = svg
       .append("g")
       .classed("g-content", true)
-      .attr("transform", `translate(0,${LEGEND_PADDING})`);
+      .attr("transform", `translate(0,${legendPadding})`);
 
     const area = d3
       .area()

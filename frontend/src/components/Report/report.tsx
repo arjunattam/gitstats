@@ -10,7 +10,6 @@ import {
 } from "gitstats-shared";
 import * as React from "react";
 import { getGitService } from "src/utils/auth";
-import { ICommitsDeprecated, RepoForReport } from "../../types";
 import { getCommits, getPulls, getTeamInfo } from "../../utils/api";
 import { ReportContainer } from "./container";
 import { EmailContainer } from "./email";
@@ -29,20 +28,16 @@ interface IReportState {
   members: IMember[];
   team?: ITeam;
   isLoading: boolean;
-  commitsDeprecated: ICommitsDeprecated[];
-  reposDeprecated: RepoForReport[];
 }
 
 export class Report extends React.Component<IReportProps, IReportState> {
   public state: IReportState = {
-    commitsDeprecated: [],
     isLoading: true,
     members: [],
     period: undefined,
     pulls: [],
     repos: [],
-    commits: [],
-    reposDeprecated: []
+    commits: []
   };
 
   public componentDidUpdate(prevProps: IReportProps, prevState) {
@@ -52,8 +47,7 @@ export class Report extends React.Component<IReportProps, IReportState> {
     if (newOwner !== prevOwner) {
       this.setState({
         isLoading: true,
-        members: [],
-        reposDeprecated: []
+        members: []
       });
       this.update();
     }
@@ -115,21 +109,10 @@ export class Report extends React.Component<IReportProps, IReportState> {
 
     getTeamInfo(teamLogin, weekStart).then(response => {
       const { login: teamName, repos, members } = response;
-      const reportRepos = repos.map(repo => {
-        return {
-          ...repo,
-          stats: {
-            authors: [],
-            is_pending: true
-          }
-        };
-      });
-
       this.setState({
         isLoading: false,
         members,
         repos,
-        reposDeprecated: reportRepos,
         team: {
           avatar: response.avatar,
           login: response.login,
@@ -147,11 +130,14 @@ export class Report extends React.Component<IReportProps, IReportState> {
   private fetchRepoData(teamLogin, repoName, weekStart) {
     getCommits(teamLogin, repoName, weekStart).then(response => {
       const { commits } = this.state;
+      const { is_pending } = response;
       this.setState({
         commits: [...commits, response]
       });
 
-      this.handleCommitsResponse(repoName, response);
+      if (is_pending) {
+        this.handlePendingResponse(repoName);
+      }
     });
 
     getPulls(teamLogin, repoName, weekStart).then(
@@ -164,64 +150,16 @@ export class Report extends React.Component<IReportProps, IReportState> {
     );
   }
 
-  private handleCommitsResponse = (
-    repoName: string,
-    response: ICommitsAPIResult
-  ) => {
-    const { repo, commits: commitsResponse, is_pending, stats } = response;
-    const authorWiseCommits = {};
+  private handlePendingResponse = (repoName: string) => {
+    // Wait for Github background job; fire request in 2 seconds
+    // TODO: add exponential backoff
+    const { teamLogin } = this.props;
+    const weekStart = this.getWeekStart();
 
-    if (is_pending) {
-      // Wait for Github background job; fire request in 2 seconds
-      const { teamLogin } = this.props;
-      const weekStart = this.getWeekStart();
-
-      setTimeout(() => {
-        getCommits(teamLogin, repoName, weekStart).then(result =>
-          this.handleCommitsResponse(repoName, result)
-        );
-      }, 2000);
-    }
-
-    commitsResponse.forEach(commit => {
-      const { author } = commit;
-
-      if (author in authorWiseCommits) {
-        authorWiseCommits[author] = [...authorWiseCommits[author], commit];
-      } else {
-        authorWiseCommits[author] = [commit];
-      }
-    });
-
-    const authors = Object.keys(authorWiseCommits);
-    const commitsResult = authors.map(author => {
-      return { author, commits: authorWiseCommits[author] };
-    });
-    const { commitsDeprecated } = this.state;
-
-    this.setState({
-      commitsDeprecated: [
-        ...commitsDeprecated,
-        { repo, commits: commitsResult }
-      ]
-    });
-
-    const reportStats = {
-      authors: stats.map(authorStats => ({
-        ...authorStats,
-        login: authorStats.author
-      })),
-      is_pending
-    };
-    const { reposDeprecated } = this.state;
-    this.setState({
-      reposDeprecated: reposDeprecated.map(reportRepo => {
-        if (reportRepo.name === repoName) {
-          return { ...reportRepo, stats: reportStats };
-        } else {
-          return reportRepo;
-        }
-      })
-    });
+    setTimeout(() => {
+      getCommits(teamLogin, repoName, weekStart).then(result =>
+        this.handlePendingResponse(repoName)
+      );
+    }, 2000);
   };
 }

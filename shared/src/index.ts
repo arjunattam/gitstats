@@ -290,12 +290,15 @@ export const getPRsCommentTime = (
 export const durationInWords = (seconds: number) => {
   const ONE_HOUR = 3600;
   let formatString = "w [weeks], d [days], h [hours]";
+  let minValue = undefined;
 
   if (seconds < ONE_HOUR) {
     formatString = "m [minutes]";
+    minValue = 1;
   }
 
   return moment.duration(seconds, "seconds").format(formatString, {
-    trim: "all"
+    trim: "all",
+    minValue
   });
 };

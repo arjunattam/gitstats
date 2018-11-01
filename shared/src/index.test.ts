@@ -20,4 +20,7 @@ test("duration in words", () => {
 
   // more than a week
   expect(durationInWords(ONE_HOUR * 24 * 9)).toBe("1 week, 2 days");
+
+  // less than a minute
+  expect(durationInWords(30)).toBe("< 1 minute");
 });
