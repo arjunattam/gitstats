@@ -1,11 +1,4 @@
-import {
-  addDays,
-  addHours,
-  addSeconds,
-  distanceInWords,
-  isWithinRange,
-  parse
-} from "date-fns";
+import { addHours } from "date-fns";
 
 function parseISOString(s) {
   const b = s.split(/\D+/);
@@ -21,20 +14,4 @@ export const getChartBounds = period => {
 
 export const plusHours = (date, amount) => {
   return addHours(date, amount);
-};
-
-export const isInWeek = (date, weekStart) => {
-  const start = parse(weekStart);
-  const end = addDays(start, 7);
-  return isWithinRange(date, start, end);
-};
-
-export const getDurationLabel = (seconds: number): string => {
-  if (seconds === 0) {
-    return `--`;
-  }
-
-  const date = new Date();
-  const withSeconds = addSeconds(date, seconds || 0);
-  return distanceInWords(withSeconds, date);
 };

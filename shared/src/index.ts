@@ -1,4 +1,5 @@
 import moment from "moment";
+import "moment-duration-format";
 import { median } from "./utils";
 
 export interface ITeam {
@@ -284,4 +285,17 @@ export const getPRsCommentTime = (
     current: median(getPRDurations(currentPulls, "comment_at", "created_at")),
     previous: median(getPRDurations(previousPulls, "comment_at", "created_at"))
   };
+};
+
+export const durationInWords = (seconds: number) => {
+  const ONE_HOUR = 3600;
+  let formatString = "w [weeks], d [days], h [hours]";
+
+  if (seconds < ONE_HOUR) {
+    formatString = "m [minutes]";
+  }
+
+  return moment.duration(seconds, "seconds").format(formatString, {
+    trim: "all"
+  });
 };

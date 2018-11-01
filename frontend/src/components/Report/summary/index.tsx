@@ -1,8 +1,15 @@
-import { IComment, IPullsAPIResult } from "gitstats-shared";
-import { ICommitsAPIResult, IMember, IPeriod, IRepo } from "gitstats-shared";
+import {
+  IComment,
+  ICommitsAPIResult,
+  IMember,
+  IPeriod,
+  IPullsAPIResult,
+  IRepo
+} from "gitstats-shared";
 import * as React from "react";
 import { Col, Row } from "reactstrap";
 import { BarChart } from "../../Charts/base/bar";
+import { CHART_COLORS } from "../../Charts/base/utils";
 import {
   CommitChartContainer,
   IStreamgraphComment,
@@ -11,9 +18,6 @@ import {
 import { getCommitsChartData, isSelected } from "../base/utils";
 import { GrayContainer } from "../common";
 import { SummaryTable } from "./table";
-
-const BASE_COLOR = `#ffb154`;
-const ALPHA_COLOR = `${BASE_COLOR}60`;
 
 interface IContainerProps {
   repos: IRepo[];
@@ -74,20 +78,15 @@ export class SummaryContainer extends React.Component<IContainerProps, {}> {
 
     return (
       <GrayContainer>
-        <SummaryTable
-          {...this.props}
-          {...this.state}
-          onRepoSelected={this.onRepoSelected}
-          onMemberSelected={this.onMemberSelected}
-        />
+        <h4>Activity summary</h4>
 
         <Row>
           <Col className="col-4">
             <BarChart
               xAxisTitle={"LAST 5 WEEKS"}
               data={chartData}
-              color={ALPHA_COLOR}
-              textColor={"#bbb"}
+              color={CHART_COLORS.commit}
+              textColor={"#666"}
             />
           </Col>
           <Col className="col-8">
@@ -98,6 +97,13 @@ export class SummaryContainer extends React.Component<IContainerProps, {}> {
             />
           </Col>
         </Row>
+
+        <SummaryTable
+          {...this.props}
+          {...this.state}
+          onRepoSelected={this.onRepoSelected}
+          onMemberSelected={this.onMemberSelected}
+        />
       </GrayContainer>
     );
   }

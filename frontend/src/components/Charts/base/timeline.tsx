@@ -3,7 +3,7 @@ import { IPullRequest } from "gitstats-shared";
 import * as React from "react";
 import * as ReactFauxDOM from "react-faux-dom";
 import "./index.css";
-import { addLegend, addXAxis, COLORS, LEGEND_PADDING } from "./utils";
+import { addLegend, addXAxis, CHART_COLORS, LEGEND_PADDING } from "./utils";
 
 interface ITimelineChartProps {
   startDate: Date;
@@ -41,7 +41,8 @@ export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
       .append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`);
-    addLegend(svg, width, COLORS);
+
+    addLegend(svg, width);
 
     // Chart content
     const content = svg
@@ -88,7 +89,7 @@ export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
       .attr("cx", (d, i) => x(new Date(d[0])))
       .attr("cy", d => y(d[1]))
       .attr("r", 3)
-      .attr("fill", COLORS.commit);
+      .attr("fill", CHART_COLORS.commit);
 
     // Plot comments
     repoRoot
@@ -106,7 +107,7 @@ export class TimelineChart extends React.Component<ITimelineChartProps, {}> {
       .attr("cx", (d, i) => x(new Date(d[0])))
       .attr("cy", d => y(d[1]))
       .attr("r", 3)
-      .attr("fill", COLORS.pr_comment);
+      .attr("fill", CHART_COLORS.pr_comment);
 
     // Title with url
     repoRoot

@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 const getTeamLink = (login, service) => {
   switch (service) {
@@ -44,11 +44,11 @@ export const TeamName = ({ name, avatar, login, service }) => {
   );
 };
 
-export const MemberName = ({ login, avatar }) => {
+export const MemberName = ({ name, login, avatar }) => {
   return (
     <div style={{ display: "inline-block" }}>
       <img src={avatar} style={{ width: 25, borderRadius: 2 }} alt={login} />
-      <span className="mx-2">{login}</span>
+      <span className="mx-2">{name}</span>
     </div>
   );
 };

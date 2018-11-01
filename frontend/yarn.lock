@@ -3605,6 +3605,7 @@ gitstats-shared@../shared:
   version "1.0.0"
   dependencies:
     moment "^2.22.2"
+    moment-duration-format "^2.2.2"
     percentile "^1.2.1"
 
 glob-base@^0.3.0:
@@ -5484,6 +5485,10 @@ mkdirp@0.5.x, mkdirp@^0.5.0, mkdirp@^0.5.1, mkdirp@~0.5.0, mkdirp@~0.5.1:
   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-0.5.1.tgz#30057438eac6cf7f8c4767f38648d6697d75c903"
   dependencies:
     minimist "0.0.8"
+
+moment-duration-format@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/moment-duration-format/-/moment-duration-format-2.2.2.tgz#b957612de26016c9ad9eb6087c054573e5127779"
 
 moment@^2.22.2:
   version "2.22.2"

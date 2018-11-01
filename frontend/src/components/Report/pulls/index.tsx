@@ -12,7 +12,8 @@ import { Container as WhiteContainer } from "reactstrap";
 import { PRChartContainer } from "../../Charts/pulls";
 import { getPRsReviewed } from "../base/utils";
 import { Filters } from "../common/filters";
-import { AuthorsTable, ReviewersTable } from "./table";
+import { AuthorsTable } from "./tables/authors";
+import { ReviewersTable } from "./tables/reviewers";
 
 interface IContainerProps {
   repos: IRepo[];
@@ -105,12 +106,14 @@ export class PullsContainer extends React.Component<
         <h3>Code review metrics</h3>
 
         <AuthorsTable
+          repos={this.props.repos}
           members={this.props.members}
           pulls={this.props.pulls}
           period={this.props.period}
         />
 
         <ReviewersTable
+          repos={this.props.repos}
           members={this.props.members}
           pulls={this.props.pulls}
           period={this.props.period}

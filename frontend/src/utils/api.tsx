@@ -52,7 +52,7 @@ const getHeader = () => {
 
   // tslint:disable-next-line:no-string-literal
   headers["Authorization"] = `bearer ${accessToken}`;
-  // headers["X-User-Id"] = ""
+  // headers["X-User-Id"] = "";
   return headers;
 };
 

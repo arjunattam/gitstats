@@ -35,6 +35,7 @@ export class CommitChartContainer extends React.Component<
     return (
       <div>
         <Streamgraph
+          hasPrevComparison={false}
           data={layeredValues}
           prevData={[prevData]}
           startDate={startDate}

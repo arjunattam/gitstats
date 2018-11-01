@@ -41,7 +41,6 @@ export class BarChart extends React.Component<IChartProps, {}> {
     const svg = d3
       .select(div)
       .classed("inline-svg-container", true)
-      .classed("ml-3", true) // Bootstrap margin left
       .append("svg")
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", `0 0 ${width} ${height}`);

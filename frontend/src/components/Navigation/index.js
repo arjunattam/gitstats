@@ -16,7 +16,7 @@ class LogoutLinks extends React.Component {
     return (
       <div>
         <TeamsDropDown teams={teams} />
-        <MemberName login={user.name} avatar={user.avatar} />
+        <MemberName name={user.name} login={user.name} avatar={user.avatar} />
         <Button className="mx-3" onClick={onLogout}>
           Logout
         </Button>

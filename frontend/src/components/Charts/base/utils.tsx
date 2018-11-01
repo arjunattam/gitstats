@@ -3,13 +3,13 @@ import { plusHours } from "../../../utils/date";
 
 export const LEGEND_PADDING = 40;
 
-export const COLORS = {
+export const CHART_COLORS = {
   commit: "#ffb154",
   pr_comment: "#5b88d6"
 };
 
-export const addLegend = (svg, width, colorMap) => {
-  var legend = svg
+export const addLegend = (svg, width) => {
+  const legend = svg
     .append("g")
     .attr("class", "g-legend")
     .attr("transform", `translate(${width / 2 - 40},${LEGEND_PADDING / 2})`);
@@ -17,7 +17,7 @@ export const addLegend = (svg, width, colorMap) => {
   legend
     .append("svg:circle")
     .attr("r", 3)
-    .attr("fill", colorMap.commit);
+    .attr("fill", CHART_COLORS.commit);
 
   legend
     .append("text")
@@ -29,7 +29,7 @@ export const addLegend = (svg, width, colorMap) => {
     .append("svg:circle")
     .attr("r", 3)
     .attr("cx", "50")
-    .attr("fill", colorMap.pr_comment);
+    .attr("fill", CHART_COLORS.pr_comment);
 
   legend
     .append("text")
@@ -39,16 +39,16 @@ export const addLegend = (svg, width, colorMap) => {
 };
 
 export const addXAxis = (svg, startDate, endDate, x, actualHeight) => {
-  let xTicks = [];
+  const xTicks = [];
 
   for (let i = new Date(startDate); i <= endDate; i = plusHours(i, 12)) {
     xTicks.push(new Date(i));
   }
 
-  var xAxis = d3
+  const xAxis = d3
     .axisBottom(x)
     .tickValues(xTicks)
-    .tickFormat(function(d) {
+    .tickFormat((d: any) => {
       if (d.getUTCHours() === 12) {
         return d3.timeFormat("%A")(d);
       }
@@ -59,7 +59,7 @@ export const addXAxis = (svg, startDate, endDate, x, actualHeight) => {
     .call(xAxis);
 
   // Remove ticks for the middle value
-  svg.selectAll("line").attr("y2", function(d) {
+  svg.selectAll("line").attr("y2", d => {
     return d && d.getUTCHours() === 12 ? 0 : 6;
   });
 };

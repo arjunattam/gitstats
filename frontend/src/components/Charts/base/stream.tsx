@@ -3,7 +3,7 @@ import * as React from "react";
 import * as ReactFauxDOM from "react-faux-dom";
 import { plusHours } from "../../../utils/date";
 import "./index.css";
-import { addLegend, addXAxis, COLORS, LEGEND_PADDING } from "./utils";
+import { addLegend, addXAxis, CHART_COLORS, LEGEND_PADDING } from "./utils";
 
 const INTERVAL_SIZE = 4; // hours
 const MIN_Y = 3;
@@ -21,6 +21,7 @@ interface IStreamgraphProps {
   endDate: Date;
   data: IStreamgraphDataElement[];
   prevData: IStreamgraphDataElement[];
+  hasPrevComparison: boolean;
 }
 
 interface IStreamgraphState {
@@ -39,11 +40,15 @@ export class Streamgraph extends React.Component<
 
   public render() {
     const div = new ReactFauxDOM.Element("div");
-    const { startDate, endDate } = this.props;
+    const { startDate, endDate, hasPrevComparison } = this.props;
     const data = this.parsedData();
     const prevData = this.parsedPrevData();
-    const maxY = this.getMaxY([...data, ...prevData]);
     const hoverContents = this.getHoverContent(data);
+    let maxY = this.getMaxY([...data, ...prevData]);
+
+    if (!hasPrevComparison) {
+      maxY = this.getMaxY([...data]);
+    }
 
     const width = 600;
     const height = 150 + LEGEND_PADDING;
@@ -67,7 +72,7 @@ export class Streamgraph extends React.Component<
       .domain([0, maxY + 2])
       .range([actualHeight, 0]);
 
-    addLegend(svg, width, COLORS);
+    addLegend(svg, width);
 
     // Chart content
     const content = svg
@@ -95,7 +100,7 @@ export class Streamgraph extends React.Component<
           const { hoverType } = this.state;
           const isAlpha = hoverType && hoverType !== layerType;
           const alpha = isAlpha ? "9d" : "";
-          const baseColor = COLORS[layerType];
+          const baseColor = CHART_COLORS[layerType];
           return `${baseColor}${alpha}`;
         }
       })
@@ -155,30 +160,34 @@ export class Streamgraph extends React.Component<
     }
 
     // Plot previous data - with no fill
-    const line = d3
-      .line()
-      .curve(d3.curveMonotoneX)
-      .x((d: any) => x(d.x))
-      .y((d: any) => y(d.y.end));
-    content
-      .append("g")
-      .selectAll("path")
-      .data(prevData)
-      .enter()
-      .append("path")
-      .attr("d", line)
-      .attr("class", "no-pointer-events")
-      .attr("stroke", "#333")
-      .attr("stroke-width", "1")
-      .attr("stroke-dasharray", "5,2")
-      .attr("fill", "none");
-    addXAxis(content, startDate, endDate, x, actualHeight);
+    if (hasPrevComparison) {
+      const line = d3
+        .line()
+        .curve(d3.curveMonotoneX)
+        .x((d: any) => x(d.x))
+        .y((d: any) => y(d.y.end));
+      content
+        .append("g")
+        .selectAll("path")
+        .data(prevData)
+        .enter()
+        .append("path")
+        .attr("d", line)
+        .attr("class", "no-pointer-events")
+        .attr("stroke", "#333")
+        .attr("stroke-width", "1")
+        .attr("stroke-dasharray", "5,2")
+        .attr("fill", "none");
+    }
 
+    // Add axes
+    addXAxis(content, startDate, endDate, x, actualHeight);
     const yAxis = d3.axisLeft(y).ticks(2);
     content
       .append("g")
       .attr("transform", `translate(${margin},0)`)
       .call(yAxis);
+
     return div.toReact();
   }
 

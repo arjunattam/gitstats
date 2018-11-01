@@ -1,6 +1,6 @@
 import { getPRsCommentTime, getPRsMerged } from "gitstats-shared";
 import * as React from "react";
-import { getDurationLabel } from "src/utils/date";
+// import { getDurationLabel } from "src/utils/date";
 import Table from "./table";
 import { getCommits, Value } from "./utils";
 
@@ -63,7 +63,7 @@ export const ReposTable = ({ period, reposDeprecated, pulls, isLoading }) => {
         <RepoName {...d} />,
         <Value {...d.commits} />,
         <Value {...d.prsMerged} />,
-        <Value {...d.commentTimes} transformer={getDurationLabel} />
+        <Value {...d.commentTimes} />
       ]
     };
   });
