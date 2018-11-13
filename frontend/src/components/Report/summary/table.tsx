@@ -8,6 +8,7 @@ import {
 import * as React from "react";
 import { Col, Row } from "reactstrap";
 import { InlineStacked } from "src/components/Charts/base/inline";
+import { MemberName } from "src/components/Common";
 import { getComments, getCommits } from "../base/utils";
 import { TitleLoader } from "../loaders";
 
@@ -15,7 +16,7 @@ const ScrollableTable = ({ maxHeight, colgroup, tbody, thead }) => {
   return (
     <div>
       <div>
-        <table className="table mb-0">{thead}</table>
+        <table className="table table-sm mb-0">{thead}</table>
       </div>
       <div style={{ maxHeight, overflow: "auto" }}>
         <table className="table">
@@ -28,7 +29,7 @@ const ScrollableTable = ({ maxHeight, colgroup, tbody, thead }) => {
 };
 
 interface IListValue {
-  label: string;
+  label: any;
   value: string;
   commits: number;
   comments: number;
@@ -177,7 +178,7 @@ export class SummaryTable extends React.Component<ITableProps, {}> {
           member.login
         ]),
         commits: getCommits(commits, weekUnix, selectedRepos, [member.login]),
-        label: getMemberName(member.login, members),
+        label: <MemberName {...member} />,
         value: member.login,
         isLoading: isLoadingRepos
       };

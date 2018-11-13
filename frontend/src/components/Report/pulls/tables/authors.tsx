@@ -76,7 +76,7 @@ export class AuthorsTable extends BasePRMetricsTable {
       value: "total"
     };
     return {
-      member: totalValues.member,
+      name: "All authors",
       values: [
         totalValues.prsOpened,
         totalValues.prsApproved,

@@ -27,6 +27,17 @@ const TableRow = ({ member, values }) => {
   );
 };
 
+const TotalRow = ({ name, values }) => {
+  return (
+    <tr className="table-active">
+      <td>{name}</td>
+      {values.map((value, index) => (
+        <td key={`total-${index}`}>{value}</td>
+      ))}
+    </tr>
+  );
+};
+
 const RepoFilter = ({ repos, changeRepo }) => {
   const repoItems = repos.map(repo => ({ value: repo.name, label: repo.name }));
   return (
@@ -64,9 +75,12 @@ export abstract class BasePRMetricsTable extends React.Component<
       <div className="my-4">
         {this.renderTitle()}
         <table className="table">
-          <thead>{this.getTableHeadRow()}</thead>
+          <thead>
+            {this.getTableHeadRow()}
+            <TotalRow {...totalValues} />
+          </thead>
           <tbody>
-            {[totalValues, ...values].map(row => {
+            {values.map(row => {
               return <TableRow {...row} key={row.member.login} />;
             })}
           </tbody>

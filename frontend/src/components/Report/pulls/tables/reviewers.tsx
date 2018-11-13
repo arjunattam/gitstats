@@ -35,7 +35,6 @@ export class ReviewersTable extends BasePRMetricsTable {
     const { period, pulls } = this.props;
     const selectedRepos = !!selectedRepo ? [selectedRepo] : [];
     const comments = getComments(pulls, period.current, selectedRepos, []);
-    const member = { name: "TOTAL", login: "total" };
     const prsAssigned = 0;
     const prsReviewed = getPRsReviewed(
       pulls,
@@ -47,7 +46,7 @@ export class ReviewersTable extends BasePRMetricsTable {
       getPRsCommentTime(pulls, period, selectedRepo, undefined).current
     );
     return {
-      member,
+      name: "All reviewers",
       values: [prsAssigned, prsReviewed, comments, reviewTime]
     };
   }

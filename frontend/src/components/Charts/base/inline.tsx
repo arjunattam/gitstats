@@ -38,5 +38,14 @@ export const InlineStacked: React.SFC<IInlineStackedProps> = props => {
     .attr("height", "100%")
     .attr("width", comments);
 
+  // Disabled text, since it gets scaled horizontally
+  // content
+  //   .append("text")
+  //   .attr("text-anchor", "middle")
+  //   .attr("fill", "#FFF")
+  //   .attr("x", commits)
+  //   .attr("y", height / 2)
+  //   .text(commits);
+
   return div.toReact();
 };

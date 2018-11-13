@@ -47,7 +47,10 @@ export class Report extends React.Component<IReportProps, IReportState> {
     if (newOwner !== prevOwner) {
       this.setState({
         isLoading: true,
-        members: []
+        members: [],
+        repos: [],
+        pulls: [],
+        commits: []
       });
       this.update();
     }
@@ -157,9 +160,17 @@ export class Report extends React.Component<IReportProps, IReportState> {
     const weekStart = this.getWeekStart();
 
     setTimeout(() => {
-      getCommits(teamLogin, repoName, weekStart).then(result =>
-        this.handlePendingResponse(repoName)
-      );
+      getCommits(teamLogin, repoName, weekStart).then(result => {
+        const { commits } = this.state;
+        const { is_pending } = result;
+        this.setState({
+          commits: [...commits, result]
+        });
+
+        if (is_pending) {
+          this.handlePendingResponse(repoName);
+        }
+      });
     }, 2000);
   };
 }
